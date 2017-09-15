@@ -5,13 +5,31 @@
   
   <title>Medium-Well</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta property="og:type" content="website">
+  <meta name="description" content="libco 源码走读 · 协程实现最近正在计划做一个c++上的Actor模型框架, 准备利用libco作为协程调度器, 需要对libco进行改造, 读起了libco源码 0. 源码蓝图0.1 功能假设读源码前先大概了解代码的功能, 然后思考如果是自己会怎么去设计这份代码, 做出了假设     * libco作为一个协程库, 必须具有调度器, 而协程一般用于和多路复用IO结合以利用等待IO的时间">
+<meta property="og:type" content="article">
 <meta property="og:title" content="Medium-Well">
-<meta property="og:url" content="https://zerolocusta.github.io/index.html">
+<meta property="og:url" content="https://zerolocusta.github.io/2017/09/10/libco 源码走读 · 协程实现/index.html">
 <meta property="og:site_name" content="Medium-Well">
+<meta property="og:description" content="libco 源码走读 · 协程实现最近正在计划做一个c++上的Actor模型框架, 准备利用libco作为协程调度器, 需要对libco进行改造, 读起了libco源码 0. 源码蓝图0.1 功能假设读源码前先大概了解代码的功能, 然后思考如果是自己会怎么去设计这份代码, 做出了假设     * libco作为一个协程库, 必须具有调度器, 而协程一般用于和多路复用IO结合以利用等待IO的时间">
 <meta property="og:locale" content="zh">
+<meta property="og:image" content="https://zerolocusta.github.io/2017/09/10/libco%20源码走读%20·%20协程实现/libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-14%20%E4%B8%8B%E5%8D%8811.56.26.png">
+<meta property="og:image" content="https://zerolocusta.github.io/2017/09/10/libco%20源码走读%20·%20协程实现/libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8A%E5%8D%888.56.12.png">
+<meta property="og:image" content="https://zerolocusta.github.io/2017/09/10/libco%20源码走读%20·%20协程实现/libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8A%E5%8D%888.54.09.png">
+<meta property="og:image" content="https://zerolocusta.github.io/2017/09/10/libco%20源码走读%20·%20协程实现/libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8A%E5%8D%888.52.19.png">
+<meta property="og:image" content="https://zerolocusta.github.io/2017/09/10/libco%20源码走读%20·%20协程实现/libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8A%E5%8D%889.25.52.png">
+<meta property="og:image" content="https://zerolocusta.github.io/2017/09/10/libco%20源码走读%20·%20协程实现/libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8A%E5%8D%889.37.52.png">
+<meta property="og:image" content="https://zerolocusta.github.io/2017/09/10/libco%20源码走读%20·%20协程实现/libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%884.05.19.png">
+<meta property="og:image" content="https://zerolocusta.github.io/2017/09/10/libco%20源码走读%20·%20协程实现/libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%884.17.00.png">
+<meta property="og:image" content="https://zerolocusta.github.io/2017/09/10/libco%20源码走读%20·%20协程实现/libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.18.14.png">
+<meta property="og:image" content="https://zerolocusta.github.io/2017/09/10/libco%20源码走读%20·%20协程实现/libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.23.57.png">
+<meta property="og:image" content="https://zerolocusta.github.io/2017/09/10/libco%20源码走读%20·%20协程实现/libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.24.06.png">
+<meta property="og:image" content="https://zerolocusta.github.io/2017/09/10/libco%20源码走读%20·%20协程实现/libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.16.52%201.png">
+<meta property="og:image" content="https://zerolocusta.github.io/2017/09/10/libco%20源码走读%20·%20协程实现/libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.18.14%201.png">
+<meta property="og:updated_time" content="2017-09-15T08:17:56.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Medium-Well">
+<meta name="twitter:description" content="libco 源码走读 · 协程实现最近正在计划做一个c++上的Actor模型框架, 准备利用libco作为协程调度器, 需要对libco进行改造, 读起了libco源码 0. 源码蓝图0.1 功能假设读源码前先大概了解代码的功能, 然后思考如果是自己会怎么去设计这份代码, 做出了假设     * libco作为一个协程库, 必须具有调度器, 而协程一般用于和多路复用IO结合以利用等待IO的时间">
+<meta name="twitter:image" content="https://zerolocusta.github.io/2017/09/10/libco%20源码走读%20·%20协程实现/libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-14%20%E4%B8%8B%E5%8D%8811.56.26.png">
   
     <link rel="alternate" href="/atom.xml" title="Medium-Well" type="application/atom+xml">
   
@@ -64,9 +82,7 @@
   </div>
 </header>
       <div class="outer">
-        <section id="main">
-  
-    <article id="post-libco 源码走读 · 协程实现" class="article article-type-post" itemscope itemprop="blogPost">
+        <section id="main"><article id="post-libco 源码走读 · 协程实现" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     <a href="/2017/09/10/libco 源码走读 · 协程实现/" class="article-date">
   <time datetime="2017-09-10T13:18:22.000Z" itemprop="datePublished">2017-09-10</time>
@@ -218,10 +234,9 @@ _即使libco同时支持x86和amd64架构, 但是为了简化文章, 这里只�
     </footer>
   </div>
   
-</article>
-
-
+    
   
+</article>
 
 </section>
         
