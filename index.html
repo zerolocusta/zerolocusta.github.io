@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>libco 源码走读 · 协程实现</title>
+        <title>libco 源码阅读 · 协程实现</title>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="created" content="2017-09-10T21:18:22+0800"/>
-        <meta name="modified" content="2017-09-15T16:39:52+0800"/>
+        <meta name="modified" content="2017-09-15T16:52:23+0800"/>
         <meta name="tags" content=""/>
         <meta name="last device" content="LOCUSTCHEN-MB0"/>
     </head>
     <body>
         <div class="note-wrapper">
-            <h1>libco 源码走读 · 协程实现</h1>
+            <h1>libco 源码阅读 · 协程实现</h1>
 <p><code class='code-inline'>最近正在计划做一个c++上的Actor模型框架, 准备利用libco作为协程调度器, 需要对libco进行改造, 读起了libco源码</code></p>
 <br>
 <h1>0. 源码蓝图</h1>
@@ -84,7 +84,7 @@
 </span>    co_resume(bar_co);
 }
 </code></pre>	运行结果
-				<img src='libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-14%20%E4%B8%8B%E5%8D%889.00.40.png'>
+				<img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-14%20%E4%B8%8B%E5%8D%889.00.40.png'>
 	符合我们对协程的预期和理解, 接下来应该深入<code class='code-inline'>co_create</code>, <code class='code-inline'>co_resume</code> 和 <code class='code-inline'>co_yield_ct()</code>去理解libco究竟如何实现这个过程了.
 <hr>
 <h2>0.3 跟踪<code class='code-inline'>co_create</code></h2>
@@ -178,7 +178,7 @@
 </li><li>			<code class='code-inline'>self</code>主协程
 </li><li>			<code class='code-inline'>pCallStack</code> 协程调用栈
 </li></ul>	<code class='code-inline'>stCoRoutine_t</code>结构体 和 <code class='code-inline'>self</code>主协程延后关注, 先看看当前<code class='code-inline'>pCallStack</code>的样子
-				<img src='libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-14%20%E4%B8%8B%E5%8D%889.58.18.png'>
+				<img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-14%20%E4%B8%8B%E5%8D%889.58.18.png'>
 	<code class='code-inline'>self</code>协程被置入<code class='code-inline'>pCallStack</code>的底部
 <hr>
 <h3>0.3.4 <code class='code-inline'>stCoRoutine_t</code>结构体</h3>
@@ -220,7 +220,7 @@
 <hr>
 <h4>0.3.5.1 x86处理器中的寄存器</h4>
 	这里只关注主要用到的几个
-<img src='libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-14%20%E4%B8%8B%E5%8D%8811.56.26.png'>
+<img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-14%20%E4%B8%8B%E5%8D%8811.56.26.png'>
 	x86主要用到这几个寄存器
 <hr>
 <h4>0.3.5.2 x86调用协定</h4>
@@ -262,11 +262,11 @@
 </li><li>		<code class='code-inline'>ret</code>                       : 从栈顶取得eip地址, 返回至该地址
 </li></ul>	可视化这个函数调用
 <ol start="1"><li><code class='code-inline'>call callee</code>前
-</li></ol><img src='libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8A%E5%8D%888.56.12.png'>
+</li></ol><img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8A%E5%8D%888.56.12.png'>
 <ol start="2"><li><code class='code-inline'>call callee时</code>
-</li></ol><img src='libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8A%E5%8D%888.54.09.png'>
+</li></ol><img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8A%E5%8D%888.54.09.png'>
 <ol start="3"><li><code class='code-inline'>call callee后 - leave前</code>
-</li></ol><img src='libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8A%E5%8D%888.52.19.png'>
+</li></ol><img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8A%E5%8D%888.52.19.png'>
 	函数调用就是操纵CPU寄存器和内存栈, 有了这样的概念, 那么我们在协程切换时, 直接利用<b>汇编</b>操纵寄存器和栈就好啦.
 <ol start="1"><li>保存当前协程所处寄存器状态
 </li><li>回复需要载入协程的寄存器状态
@@ -276,10 +276,10 @@
 	操作系统在载入程序时, 会给一个线程分配<b>一个</b>固定大小的栈, 而在libco中, 一个线程里有多个协程
 	先来看看所有协程都使用操作系统分配的一个栈会怎样
 	仍然利用上面的<mark>章节0.2 简单尝试</mark>中实例代码展示
-<img src='libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8A%E5%8D%889.25.52.png'>
+<img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8A%E5%8D%889.25.52.png'>
 	如果只有一个栈,  在<code class='code-inline'>co_yield_ct</code>时, <code class='code-inline'>foo_co</code>的栈帧被抹去, 可是这时<code class='code-inline'>foo_co</code>还没执行完啊, 抹去了<code class='code-inline'>foo_co</code>栈帧, 那么就没办法恢复<code class='code-inline'>foo_co</code>被挂起前状态了.
 	所以, 必须要有一个地方存放协程的栈帧, 可以申请堆内存去存放协程的栈帧
-<img src='libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8A%E5%8D%889.37.52.png'>
+<img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8A%E5%8D%889.37.52.png'>
 	利用汇编, 将esp和ebp指向我们申请的堆内存就好了, 这样程序运行的时候从esp和ebp取得的就是堆内存中的地址
 <hr>
 <h3>0.3.6 <code class='code-inline'>coctx_t</code>结构体</h3>
@@ -345,7 +345,7 @@
 	<span class="sf_code_syntax_keyword">return</span> <span class="sf_code_syntax_number">0</span>;
 }
 </code></pre>	调用<code class='code-inline'>coctx_make</code>后, 堆中协程栈和<code class='code-inline'>coctx_t</code>结构体状态
-<img src='libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%884.05.19.png'>
+<img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%884.05.19.png'>
 <hr>
 <h3>0.3.8 跟踪<code class='code-inline'>co_create_env</code></h3>
 <code class='code-inline'>co_create_env</code>用于申请协程结构体<code class='code-inline'>stCoRoutine_t</code>的内存及协程栈的内存
@@ -455,7 +455,7 @@
 </span>	<span class="sf_code_syntax_keyword">return</span> <span class="sf_code_syntax_number">0</span>;
 }
 </code></pre>	再看在调用<code class='code-inline'>coctx_make(&co-&gt;ctx, (coctx_pfn_t)CoRoutineFunc, co, 0);</code>后,   堆中协程栈和<code class='code-inline'>coctx_t</code>结构体状态.
-<img src='libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%884.17.00.png'>
+<img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%884.17.00.png'>
 <hr>
 <h3>0.4.2 回到<code class='code-inline'>co_resume</code></h3>
 	同样以<mark>章节0.2 简单尝试</mark>中实例代码为例, 标上行号
@@ -477,9 +477,9 @@
 </span><span class="sf_code_syntax_number">16</span>    co_resume(bar_co);
 <span class="sf_code_syntax_number">17</span> }
 </code></pre>	在第10行初次载入<code class='code-inline'>foo_co</code>的时候, <code class='code-inline'>env-&gt;pCallStack</code>的状态,
-<img src='libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.18.14.png'>
+<img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.18.14.png'>
 
-	调用<code class='code-inline'>co_resume</code>增加pCallStack栈大小之后的状态                                            <img src='libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.16.52.png'> 
+	调用<code class='code-inline'>co_resume</code>增加pCallStack栈大小之后的状态                                            <img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.16.52.png'> 
 <hr>
 <h3>0.4.1 <code class='code-inline'>co_swap</code>函数, 切换协程</h3>
 
@@ -519,9 +519,9 @@
 	ret
 </code></pre>	对于<mark>章节0.2 简单尝试</mark>中初次<code class='code-inline'>co_resume</code>中的<code class='code-inline'>co_swap</code>来说, 可视化后的图
 <ol start="1"><li>保存<code class='code-inline'>self</code>现场
-</li></ol><img src='libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.23.57.png'>
+</li></ol><img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.23.57.png'>
 <ol start="2"><li>恢复<code class='code-inline'>foo_co</code>现场
-</li></ol><img src='libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.24.06.png'>
+</li></ol><img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.24.06.png'>
 <ol start="3"><li>CPU会自动从eip寄存器去下一条指令地址, 即此时载入foo函数
 </li></ol><hr>
 <h2>跟踪<code class='code-inline'>co_yield_ct</code></h2>
@@ -554,9 +554,9 @@
     <span class="sf_code_syntax_keyword">return</span> <span class="sf_code_syntax_number">NULL</span>;
 }
 </code></pre>	<code class='code-inline'>foo</code>函数在调用<code class='code-inline'>co_yield_ct</code>前, pCallStack的状态
-<img src='libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.16.52.png'>
+<img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.16.52%201.png'>
 	在调用<code class='code-inline'>co_yield_ct</code>后, pCallStack的状态
-<img src='libco%20%E6%BA%90%E7%A0%81%E8%B5%B0%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.18.14.png'>
+<img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.18.14%201.png'>
 	然后调用<code class='code-inline'>co_swap</code>回到<code class='code-inline'>self</code>协程中保存的现场
 <hr>
 <h2>未解问题</h2>
