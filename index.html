@@ -5,7 +5,7 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="created" content="2017-09-10T21:18:22+0800"/>
-        <meta name="modified" content="2017-09-15T16:52:23+0800"/>
+        <meta name="modified" content="2017-09-15T17:26:55+0800"/>
         <meta name="tags" content=""/>
         <meta name="last device" content="LOCUSTCHEN-MB0"/>
     </head>
@@ -154,7 +154,7 @@
 	<span class="sf_code_syntax_comment">// 初始化调用栈大小
 </span>	env-&gt;iCallStackSize = <span class="sf_code_syntax_number">0</span>;
 
-	<span class="sf_code_syntax_comment">// 创建一个self协程
+	<span class="sf_code_syntax_comment">// 创建一个self协程, self协程并没有入口函数!
 </span>	<span class="sf_code_syntax_project">struct</span> stCoRoutine_t *self = co_create_env(env, <span class="sf_code_syntax_number">NULL</span>, <span class="sf_code_syntax_number">NULL</span>, <span class="sf_code_syntax_number">NULL</span>);
 	<span class="sf_code_syntax_comment">// 设置self协程为当前线程的主协程
 </span>	self-&gt;cIsMain = <span class="sf_code_syntax_number">1</span>;
@@ -205,7 +205,7 @@
 	<span class="sf_code_syntax_project">char</span>* save_buffer;
 	stCoSpec_t aSpec[<span class="sf_code_syntax_number">1024</span>];
 };
-</code></pre>	需要关注<code class='code-inline'>coctx_t</code>和<code class='code-inline'>stStackMem_t</code>这个结构体, 因为 恢复<i>保存(resume</i>yield) 协程的运行状态就靠他了.
+</code></pre>	需要关注<code class='code-inline'>coctx_t</code>和<code class='code-inline'>stStackMem_t</code>这个结构体, 因为 恢复\保存(resume\yield) 协程的运行状态就靠他了.
 <hr>
 <h3>0.3.5 <code class='code-inline'>coctx_t</code> 和 <code class='code-inline'>stStackMem_t</code></h3>
 
@@ -269,7 +269,7 @@
 </li></ol><img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8A%E5%8D%888.52.19.png'>
 	函数调用就是操纵CPU寄存器和内存栈, 有了这样的概念, 那么我们在协程切换时, 直接利用<b>汇编</b>操纵寄存器和栈就好啦.
 <ol start="1"><li>保存当前协程所处寄存器状态
-</li><li>回复需要载入协程的寄存器状态
+</li><li>恢复需要载入协程的寄存器状态
 </li></ol><hr>
 <h4>0.3.5.3 操作系统如何载入程序、分配内存并运行的</h4>
 	寄存器的问题解决了, 但是栈的问题还没解决
@@ -478,7 +478,6 @@
 <span class="sf_code_syntax_number">17</span> }
 </code></pre>	在第10行初次载入<code class='code-inline'>foo_co</code>的时候, <code class='code-inline'>env-&gt;pCallStack</code>的状态,
 <img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.18.14.png'>
-
 	调用<code class='code-inline'>co_resume</code>增加pCallStack栈大小之后的状态                                            <img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.16.52.png'> 
 <hr>
 <h3>0.4.1 <code class='code-inline'>co_swap</code>函数, 切换协程</h3>
@@ -517,12 +516,12 @@
 
 	xorl %eax, %eax
 	ret
-</code></pre>	对于<mark>章节0.2 简单尝试</mark>中初次<code class='code-inline'>co_resume</code>中的<code class='code-inline'>co_swap</code>来说, 可视化后的图
+</code></pre>	对于<mark>章节0.2 简单尝试</mark>中初次<code class='code-inline'>co_resume(foo_co)</code>中的<code class='code-inline'>co_swap</code>来说, 可视化后的图
 <ol start="1"><li>保存<code class='code-inline'>self</code>现场
 </li></ol><img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.23.57.png'>
 <ol start="2"><li>恢复<code class='code-inline'>foo_co</code>现场
-</li></ol><img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.24.06.png'>
-<ol start="3"><li>CPU会自动从eip寄存器去下一条指令地址, 即此时载入foo函数
+</li></ol><img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%885.13.05.png'>
+<ol start="3"><li>CPU会自动从eip寄存器去下一条指令地址, 即此时载入<code class='code-inline'>CoRoutineFunc</code>函数, 而<code class='code-inline'>CoRoutineFunc</code>载入的协程<code class='code-inline'>co</code>中记录的<code class='code-inline'>foo</code>函数
 </li></ol><hr>
 <h2>跟踪<code class='code-inline'>co_yield_ct</code></h2>
 创建、载入协程都说完了, 然后就是挂起协程的<code class='code-inline'>co_yield_ct</code>了吧
@@ -555,9 +554,10 @@
 }
 </code></pre>	<code class='code-inline'>foo</code>函数在调用<code class='code-inline'>co_yield_ct</code>前, pCallStack的状态
 <img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.16.52%201.png'>
+
 	在调用<code class='code-inline'>co_yield_ct</code>后, pCallStack的状态
 <img src='libco%20%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%20%C2%B7%20%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-15%20%E4%B8%8B%E5%8D%8812.18.14%201.png'>
-	然后调用<code class='code-inline'>co_swap</code>回到<code class='code-inline'>self</code>协程中保存的现场
+	然后调用<code class='code-inline'>co_swap</code>回到<code class='code-inline'>self</code>协程中保存的现场, 继续执行.
 <hr>
 <h2>未解问题</h2>
 本章只探讨了libco中协程的基本操作, libco还有更多特性
