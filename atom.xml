@@ -4,7 +4,7 @@
   <title><![CDATA[zerolocust]]></title>
   <link href="zerolocusta.github.io/atom.xml" rel="self"/>
   <link href="zerolocusta.github.io/"/>
-  <updated>2017-09-21T19:46:45+08:00</updated>
+  <updated>2017-09-22T09:05:57+08:00</updated>
   <id>zerolocusta.github.io/</id>
   <author>
     <name><![CDATA[]]></name>
@@ -605,6 +605,7 @@ int co_cond_timedwait(stCoCond_t *, int timeout_ms);
 <ul>
 <li>协程共享栈</li>
 <li>系统钩子</li>
+<li>闭包</li>
 </ul>
 
 <p>之后再探讨</p>
@@ -1345,6 +1346,7 @@ void co_yield_env(stCoRoutineEnv_t *env)
 <li>协程共享栈</li>
 <li>co_eventloop</li>
 <li>系统钩子</li>
+<li>闭包</li>
 </ul>
 
 <p>之后再探讨</p>
