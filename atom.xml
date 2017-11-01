@@ -4,7 +4,7 @@
   <title><![CDATA[zerolocust]]></title>
   <link href="zerolocusta.github.io/atom.xml" rel="self"/>
   <link href="zerolocusta.github.io/"/>
-  <updated>2017-09-22T09:05:57+08:00</updated>
+  <updated>2017-09-22T10:06:09+08:00</updated>
   <id>zerolocusta.github.io/</id>
   <author>
     <name><![CDATA[]]></name>
@@ -12,6 +12,2830 @@
   </author>
   <generator uri="http://www.coderforart.com/">CoderForArt</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Node.js设计模式 · 第六章]]></title>
+    <link href="zerolocusta.github.io/15087314678145.html"/>
+    <updated>2017-10-23T12:04:27+08:00</updated>
+    <id>zerolocusta.github.io/15087314678145.html</id>
+    <content type="html"><![CDATA[
+<h2 id="toc_0">Design Patterns</h2>
+
+<blockquote>
+<p>经典设计模式在JS中的实现与应用</p>
+</blockquote>
+
+<h2 id="toc_1">摘要</h2>
+
+<ul>
+<li>Factory</li>
+<li>Revealing constructor pattern</li>
+<li>Proxy</li>
+<li>Decorator</li>
+<li>Adapter</li>
+<li>Strategy</li>
+<li>State</li>
+<li>Template</li>
+<li>Middleware</li>
+<li>Command</li>
+</ul>
+
+<h3 id="toc_2">Factory</h3>
+
+<blockquote>
+<p>工厂模式</p>
+</blockquote>
+
+<p>经典工厂模式, 根据不同参数返回不同的示例</p>
+
+<pre><code class="language-js">// Image 基类
+class Image {
+  constructor(path) {
+    this.path = path;
+  }
+};
+// 继承自 Image, 用于表示 Gif 图像
+class ImageGif extends Image {
+  constructor(path) {
+    if (!path.match(/\.gif/)) {
+      throw new Error(`${path} is not a GIF image`);
+    }
+    super(path);
+  }
+};
+// 继承自 Image, 用于表示 Jpg 图像
+class ImageJpg extends Image {
+  constructor(path) {
+    if (!path.match(/\.jpe?g$/)) {
+      throw new Error(`${path} is not a JPEG image`);
+    }
+    super(path);
+  }
+};
+// 继承自 Image, 用于表示 Png 图像
+class ImagePng extends Image {
+  constructor(path) {
+    if (!path.match(/\.png$/)) {
+      throw new Error(`${path} is not a PNG image`);
+    }
+    super(path);
+  }
+};
+// 工厂函数, 根据不同的文件名创建相应的图像实例
+function createImage(name) {
+  if(name.match(/\.jpe?g$/)) {
+    return new ImageJpeg(name);
+  } else if(name.match(/\.gif$/)) {
+    return new ImageGif(name);
+  } else if(name.match(/\.png$/)) {
+    return new ImagePng(name);
+  } else {
+    throw new Exception(&#39;Unsupported format&#39;);
+  }
+}
+</code></pre>
+
+<h4 id="toc_3">A mechanism to enforce encapsulation</h4>
+
+<blockquote>
+<p>利用工厂模式将封装性引入JavaScript</p>
+</blockquote>
+
+<ul>
+<li>利用闭包特性, 对外部属性进行封装, 避免通过对象直接访问私有属性</li>
+</ul>
+
+<pre><code class="language-js">function createPerson(name) {
+  // privateProperties 用于存放私有变量
+  const privateProperties = {};
+  // person 用于模拟类
+  const person = {
+    // 通过Getter 和 Setter访问外部
+    // privateProperties属性
+    setName: name =&gt; {
+      if (!name) throw new Error(&#39;A person must have a name&#39;);
+      privateProperties.name = name;
+    },
+    getName: () =&gt; {
+      return privateProperties.name;
+    }
+  };
+  
+  person.setName(name);
+  return person;
+}
+// 利用 createPerson 工厂函数创建person实例
+const person = createPerson(&#39;James Joyce&#39;);
+console.log(person.getName(), person);
+</code></pre>
+
+<h4 id="toc_4">Composable factory functions</h4>
+
+<blockquote>
+<p>利用第三方库<code>stampit</code>创建及组合工厂函数</p>
+</blockquote>
+
+<p>这章节里将一个对象的各种元素, 例如属性, 方法, 拆分为多个模块, 最后将他们组合起来, 利用工厂模式创建实例.</p>
+
+<p><code>stampit</code>有几个主要方法用于创建模块化的类</p>
+
+<ul>
+<li><code>init(...args)</code>: 用于指示创建出的模块构造函数的参数</li>
+<li><code>props(...args)</code>: 用于表示模块中拥有的属性</li>
+<li><code>methods(...args)</code>: 用于表示模块中拥有的方法</li>
+</ul>
+
+<p>附上<code>stampit</code>的<a href="https://github.com/stampit-org/stampit/blob/master/docs/API.md">API</a>文档地址</p>
+
+<p>使用示例:<br/>
+   通过<code>stampit</code>组合创造出具有多种技能的人物.</p>
+
+<pre><code class="language-js">const stampit = require(&#39;stampit&#39;);
+// 创建角色模块
+const character = stampit().
+props({
+  name: &#39;anonymous&#39;,
+  lifePoints: 100,
+  x: 0,
+  y: 0
+});
+// mover, 具有移动的方法
+const mover = stampit().
+methods({
+  move(xIncr, yIncr) {
+    this.x += xIncr;
+    this.y += yIncr;
+    console.log(`${this.name} moved to [${this.x}, ${this.y}]`);
+  }
+});
+// slasher, 类似于攻击的属性
+const slasher = stampit().
+methods({
+  // 添加 slash 方法
+  slash(direction) {
+    console.log(`${this.name} slashed to the ${direction}`);
+  }
+});
+// 射击
+const shooter = stampit().
+props({
+  // 添加bullets属性
+  bullets: 6
+}).
+methods({
+  // 添加shoot方法
+  shoot(direction) {
+    if (this.bullets &gt; 0) {
+      --this.bullets;
+      console.log(`${this.name} shoot to the ${direction}`);
+    }
+  }
+});
+// 类似于多继承, 利用compose方法将多个特性组合起来
+const runner = stampit.compose(character, mover);
+const samurai = stampit.compose(character, mover, slasher);
+const sniper = stampit.compose(character, shooter);
+const gunslinger = stampit.compose(character, mover, shooter);
+const westernSamurai = stampit.compose(gunslinger, samurai);
+
+const gojiro = westernSamurai();
+gojiro.name = &#39;Gojiro Kiryu&#39;;
+gojiro.move(1, 0);
+gojiro.slash(&#39;left&#39;);
+gojiro.shoot(&#39;right&#39;);
+</code></pre>
+
+<p><code>stampit.compose</code>将多个模块组合起来, 创建出新的工厂方法, 与类的多继承类似.</p>
+
+<h3 id="toc_5">Revealing constructor pattern</h3>
+
+<blockquote>
+<p>在构造函数中传入<code>executor</code>, 并在构造函数中马上执行</p>
+</blockquote>
+
+<p><code>Promise</code>就是<code>Revealing constructor pattern</code>的一种</p>
+
+<pre><code class="language-js">const p = new Promise(function(resolve, reject){
+    ...
+})
+</code></pre>
+
+<p>在<code>Promise</code>被构造出来的那一刻, 传入构造函数的函数就会被马上执行, 并通过<code>resolve</code>和<code>reject</code>改变和传递<code>promise</code>的状态和结果</p>
+
+<h4 id="toc_6">A read-only event emitter</h4>
+
+<blockquote>
+<p>构造一个以<code>Revealing constructor pattern</code>为原型的只读事件订阅类</p>
+</blockquote>
+
+<ul>
+<li>创建<code>Roee(Read-only Event Emitter)</code></li>
+</ul>
+
+<pre><code class="language-js">const EventEmitter = require(&#39;events&#39;);
+
+class Roee extends EventEmitter {
+  constructor(executor) {
+    super();
+    // 保存emit函数
+    const emit = this.emit.bind(this);
+    // 将 this.emit 置为 undefined
+    // 防止外部使用
+    this.emit = undefined;
+    // 执行executor
+    // 只能在 executor 中执行 emit 函数
+    executor(emit);
+  }
+};
+</code></pre>
+
+<ul>
+<li>利用<code>Roee</code>创建一个<code>ticker</code></li>
+</ul>
+
+<pre><code class="language-js">const ticker = new Roee((emit) =&gt; {
+  let tickCount = 0;
+  // 每秒向 listener 发送 tickCount
+  setInterval(() =&gt; emit(&#39;tick&#39;, tickCount++), 1000);
+});
+
+ticker.on(&#39;tick&#39;, (tickCount) =&gt; console.log(tickCount, &#39;TICK&#39;));
+</code></pre>
+
+<h3 id="toc_7">Proxy</h3>
+
+<blockquote>
+<p>代理模式</p>
+</blockquote>
+
+<p><img src="media/15087314678145/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-26%20%E4%B8%8B%E5%8D%885.47.55.png" alt="屏幕快照 2017-10-26 下午5.47.55"/></p>
+
+<h4 id="toc_8">Techniques for implementing proxies</h4>
+
+<blockquote>
+<p>在JavaScript上实现代理模式的方法</p>
+</blockquote>
+
+<h5 id="toc_9">实现代理模式的技巧</h5>
+
+<ul>
+<li>利用操纵原型链的方法实现代理模式, 两个重要的方法
+
+<ul>
+<li><code>Object.getPrototypeOf</code>: 获取对象/实例的原型</li>
+<li><code>Object.create</code>: 通过原型创建出新的对象, 常用于模拟类的继承</li>
+</ul></li>
+</ul>
+
+<pre><code class="language-js">function createProxy(subject) {
+  // 获取对象原型
+  const proto = Object.getPrototypeOf(subject);
+  // 创建 Proxy 类
+  function Proxy(subject) {
+    this.subject = subject;
+  }
+  // Proxy 继承 subject 的原型
+  Proxy.prototype = Object.create(proto);
+  // 代理 subject.hello 方法
+  Proxy.prototype.hello = function(){
+    return this.subject.hello() + &#39; world!&#39;;
+  };
+  
+  // 返回代理对象实例
+  return new Proxy(subject);
+}
+
+class Greeter {
+  hello() {
+    return &#39;Hello&#39;;
+  }
+
+  goodbye() {
+    return &#39;Goodbye&#39;;
+  }
+}
+
+const greeter = new Greeter();
+const proxy = createProxy(greeter);
+
+console.log(proxy.hello());
+console.log(proxy.goodbye());
+</code></pre>
+
+<p>运行结果<br/>
+<img src="media/15087314678145/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-26%20%E4%B8%8B%E5%8D%887.19.47.png" alt="屏幕快照 2017-10-26 下午7.19.47"/></p>
+
+<h5 id="toc_10">ES6中的<code>Proxy</code>类</h5>
+
+<p>ES6中提供了<code>Proxy</code>类, 这个<code>Proxy</code>与我们所说的代理模式并不是同一样事物, <code>Proxy</code>虽然实现了部分代理的特性, 但是更多是用于对<code>Object</code>的元编程中. </p>
+
+<p><code>Proxy(target, handler)</code>, <code>Proxy</code>的构造函数, <code>target</code>表示需要被代理的类, <code>handler</code>用于设置代理行为.</p>
+
+<p><code>handler</code>提供了相当多的属性用于描述代理的行为, 例如</p>
+
+<ul>
+<li><code>get</code>: 在读取对象中属性时调用</li>
+<li><code>set</code>: 在写入对象属性时调用</li>
+<li><code>has</code>: 对应<code>in</code>操作符</li>
+</ul>
+
+<p>等等方法用于对应语言层面的行为<br/>
+使用示例:</p>
+
+<pre><code class="language-js">const scientist = {
+  name: &#39;nikola&#39;,
+  surname: &#39;tesla&#39;
+};
+
+const uppercaseScientist = new Proxy(scientist, {
+  // 修改读取对象内属性的行为
+  // 对对象属性的值调用 toUpperCase() 并返回
+  get: (target, property) =&gt; target[property].toUpperCase()
+});
+// 运行结果 NIKOLA TESLA
+console.log(uppercaseScientist.name, uppercaseScientist.surname);
+</code></pre>
+
+<h3 id="toc_11">Decorator</h3>
+
+<blockquote>
+<p>装饰器模式</p>
+</blockquote>
+
+<p>相比起代理模式在原对象的方法进行行为的修改, 装饰器模式是在原对象上添加属性或方法.<br/>
+<img src="media/15087314678145/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-26%20%E4%B8%8B%E5%8D%8811.00.29.png" alt="屏幕快照 2017-10-26 下午11.00.29"/></p>
+
+<h4 id="toc_12">Techniques for implementing Decorators</h4>
+
+<blockquote>
+<p>在JavaScript上实现装饰器模式的方法</p>
+</blockquote>
+
+<h5 id="toc_13">实现装饰器模式的技巧</h5>
+
+<p>与实现代理模式类似, 利用操纵原型链的方法为被代理实例添加方法</p>
+
+<pre><code class="language-js">function decorate(component) {
+  const proto = Object.getPrototypeOf(component);
+  
+  function Decorator(component) {
+    this.component = component;
+  }
+  
+  Decorator.prototype = Object.create(proto);
+  
+  //添加新方法
+  Decorator.prototype.greetings = function() {
+    return &#39;Hi!&#39;;
+  };
+  return new Decorator(component);
+}
+
+class Greeter {
+  hello(subject) {
+    return `Hello ${subject}`;
+  }
+}
+
+const decoratedGreeter = decorate(new Greeter());
+console.log(decoratedGreeter.hello(&#39;world&#39;));
+console.log(decoratedGreeter.greetings());
+</code></pre>
+
+<h3 id="toc_14">Adapter</h3>
+
+<blockquote>
+<p>适配器模式<br/>
+<img src="media/15087314678145/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-28%20%E4%B8%8B%E5%8D%888.22.45.png" alt="屏幕快照 2017-10-28 下午8.22.45"/></p>
+</blockquote>
+
+<p><code>Adapter</code>充当中间层, 模拟<code>Adaptee</code>的行为, 以减少对客户端代码原用于调用<code>Adaptee</code>部分的修改.</p>
+
+<h4 id="toc_15">Techniques for implementing Adapters</h4>
+
+<blockquote>
+<p>适配器模式在JavaScript并没有什么需要用到元编程技巧的地方</p>
+</blockquote>
+
+<p>本节展示了一个用于模拟<code>fs</code>模块的<code>Adapter</code>, 而<code>Adapter</code>内部将<code>fs</code>主要方法重定向至访问数据库,并模拟<code>fs</code>模块的行为</p>
+
+<pre><code class="language-js">module.exports = function createFsAdapter(db) {
+  const fs = {};
+  // 模拟 fs.readFile 函数
+  fs.readFile = (filename, options, callback) =&gt; {
+    // 处理 callback come last
+    if (typeof options === &#39;function&#39;) {
+      callback = options;
+      options = {};
+    } else if(typeof options === &#39;string&#39;) {
+      options = {encoding: options};
+    }
+    // 通过 path.resolve 处理文件路径
+    // 从数据库中获取文件数据
+    db.get(path.resolve(filename), {
+        valueEncoding: options.encoding
+      },
+      // 传入 callback
+      (err, value) =&gt; {
+        if(err) {
+          // 模拟fs模块的异常信息
+          if(err.type === &#39;NotFoundError&#39;) {
+            err = new Error(`ENOENT, open &quot;${filename}&quot;`);
+            err.code = &#39;ENOENT&#39;;
+            err.errno = 34;
+            err.path = filename;
+          }
+          return callback &amp;&amp; callback(err);
+        }
+        callback &amp;&amp; callback(null, value);
+      }
+    );
+  };
+  // 模拟fs.writeFile
+  fs.writeFile = (filename, contents, options, callback) =&gt; {
+    if(typeof options === &#39;function&#39;) {
+      callback = options;
+      options = {};
+    } else if(typeof options === &#39;string&#39;) {
+      options = {encoding: options};
+    }
+    // 同样通过path.resolve解析文件路径
+    // 将文件放入数据库中
+    db.put(path.resolve(filename), contents, {
+      valueEncoding: options.encoding
+    }, callback);
+  };
+  // 返回包装后的文件模块
+  return fs;
+};
+</code></pre>
+
+<h3 id="toc_16">Strategy</h3>
+
+<blockquote>
+<p>策略模式</p>
+</blockquote>
+
+<p><img src="media/15087314678145/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-29%20%E4%B8%8B%E5%8D%8812.16.50.png" alt="屏幕快照 2017-10-29 下午12.16.50"/></p>
+
+<p>策略模式对外暴露相同的接口, 但对于不同类型的数据, 客户端可以选择不同的处理策略.</p>
+
+<h4 id="toc_17">Techniques for implementing Strategy</h4>
+
+<p>这一节展示利用策略模式, 对不同格式的配置文件<code>ini</code>及<code>json</code>进行读取和写入</p>
+
+<pre><code class="language-js">const fs = require(&#39;fs&#39;);
+const ini = require(&#39;ini&#39;);
+const objectPath = require(&#39;object-path&#39;);
+
+class Config {
+  // 构造方法处传入需要使用的策略对象
+  constructor(strategy) {
+    // 存放解析成对象后的配置
+    this.data = {};
+    // 用于存放策略对象, 对象需要实现 deserialize 及 serialize 方法
+    this.strategy = strategy;
+  }
+
+  get(path) {
+    // 获取对象内对应路径的数据
+    return objectPath.get(this.data, path);
+  }
+
+  set(path, value) {
+    // 设置对象内对应路径的数据
+    return objectPath.set(this.data, path, value);
+  }
+
+  read(file) {
+    console.log(`Deserializing from ${file}`);
+    // 根据不同的策略, 使用不同的解析器对配置文件进行解析
+    this.data = this.strategy.deserialize(fs.readFileSync(file, &#39;utf-8&#39;));
+  }
+
+  save(file) {
+    console.log(`Serializing to ${file}`);
+    fs.writeFileSync(file, this.strategy.serialize(this.data));
+  }
+}
+
+strategies = {};
+// 用于解析JSON文件的策略
+strategies.json = {
+  deserialize: data =&gt; JSON.parse(data),
+  serialize: data =&gt; JSON.stringify(data, null, &#39;  &#39;)
+};
+// 用于解析INI文件的策略
+strategies.ini = {
+  deserialize: data =&gt; ini.parse(data),
+  serialize: data =&gt; ini.stringify(data)
+};
+</code></pre>
+
+<h3 id="toc_18">State</h3>
+
+<blockquote>
+<p>状态模式</p>
+</blockquote>
+
+<p><img src="media/15087314678145/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-29%20%E4%B8%8B%E5%8D%8812.55.39.png" alt="屏幕快照 2017-10-29 下午12.55.39"/><br/>
+上面的策略模式选择策略的方式是开发者根据状况,在编写代码时选择不同的策略<br/>
+而状态模式是将对象编写成<strong>自动</strong>根据上下文去改变处理策略.</p>
+
+<h4 id="toc_19">Techniques for implementing State</h4>
+
+<p>本节展示一种自动切换状态的<code>socket</code>, 通过tcp协议传输JSON, 在连接失败时切换至<code>offline</code>状态, 并存储下需要发送的数据, 在连接成功时切换至<code>online</code>状态.</p>
+
+<ul>
+<li><code>offlineState</code>,用于处理连接断开时的状态</li>
+</ul>
+
+<pre><code class="language-js"> class OfflineState {
+
+  constructor(failsafeSocket) {
+    this.failsafeSocket = failsafeSocket;
+  }
+
+  send(data) {
+    // 连接断开时无法发送数据
+    // 利用 queue 暂存数据
+    this.failsafeSocket.queue.push(data);
+  }
+
+  activate() {
+    // retry 函数
+    const retry = () =&gt; {
+      setTimeout(() =&gt; this.activate(), 500);
+    };
+    // 连接到对端 socket
+    this.failsafeSocket.socket = jot.connect(
+      this.failsafeSocket.options,
+      () =&gt; {
+        // 连接完成时移除可能未被触发的 retry listener
+        this.failsafeSocket.socket.removeListener(&#39;error&#39;, retry);
+        // 连接完成时切换至 online 状态
+        this.failsafeSocket.changeState(&#39;online&#39;);
+      }
+    );
+    // 订阅 error 事件
+    this.failsafeSocket.socket.once(&#39;error&#39;, retry);
+  }
+};
+</code></pre>
+
+<ul>
+<li><code>onlineState</code>, 处理连接成功时正常发送数据的状态</li>
+</ul>
+
+<pre><code class="language-js">class OnlineState {
+  constructor(failsafeSocket) {
+    this.failsafeSocket = failsafeSocket;
+  }
+
+  send(data) {
+    this.failsafeSocket.socket.write(data);
+  };
+
+  activate() {
+    // 遍历并发送处于 offline 状态时未发送完成的数据
+    this.failsafeSocket.queue.forEach(data =&gt; {
+      this.failsafeSocket.socket.write(data);
+    });
+    // 清空队列
+    this.failsafeSocket.queue = [];
+    // 订阅 error 事件
+    // 出现异常时切换至 offline 状态
+    this.failsafeSocket.socket.once(&#39;error&#39;, () =&gt; {
+      this.failsafeSocket.changeState(&#39;offline&#39;);
+    });
+  }
+};
+</code></pre>
+
+<ul>
+<li><code>FailsafeSocket</code>, 整合<code>online</code>与<code>offline</code>两种状态</li>
+</ul>
+
+<pre><code class="language-js">class FailsafeSocket {
+  constructor(options) {
+    this.options = options;
+    this.queue = [];
+    this.currentState = null;
+    this.socket = null;
+    this.states = {
+      // FailsafeSocket 所具有的两种状态
+      offline: new OfflineState(this),
+      online: new OnlineState(this)
+    }; 
+    // 初始状态为 offline
+    this.changeState(&#39;offline&#39;);
+  }
+
+  changeState(state) {
+    console.log(&#39;Activating state: &#39; + state);
+    this.currentState = this.states[state];
+    // 激活状态对应的处理器
+    this.currentState.activate();
+  }
+
+  send(data) {
+    // 通过当前状态处理器发送数据
+    this.currentState.send(data);
+  }
+}
+</code></pre>
+
+<h3 id="toc_20">Template</h3>
+
+<blockquote>
+<p>模板模式</p>
+</blockquote>
+
+<p>与C++中重写父类虚方法类似, JS中模板模式中, 通过继承模板类并重写模板方法.</p>
+
+<p><img src="media/15087314678145/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-30%20%E4%B8%8A%E5%8D%8810.51.43.png" alt="屏幕快照 2017-10-30 上午10.51.43"/></p>
+
+<h4 id="toc_21">Techniques for implementing Template</h4>
+
+<p>以文件配置解析器为例, 留下<code>_serialize</code>与<code>_deserialize</code>给子类实现</p>
+
+<pre><code class="language-js">const fs = require(&#39;fs&#39;);
+const objectPath = require(&#39;object-path&#39;);
+
+class ConfigTemplate {
+  read (file) {
+    console.log(`Deserializing from ${file}`);
+    // 调用虚方法解析配置文件
+    this.data = this._deserialize(fs.readFileSync(file, &#39;utf-8&#39;));
+  }
+
+  save (file) {
+    console.log(`Serializing to ${file}`);
+    // 调用虚方法序列化配置文件
+    fs.writeFileSync(file, this._serialize(this.data));
+  }
+
+  get (path) {
+    return objectPath.get(this.data, path);
+  }
+
+  set (path, value) {
+    return objectPath.set(this.data, path, value);
+  }
+
+  _serialize () {
+    // 如果子类未实现虚方法则抛出错误
+    throw new Error(&#39;_serialize() must be implemented&#39;);
+  }
+
+  _deserialize () {
+    throw new Error(&#39;_deserialize() must be implemented&#39;);
+  }
+}
+</code></pre>
+
+<ul>
+<li>子类继承模板类并重写模板方法</li>
+</ul>
+
+<pre><code class="language-js">class JsonConfig extends ConfigTemplate {
+
+  _deserialize (data) {
+    return JSON.parse(data);
+  };
+
+  _serialize (data) {
+    return JSON.stringify(data, null, &#39;  &#39;);
+  }
+}
+</code></pre>
+
+<h3 id="toc_22">Middleware</h3>
+
+<blockquote>
+<p>中间件模式</p>
+</blockquote>
+
+<p><img src="media/15087314678145/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-30%20%E4%B8%8B%E5%8D%8812.44.47.png" alt="屏幕快照 2017-10-30 下午12.44.47"/></p>
+
+<p>中间件模式利用中间件管理器(<code>Middleware Manager</code>), 链式传递输入, 通过多个中间件过滤形成输出.</p>
+
+<p>以<code>koa</code>框架为例, 通过<code>app.use</code>传入一个<code>async函数</code>作为中间件处理并输出HTTP请求</p>
+
+<p>在<code>koa</code>中, 中间件函数的签名应该为<code>async functiong(ctx, next)</code>, 其中</p>
+
+<ul>
+<li><code>ctx</code>, 表示 <code>HTTP Response</code> 与 <code>HTTP Request</code></li>
+<li><code>next</code>, 表示中间件链中下一个中间件</li>
+</ul>
+
+<p>以<code>koa</code>官方实例为例</p>
+
+<pre><code class="language-js">const Koa = require(&#39;koa&#39;);
+const app = new Koa();
+
+app.use(async(ctx, next) =&gt; {
+  // 记录开始时间
+  const start = Date.now();
+  // await 下一个中间件
+  await next();
+  // 记录处理结束时间
+  const ms = Date.now() - start;
+  // 将处理事件设置在HTTP Response头部
+  ctx.set(&#39;X-Response-Time&#39;, `${ms}ms`);
+});
+
+app.use(async(ctx, next) =&gt; {
+  // 记录开始时间
+  const start = Date.now();
+  // await 下一个中间件
+  await next();
+  // 记录处理结束时间
+  const ms = Date.now() - start;
+  console.log(`${ctx.method} ${ctx.url} - ${ms}`);
+});
+
+app.use(async ctx =&gt; {
+  // 设置 HTTP Response 的 Body
+  ctx.body = &#39;Hello World&#39;;
+});
+
+app.listen(3000);
+</code></pre>
+
+<p>整个中间件执行顺序为</p>
+
+<p><img src="media/15087314678145/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-30%20%E4%B8%8B%E5%8D%881.12.05.png" alt="屏幕快照 2017-10-30 下午1.12.05"/></p>
+
+<h3 id="toc_23">Command</h3>
+
+<blockquote>
+<p>命令模式</p>
+</blockquote>
+
+<p>命令模式通过将对 对象的操作包括对操作的回放, 撤销等 封装起来作为命令, 客户端只需执行该命令即可操纵目标对象<br/>
+<img src="media/15087314678145/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-30%20%E4%B8%8B%E5%8D%883.43.12.png" alt="屏幕快照 2017-10-30 下午3.43.12"/></p>
+
+<ul>
+<li><code>Client</code>:  命令的创建及通过<code>Invoker</code>执行命令的对象</li>
+<li><code>Command</code>: 封装了对<code>Target</code>的执行命令</li>
+<li><code>Invoker</code>: 缓存历史和向<code>Target</code>发送命令</li>
+<li><code>Target</code>:  执行命令的对象</li>
+</ul>
+
+<p>通过命令模式执行操作而不是直接操作对象有以下优势</p>
+
+<ul>
+<li>命令可以被从新调整计划或是延后执行</li>
+<li>命令可以被序列化然后通过网络传输</li>
+<li>命令的执行历史可被保存, 并且在真正执行前可被撤销</li>
+<li>由于命令可被缓存以及调整, 在某些算法中非常适合用于数据同步</li>
+<li>多个命令可被组合, 执行过程可以被原子化</li>
+</ul>
+
+<h4 id="toc_24">Techniques for implementing Command</h4>
+
+<p>本节展示一个简单的Map服务, 通过<code>Command</code>设置其中键值对</p>
+
+<ul>
+<li><code>Target</code>组件</li>
+</ul>
+
+<pre><code class="language-js">// Target对象
+const statusUpdateService = {
+  // 存储服务状态
+  statusUpdates: {},
+  // 模拟远程对象发送状态
+  sendUpdate: function(status) {
+    console.log(&#39;Status sent: &#39; + status);
+    // 随机获取ID
+    let id = Math.floor(Math.random() * 1000000);
+    // 设置状态
+    statusUpdateService.statusUpdates[id] = status;
+    // 返回操作ID, 用于撤回操作
+    return id;
+  },
+  // 根据ID撤回操作
+  destroyUpdate: id =&gt; {
+    console.log(&#39;Status removed: &#39; + id);
+    delete statusUpdateService.statusUpdates[id];
+  }
+};
+</code></pre>
+
+<ul>
+<li><code>Command</code>对象</li>
+</ul>
+
+<pre><code class="language-js">//封装命令参数的 Command 对象
+function createSendStatusCmd(service, status) {
+  let postId = null;
+  // 创建Command对象
+  const command = () =&gt; {
+    postId = service.sendUpdate(status);
+  };
+  // undo方法用于撤销操作
+  command.undo = () =&gt; {
+    if(postId) {
+      service.destroyUpdate(postId);
+      postId = null;
+    }
+  };
+  // 命令的序列化方法
+  command.serialize = () =&gt; {
+    return {type: &#39;status&#39;, action: &#39;post&#39;, status: status};
+  };
+  
+  return command;
+}
+</code></pre>
+
+<ul>
+<li><code>Invoker</code>对象</li>
+</ul>
+
+<pre><code class="language-js">//Invoker 对象
+class Invoker {
+  constructor() {
+    // 用于保存命令操作历史
+    this.history = [];
+  }
+
+  run (cmd) {
+    // 保存命令执行历史
+    this.history.push(cmd);
+    // 执行命令
+    cmd();
+    console.log(&#39;Command executed&#39;, cmd.serialize());
+  }
+
+  delay (cmd, delay) {
+    // 延时执行命令
+    setTimeout( () =&gt; {
+      this.run(cmd);
+    }, delay)
+  }
+
+  undo () {
+    // 从命令历史中 pop出历史命令
+    const cmd = this.history.pop();
+    // 撤销命令
+    cmd.undo();
+    console.log(&#39;Command undone&#39;, cmd.serialize());
+  }
+  // 用于演示命令序列化并在远程执行
+  runRemotely (cmd) {
+    request.post(&#39;http://localhost:3000/cmd&#39;,
+      {json: cmd.serialize()},
+      err =&gt; {
+        console.log(&#39;Command executed remotely&#39;, cmd.serialize());
+      }
+    );
+  }
+}
+</code></pre>
+
+<p>最后是作为<code>Client</code>, 通过<code>Invoker</code>执行命令</p>
+
+<pre><code class="language-js">const invoker = new Invoker();
+const command = createSendStatusCmd(statusUpdateService, &#39;HI!&#39;);
+invoker.run(command);
+invoker.delay(command, 1000 * 60 * 60);
+invoker.undo();
+invoker.runRemotely(command);
+</code></pre>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Node.js设计模式 · 第五章]]></title>
+    <link href="zerolocusta.github.io/15078961128669.html"/>
+    <updated>2017-10-13T20:01:52+08:00</updated>
+    <id>zerolocusta.github.io/15078961128669.html</id>
+    <content type="html"><![CDATA[
+<h2 id="toc_0">Coding with Streams</h2>
+
+<blockquote>
+<p>Stream作为Node.js中非常重要的概念, 在Node.js的官方库中有着广泛的体现(fs, socket, child_process等), 这一章将会阐述Stream的理念及使用方法</p>
+</blockquote>
+
+<h2 id="toc_1">摘要</h2>
+
+<ul>
+<li><code>Stream</code> 之于 <code>Node.js</code></li>
+<li><code>Stream</code> 的使用方法</li>
+</ul>
+
+<h2 id="toc_2">Buffering versus streaming</h2>
+
+<blockquote>
+<p><code>Buffer</code> 与 <code>Stream</code> 的区别</p>
+</blockquote>
+
+<ul>
+<li><code>Buffer</code>模式的特性</li>
+</ul>
+
+<p>大部分的异步API都是使用<code>Buffer</code>模式, 当数据<strong>接收完成</strong>的时候将它传递给<code>callback</code><br/>
+<img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-14%20%E4%B8%8A%E5%8D%8810.39.50.png" alt="屏幕快照 2017-10-14 上午10.39.50"/></p>
+
+<blockquote>
+<p>在<code>t1</code>时刻, 系统仅收到<code>Hello N</code>几个字符, 还未收到一个完整的数据, 而在<code>t2</code>时刻系统接收到剩下的数据, 组成了完成的包<code>Hello Node.js</code>, 此时才把他提交给消费者</p>
+</blockquote>
+
+<p>特点: 使用<code>Buffer</code>模式的API在完成与未完成的状态之间有着完整的界限</p>
+
+<ul>
+<li><code>Stream</code>模式的特性</li>
+</ul>
+
+<p><code>Stream</code>模式与<code>Buffer</code>模式最大的不同是在<strong>接收到数据时, <code>Stream</code>模式的API会不断往消费者提交数据</strong><br/>
+<img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-14%20%E4%B8%8A%E5%8D%8811.08.37.png" alt="屏幕快照 2017-10-14 上午11.08.37"/></p>
+
+<blockquote>
+<p>在<code>t1</code>时刻, 系统接收到了<code>Hello N</code>, 马上提交给消费者, 然后在接收到剩下的<code>ode.js</code>, 也马上提交到消费者</p>
+</blockquote>
+
+<p><code>Stream</code>相对于<code>Buffer</code>的优势</p>
+
+<ul>
+<li>更小的空间复杂度: <code>Buffer</code>需要开辟出一块空间用于存储接收到的数据, 在接收完毕时提交到消费者处, 而<code>Stream</code>在接收到数据后马上提交到消费者除, 空间的消耗小了很多.</li>
+<li>更紧凑的时间: 相当于给后续函数提供了增量解析数据的可能性</li>
+<li>可组合性: 利用<code>Stream</code>提供的<code>pipe</code>管道将多个流组合起来 </li>
+</ul>
+
+<h3 id="toc_3">Spatial efficiency</h3>
+
+<p>V8引擎有一个限制, <code>buffer</code>大小在32位机器上不能大于<code>1GB - 1 Byte</code>, 64位系统上不能大于<code>2GB - 1 bytes</code>. (截止目前8.0版本)</p>
+
+<p>下面给出两段代码, 演示<code>Buffer</code>与<code>Stream</code>两种不同风格下如何对文件进行压缩处理</p>
+
+<h4 id="toc_4">Gzipping using a buffered API</h4>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const fs = require(&#39;fs&#39;);
+const zlib = require(&#39;zlib&#39;);
+
+const file = process.argv[2];
+
+// 读入文件
+fs.readFile(file, (err, buffer) =&gt; {
+  // 压缩文件
+  zlib.gzip(buffer, (err, buffer) =&gt; {
+    // 将压缩后文件写入硬盘
+    fs.writeFile(file + &#39;.gz&#39;, buffer, err =&gt; {
+      console.log(&#39;File successfully compressed&#39;);
+    });
+  });
+});
+</code></pre>
+
+<p>在压缩大于2GB的文件时(测试环境: MacOS 10.13, 内存 16GB), 无法正确压缩文件</p>
+
+<h4 id="toc_5">Gzipping using streams</h4>
+
+<pre><code class="language-js">fs.createReadStream(file)
+  .pipe(zlib.createGzip())
+  .pipe(fs.createWriteStream(file + &#39;.gz&#39;))
+  .on(&#39;finish&#39;, () =&gt; console.log(&#39;File successfully compressed&#39;))
+;
+</code></pre>
+
+<ul>
+<li><code>fs.createReadStream</code>创建了具有<code>stream.Readable</code>特性的对象(<code>trait</code>)</li>
+<li><code>zlib.createGzip</code>返回的<code>Gzip</code>实例具有<code>stream.Transform</code>的特性, 这个特性是同时具有可读和科协的流</li>
+<li><code>fs.createWriteStream</code>创建了具有<code>stream.Writeable</code>特性的对象</li>
+</ul>
+
+<p>相当于<code>fs.createReadStream file | zlib.createGzip | fs.createWriteStream file.gz</code></p>
+
+<p>由此突破了v8中对<code>Buffer</code>的限制, 经测试, 压缩大于2GB的文件并未出现问题</p>
+
+<h3 id="toc_6">Time efficiency</h3>
+
+<p>由于<code>Stream</code>能做到增量处理, 在时间的利用率上也非常有优势</p>
+
+<p>设计一个CS服务</p>
+
+<ul>
+<li><code>Client</code> : 读取文件, 压缩文件, 发送文件</li>
+<li><code>Server</code> : 接收文件, 解压文件, 保存文件</li>
+</ul>
+
+<p>如果这套逻辑采用<code>Buffer</code>模式实现, 读取,压缩,发送都要等待文件完成读入<code>Buffer</code>, 随后才能进行下一步操作, 虽然得益于<code>Node.js</code>的事件循环机制, 多个用户并不会因此阻塞, 但从单个用户来看, 处理时间变长了许多.</p>
+
+<ul>
+<li><code>Server</code> 的 <code>Stream</code> 模式实现</li>
+</ul>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const http = require(&#39;http&#39;);
+const fs = require(&#39;fs&#39;);
+const zlib = require(&#39;zlib&#39;);
+
+// 创建HTTP服务
+const server = http.createServer((req, res) =&gt; {
+  // 从HTTP头部读取文件名
+  const filename = req.headers.filename;
+  console.log(&#39;File request received: &#39; + filename);
+  req
+    // 解压文件的流
+    .pipe(zlib.createGunzip())
+    // 创建写入文件的流
+    .pipe(fs.createWriteStream(filename))
+    .on(&#39;finish&#39;, () =&gt; {
+      res.writeHead(201, {&#39;Content-Type&#39;: &#39;text/plain&#39;});
+      res.end(&#39;That\&#39;s it\n&#39;);
+      console.log(`File saved: ${filename}`);
+    });
+});
+
+server.listen(3000, () =&gt; console.log(&#39;Listening&#39;));
+
+</code></pre>
+
+<ul>
+<li><code>Client</code> 的 <code>Stream</code> 模式实现 </li>
+</ul>
+
+<pre><code class="language-js">const options = {
+  hostname: server,
+  port: 3000,
+  path: &#39;/&#39;,
+  method: &#39;PUT&#39;,
+  headers: {
+    // 设置HTTP请求头部
+    filename: path.basename(file),
+    &#39;Content-Type&#39;: &#39;application/octet-stream&#39;,
+    &#39;Content-Encoding&#39;: &#39;gzip&#39;
+  }
+};
+
+const req = http.request(options, res =&gt; {
+  console.log(&#39;Server response: &#39; + res.statusCode);
+});
+// 创建可写 Stream
+fs.createReadStream(file)
+  // 创建压缩文件的流
+  .pipe(zlib.createGzip())
+  // HttpClient 继承了 Stream.Writeable
+  // 此处将压缩后的数据写入HTTP请求中
+  .pipe(req)
+  .on(&#39;finish&#39;, () =&gt; {
+    console.log(&#39;File successfully sent&#39;);
+  })
+;
+</code></pre>
+
+<p><img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-15%20%E4%B8%8B%E5%8D%887.19.51.png" alt="屏幕快照 2017-10-15 下午7.19.51"/></p>
+
+<h3 id="toc_7">Composability</h3>
+
+<blockquote>
+<p>得益于<code>Stream</code>中的<code>pipe</code>方法, 多个流组合起来非常方便简洁</p>
+</blockquote>
+
+<p>对于上面的CS压缩文件传输模型, 加入加密传输功能对于<code>Stream</code>来说非常简单</p>
+
+<ul>
+<li><code>Client</code></li>
+</ul>
+
+<pre><code class="language-js">fs.createReadStream(file)
+  .pipe(zlib.createGzip())
+  // 对压缩后文件进行加密
+  .pipe(crypto.createCipher(&#39;aes192&#39;, &#39;a_shared_secret&#39;))
+  .pipe(req)
+  .on(&#39;finish&#39;, () =&gt; {
+    console.log(&#39;File successfully sent&#39;);
+  });
+</code></pre>
+
+<ul>
+<li><code>Server</code></li>
+</ul>
+
+<pre><code class="language-js">const server = http.createServer((req, res) =&gt; {
+  const filename = req.headers.filename;
+  console.log(&#39;File request received: &#39; + filename);
+  req
+    // 对收到的请求进行解密
+    .pipe(crypto.createDecipher(&#39;aes192&#39;, &#39;a_shared_secret&#39;))
+    .pipe(zlib.createGunzip())
+    .pipe(fs.createWriteStream(filename))
+    .on(&#39;finish&#39;, () =&gt; {
+      res.writeHead(201, {&#39;Content-Type&#39;: &#39;text/plain&#39;});
+      res.end(&#39;That\&#39;s it\n&#39;);
+      console.log(`File saved: ${filename}`);
+    })
+  ;
+});
+</code></pre>
+
+<p>的确只以非常小的改动, 添加上加解密的功能, 但个人认为对于<code>async/await</code>来说, 在工程组合上<code>Stream</code>并无太大优势.</p>
+
+<hr/>
+
+<h3 id="toc_8">Getting started with streams</h3>
+
+<blockquote>
+<p>到目前为止, 我们只是看到了如何使用已有的<code>Stream</code>模块, 接下来介绍如何创建自己的<code>Stream</code>模块</p>
+</blockquote>
+
+<p>不难看出, 上面的<code>fs.createReadStream</code>和<code>fs.createWriteStream</code>都会返回一个<code>Stream</code>对象, 而在<code>Node.js</code>官方库中, <code>Stream</code>模块中具有几个可被继承的对象</p>
+
+<ul>
+<li><code>stream.Readable</code></li>
+<li><code>stream.Writable</code></li>
+<li><code>stream.Duplex</code></li>
+<li><code>stream.Transform</code></li>
+</ul>
+
+<p>以上的类均继承了<code>EventEmitter</code>, 实现了<code>end</code>事件, <code>error</code>事件等</p>
+
+<p><code>Stream</code>除了能像<code>fs.createReadFile</code>之类处理IO的二进制流之外(二进制流以Chunk的形式体现), <code>Stream</code>也能传递<code>Object</code>, 能从上一个<code>Stream</code>不断生成<code>Object</code>传递到下一个<code>Stream</code>中, 所以<code>Stream</code>不仅能应用于IO处理中, 普通的对象处理也能得到<code>Stream</code>的好处.</p>
+
+<hr/>
+
+<h3 id="toc_9">Readable streams</h3>
+
+<blockquote>
+<p>可读流的使用和创建</p>
+</blockquote>
+
+<p><code>Readable streams</code>有两种从中读取数据的方法, <code>non-flowing mode</code>和<code>flowing mode</code></p>
+
+<h4 id="toc_10">The non-flowing mode</h4>
+
+<p><code>non-flowing mode</code>很直白, 从可读流中读取数据直到无数据可读, 由于监听<code>readable</code>后是<code>listener</code>主动从流中读取数据, 相对于<code>flowing mode</code>, 数据并未从事件监听器流入<code>listener</code></p>
+
+<pre><code class="language-js">process.stdin
+  // 订阅了 readable
+  // 当流变的可读取时调用回调函数
+  .on(&#39;readable&#39;, () =&gt; {
+    let chunk;
+    console.log(&#39;New data available&#39;);
+    // 不断循环读取数据直至结束
+    while ((chunk = process.stdin.read()) !== null) {
+      console.log(
+        `Chunk read: (${chunk.length}) &quot;${chunk.toString()}&quot;`
+      );
+    }
+  })
+  .on(&#39;end&#39;, () =&gt; process.stdout.write(&#39;End of stream&#39;));
+</code></pre>
+
+<p>运行结果</p>
+
+<p><img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-16%20%E4%B8%8A%E5%8D%8810.21.07.png" alt="屏幕快照 2017-10-16 上午10.21.07"/></p>
+
+<h4 id="toc_11">Flowing mode</h4>
+
+<p>还有一种从<code>Stream</code>中读取数据的方式是通过监听<code>data</code>事件, </p>
+
+<p><code>stream</code>同时提供了<code>data</code>事件, 每当<code>Readable Stream</code>接收到新的数据时, <code>listener</code>就会被触发, 同时数据以形参的形式传递到<code>listener</code>中</p>
+
+<pre><code class="language-js">process.stdin
+  .on(&#39;data&#39;, chunk =&gt; {
+    console.log(&#39;New data available&#39;);
+    console.log(
+      `Chunk read: (${chunk.length}) &quot;${chunk.toString()}&quot;`
+    );
+  })
+  .on(&#39;end&#39;, () =&gt; process.stdout.write(&#39;End of stream&#39;));
+</code></pre>
+
+<h4 id="toc_12">Implementing Readable streams</h4>
+
+<blockquote>
+<p>创建自己的<code>Readable Stream</code></p>
+</blockquote>
+
+<p>创建自己的<code>Readable Stream</code>类的时候, 需要继承<code>stream.Readable</code>, 并实现<code>_read</code>方法, 通过<code>stream.Readable.push</code>方法往<code>Stream</code>内部提供的<code>Buffer</code>推入数据.</p>
+
+<p>书里提供了一个利用<code>chance</code>库生成随机字符串, 并且将生成的字符串作为流输出<br/>
+ <strong>(往流中推入<code>null</code>表示流的结束)</strong></p>
+
+<pre><code class="language-js"> class RandomStream extends stream.Readable {
+  constructor(options) {
+    super(options);
+  }
+  // 实现 _read 接口
+  _read(size) {
+    // 生成随机字符串
+    const chunk = chance.string();
+    console.log(`Pushing chunk of size: ${chunk.length}`);
+    // 将随机串推入内部buffer
+    this.push(chunk, &#39;utf8&#39;);
+    // 有 5% 的概率出现 true
+    if (chance.bool({
+        likelihood: 5
+      })) {
+      this.push(null);
+    }
+  }
+}
+</code></pre>
+
+<p><code>RandomStream</code>使用示例</p>
+
+<pre><code class="language-js">const randomStream = new RandomStream();
+
+randomStream
+  // 订阅 data 事件
+  .on(&#39;data&#39;, (chunk) =&gt; {
+    console.log(`Chunk received: ${chunk.toString()}`);
+  })
+  .on(&#39;end&#39;, () =&gt; {
+    process.stdout.write(&#39;End of stream\n&#39;)
+  });
+</code></pre>
+
+<hr/>
+
+<h3 id="toc_13">Writable streams</h3>
+
+<h4 id="toc_14">Writing to a stream</h4>
+
+<blockquote>
+<p>如何往<code>Writable Stream</code>中写入数据</p>
+</blockquote>
+
+<p><code>stream.Writable</code>中有两个主要方法</p>
+
+<ul>
+<li><code>writable.write(chunk[, encoding][, callback])</code>: 往<code>Writable Stream</code>中写入<code>chunk</code></li>
+<li><code>writable.end([chunk][, encoding][, callback])</code>: 结束流</li>
+</ul>
+
+<p>示例:</p>
+
+<pre><code>往HTTP回包中写入数据
+</code></pre>
+
+<pre><code class="language-js">const Chance = require(&#39;chance&#39;);
+const chance = new Chance();
+
+require(&#39;http&#39;).createServer((req, res) =&gt; {
+  // 写入 HTTP 回包请求头部
+  res.writeHead(200, {
+    &#39;Content-Type&#39;: &#39;text/plain&#39;
+  });
+  while (chance.bool({
+      likelihood: 95
+    })) {
+    // 往 HTTP 回包请求中写入随机字符串
+    res.write(chance.string() + &#39;\n&#39;);
+  }
+  // 关闭流
+  res.end(&#39;\nThe end...\n&#39;);
+  res.on(&#39;finish&#39;, () =&gt; console.log(&#39;All data was sent&#39;)); //[5]
+}).listen(8080, () =&gt; console.log(&#39;Listening on http://localhost:8080&#39;));    
+</code></pre>
+
+<p>回应结果:<br/>
+ <img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-16%20%E4%B8%8B%E5%8D%887.50.35.png" alt="屏幕快照 2017-10-16 下午7.50.35"/></p>
+
+<h4 id="toc_15">Back-pressure</h4>
+
+<blockquote>
+<p>负反馈</p>
+</blockquote>
+
+<p><strong>当我们往<code>Writable Stream</code>内部的<code>Buffer</code>写入数据, 而<code>Buffer</code>的大小是有限制的, 写入数据如果过多而消费者未及时取出数据的话, 缓存很容易出现溢出现象</strong></p>
+
+<p>为了解决缓存过载的问题, <code>stream.Writable</code>在内部设置了<code>highWaterMark</code>属性(默认是16KB), 当内部缓存无法容纳更多的数据的时候<code>writable.write</code>将会返回<code>false</code>(<code>Readable Stream</code>内部也有相似的机制)</p>
+
+<p>应用负反馈后的<code>Http Stream</code></p>
+
+<pre><code class="language-js">require(&#39;http&#39;).createServer((req, res) =&gt; {
+  res.writeHead(200, {
+    &#39;Content-Type&#39;: &#39;text/plain&#39;
+  });
+
+  function generateMore() {
+    // 有 95% 的概率返回ture
+    while (chance.bool({
+        likelihood: 95
+      })) {
+      // 写入一段超长的字符串
+      let shouldContinue = res.write(
+        chance.string({
+          length: (16 * 1024) - 1
+        })
+      );
+      // 当
+      if (!shouldContinue) { //[3]
+        console.log(&#39;Backpressure&#39;);
+        // 如果buffer已经触及极限, 那么订阅 drain 事件
+        return res.once(&#39;drain&#39;, generateMore);
+      }
+    }
+    
+    res.end(&#39;\nThe end...\n&#39;, () =&gt; console.log(&#39;All data was sent&#39;));
+  }
+  generateMore();
+  
+}).listen(8080, () =&gt; console.log(&#39;Listening on http://localhost:8080&#39;));
+</code></pre>
+
+<p>这段代码有两个重点:</p>
+
+<ul>
+<li>创建了<code>generateMore</code>函数用于在缓存已满的情况下注册为<code>listener</code></li>
+<li>在<code>writable stream</code>上监听了<code>drain</code>事件, 根据官方文档的说法, 当<code>writable stream</code>从不可写变为可写时, 注册在<code>drain</code>事件上的<code>listener</code>将会被触发</li>
+</ul>
+
+<h4 id="toc_16">Implementing Writable streams</h4>
+
+<blockquote>
+<p>实现自己的可写流</p>
+</blockquote>
+
+<p>书中示例创建一个传递<code>Object</code>的<code>Stream</code>, 与实现<code>Readable Stream</code>相似, 只需继承<code>stream.Writable</code>后实现<code>_write</code>方法即可</p>
+
+<pre><code class="language-js">class ToFileStream extends stream.Writable {
+  constructor() {
+    // 启用 object 模式
+    super({objectMode: true});
+  }
+  // chunk 实为 
+  // {
+  //   path: &lt;path to file&gt;,
+  //   content : &lt; content of file&gt;
+  // }
+  // 的对象
+  _write (chunk, encoding, callback) {
+    // 创建目录
+    mkdirp(path.dirname(chunk.path), err =&gt; {
+      if (err) {
+        return callback(err);
+
+      }
+      // 写入文件
+      fs.writeFile(chunk.path, chunk.content, callback);
+    });
+  }
+}
+</code></pre>
+
+<p>使用示例</p>
+
+<pre><code class="language-js">let tfs = new ToFileStream();
+
+tfs.write({path: &quot;file1.txt&quot;, content: &quot;Hello&quot;});
+tfs.write({path: &quot;file2.txt&quot;, content: &quot;Node.js&quot;});
+tfs.write({path: &quot;file3.txt&quot;, content: &quot;Streams&quot;});
+tfs.end(() =&gt; console.log(&quot;All files created&quot;));
+</code></pre>
+
+<hr/>
+
+<h3 id="toc_17">Duplex streams</h3>
+
+<p><code>Duplex streams</code>表示一种双向的流, 同时继承了<code>Readable Stream</code> 和 <code>Writable Stream</code>, 适合用于具有双向通信功能的实现(例如Socket)<br/>
+<img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-16%20%E4%B8%8B%E5%8D%8811.41.05.png" alt="屏幕快照 2017-10-16 下午11.41.05"/></p>
+
+<h3 id="toc_18">Transform streams</h3>
+
+<p><code>Transform streams</code>是特殊的<code>Duplex streams</code>, 在<code>Readable Stream</code>和<code>Writable Stream</code> 之间提供额外的桥梁<br/>
+<img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-17%20%E4%B8%8A%E5%8D%8811.21.06.png" alt="屏幕快照 2017-10-17 上午11.21.06"/></p>
+
+<h4 id="toc_19">Implementing Transform streams</h4>
+
+<p><code>stream.Transform</code>类中有两个需要子类实现的方法</p>
+
+<ul>
+<li><code>_transform</code> : 用于在<code>write</code>时调用并写入内部缓存</li>
+<li><code>_flust</code>: 在<code>end</code>方法调用时将剩余数据推入内部缓存中</li>
+</ul>
+
+<p>示例: 往<code>Transform streams</code>写入字符串, 替换目标字符串并输出</p>
+
+<pre><code class="language-js">class ReplaceStream extends stream.Transform {
+  constructor(searchString, replaceString) {
+    super();
+    this.searchString = searchString;
+    this.replaceString = replaceString;
+    this.tailPiece = &#39;&#39;;
+  }
+
+  _transform(chunk, encoding, callback) {
+    // 利用 String.prototype.split 提取出所有目标字符串
+    const pieces = (this.tailPiece + chunk)
+      .split(this.searchString);
+    // 获取分片后字符串数组的末尾元素
+    const lastPiece = pieces[pieces.length - 1];
+    // 由于写入流的数据不一定是工整的,
+    // 需要从输入的流中读取至少searchString.length - 1个字符
+    // 用于与后续输入的数据进行拼接搜索
+    const tailPieceLen = this.searchString.length - 1;
+    // 从末尾切分出 tailPieceLen 长度的字符串
+    this.tailPiece = lastPiece.slice(-tailPieceLen);
+    // 去除 his.tailPiece 部分的字符串, 以免重复
+    pieces[pieces.length - 1] = lastPiece.slice(0, -tailPieceLen);
+    // pieces 是由 searchString 分割的字符串数组
+    // 经过slice去掉 searchString 后通过 replaceString
+    // 拼接字符串数组, 得到替换后的字符串
+    // 推入 Readable Stream 中
+    this.push(pieces.join(this.replaceString));
+    callback();
+  }
+  // 当流结束时, 切割下来的 tailPiece 仍未推入内部缓存
+  // 通过_flush将最后的字符串推入内部缓存
+  _flush(callback) {
+    this.push(this.tailPiece);
+    callback();
+  }
+}
+</code></pre>
+
+<p>使用示例:</p>
+
+<pre><code class="language-js const">// 指定替换的字符串
+const rs = new ReplaceStream(&#39;World&#39;, &#39;Node.js&#39;);
+// 订阅 Readable Stream 一侧上的 data 事件
+// 接收到数据时输出到终端
+rs.on(&#39;data&#39;, chunk =&gt; console.log(chunk.toString()));
+// 往 Writable Stream 一侧上写入数据
+rs.write(&#39;Hello W&#39;);
+rs.write(&#39;orld!&#39;);
+rs.end();
+</code></pre>
+
+<p><img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-18%20%E4%B8%8B%E5%8D%884.41.13.png" alt="屏幕快照 2017-10-18 下午4.41.13"/></p>
+
+<p>运行结果的输出对应了<code>ReplaceStream</code>的实现所映射出的<code>push数据</code>的行为.</p>
+
+<h4 id="toc_20">Through and from for working with streams</h4>
+
+<p>两个用于快速生成<code>Transform Stream</code> 和 <code>Readable Stream</code>的库</p>
+
+<ul>
+<li>through2 , 用于生成<code>Transform Stream</code></li>
+</ul>
+
+<pre><code class="language-js">const transform = through2([options], [_transform], [_flush])
+</code></pre>
+
+<ul>
+<li>from , 用于生成<code>Readable Stream</code>的库</li>
+</ul>
+
+<pre><code class="language-js">const readable = from2([options], _read)
+</code></pre>
+
+<h3 id="toc_21">Asynchronous control flow with streams</h3>
+
+<blockquote>
+<p>实际代码中如何使用<code>Stream</code><br/>
+之前的<code>spider</code>实例相似, 分别以<code>Sequential execution</code>和<code>Parallel execution</code>为例</p>
+</blockquote>
+
+<h4 id="toc_22">Sequential execution</h4>
+
+<p>以<code>Stream</code>实现一个线性执行拼接文件的功能.</p>
+
+<pre><code class="language-js">const fromArray = require(&#39;from2-array&#39;);
+const through = require(&#39;through2&#39;);
+const fs = require(&#39;fs&#39;);
+
+function concatFiles(destination, files, callback) {
+  // 创建用于存放拼接后文件的 Writable Stream
+  const destStream = fs.createWriteStream(destination);
+  // fromArray.obj 将会遍历 files
+  // 将多个文件名通过 pipe 传递到下一个 Stream
+  fromArray.obj(files)
+    // 利用 through2 创建一个 Transform Stream
+    .pipe(through.obj((file, enc, done) =&gt; {
+      //  通过文件名创建 Readable Stream
+      const src = fs.createReadStream(file);
+      // 往目标文件中写入数据
+      // 由于 pipe 在完成时会自动调用end函数
+      // 但destStream并未将所有文件拼接完成,
+      // 此处将 end 设为 false
+      src.pipe(destStream, {
+        end: false,
+      });
+      // 当前文件拼接完毕时调用done函数
+      // 以供 fromArray 向 pipe 传递下一个文件名
+      src.on(&#39;end&#39;, done);
+    }))
+    // 在所有文件遍历完毕时
+    // 介素 Writable Stream
+    .on(&#39;finish&#39;, () =&gt; {
+      destStream.end();
+      callback();
+    });
+}
+</code></pre>
+
+<p><code>Stream</code>风格的串行执行和上两章中的串行执行风格其实有很多相似的地方</p>
+
+<ul>
+<li><code>fromArray.obj</code>逐个遍历文件名并传递到下个流中, 而<code>through.obj</code>中的回调函数在处理完单个文件时, 通过调用<code>done</code>触发下个文件的处理, 类似于上两章串行执行风格中的<code>next</code>函数, 以控制任务遍历的速度</li>
+<li>在所有文件处理完毕时, <code>destStream.end</code>标识处理结束, 与上两章串行执行风格中, 执行完毕调用<code>callback</code>相似</li>
+</ul>
+
+<h4 id="toc_23">Unordered parallel execution</h4>
+
+<blockquote>
+<p>利用<code>Stream</code>实现非顺序的并行执行任务</p>
+</blockquote>
+
+<pre><code class="language-js">class ParallelStream extends stream.Transform {
+  constructor(userTransform) {
+    super({
+      objectMode: true
+    });
+    // userTransform 存放处理任务的函数
+    // 也就是用于处理任务的 worker 函数
+    this.userTransform = userTransform;
+    // 用于记录当前正在运行任务数
+    this.running = 0;
+    this.terminateCallback = null;
+  }
+
+  _transform(chunk, enc, done) {
+    this.running++;
+    // 将数据传递到 worker 函数
+    this.userTransform(chunk, enc, this._onComplete.bind(this), this.push.bind(this));
+    // 由于是并发执行 userTransform
+    // 我们有自己的_onComplete函数处理worker函数完成事件
+    // 需要调用done触发流中下一个任务
+    done();
+  }
+
+  _flush(done) {
+    if (this.running &gt; 0) {
+      // 在流结束时还有任务运行时
+      // 暂不结束当前流
+      this.terminateCallback = done;
+    } else {
+      done();
+    }
+  }
+
+  _onComplete(err) {
+    // 减少运行任务数
+    this.running--;
+    if (err) {
+      // 往 error 事件发送错误
+      return this.emit(&#39;error&#39;, err);
+    }
+    // _onComplete在每次task完成都会触发
+    if (this.running === 0) {
+      this.terminateCallback &amp;&amp; this.terminateCallback();
+    }
+  }
+}
+</code></pre>
+
+<p><code>Stream</code>的并行执行模式有几点重要的地方</p>
+
+<ul>
+<li>利用<code>Stream</code>中的<code>done</code>函数, 强制<code>Stream</code>处理下一个元素</li>
+<li>通过<code>running</code>记录正在执行的任务</li>
+<li>任务完成时调用<code>_onComplete</code>函数, 触发完成事件.</li>
+</ul>
+
+<h4 id="toc_24">Unordered limited parallel execution</h4>
+
+<p>在并行执行中加入并发任务数限制</p>
+
+<pre><code class="language-js">class LimitedParallelStream extends stream.Transform {
+  // 加入 concurrency 限制并发数
+  constructor(concurrency, userTransform) {
+    super({objectMode: true});
+    this.concurrency = concurrency;
+    this.userTransform = userTransform;
+    this.running = 0;
+    this.terminateCallback = null;
+    this.continueCallback = null;
+  }
+
+  _transform(chunk, enc, done) {
+    this.running++;
+    this.userTransform(chunk, enc,  this.push.bind(this), this._onComplete.bind(this));
+    if(this.running &lt; this.concurrency) {
+      // 未触及并发上限
+      // 调用 done 促使 Stream 传入下一个任务
+      done();
+    } else {
+      // 当某个任务完成时,
+      // 调用的 _onComplete 函数的时候将会调用continueCallback
+      // 此时触发Stream 传入下一个任务
+      this.continueCallback = done;
+    }
+  }
+
+  _flush(done) {
+    if(this.running &gt; 0) {
+      this.terminateCallback = done;
+    } else {
+      done();
+    }
+  }
+
+  _onComplete(err) {
+    this.running--;
+    if(err) {
+      return this.emit(&#39;error&#39;, err);
+    }
+    // 由continueCallback指示是否存在等待执行的任务
+    const tmpCallback = this.continueCallback;
+    this.continueCallback = null;
+    tmpCallback &amp;&amp; tmpCallback();
+    if(this.running === 0) {
+      this.terminateCallback &amp;&amp; this.terminateCallback();
+    }
+  }
+}
+</code></pre>
+
+<ul>
+<li>这里利用了<code>Stream</code>的机制来充当任务队列, 任务存储在<code>pipe</code>中的上一个<code>Stream</code>中, 而任务控制通过<code>done</code>来控制任务流入的速度</li>
+</ul>
+
+<hr/>
+
+<h3 id="toc_25">Piping patterns</h3>
+
+<blockquote>
+<p>利用<code>pipe</code>设计和组合<code>Stream</code></p>
+</blockquote>
+
+<h4 id="toc_26">Combining streams</h4>
+
+<p>将多个<code>Stream</code>组合起来, 对外只暴露成一个<code>Stream</code><br/>
+将<code>Stream</code>组合起来有多个优点</p>
+
+<ul>
+<li>将多个流简化, 对外暴露单个接口</li>
+<li>流的错误处理简化, 所有被组合的流的错误信息被重定向到组合后的流的错误事件里, 对外接口只需订阅组合后流的错误时间即可</li>
+</ul>
+
+<p><img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-20%20%E4%B8%8A%E5%8D%8811.28.49.png" alt="屏幕快照 2017-10-20 上午11.28.49"/></p>
+
+<p>组合多个流基于两个原则:</p>
+
+<ul>
+<li>当我们往一个组合后的流写入数据时, 实际上是往组合中的第一个流写入数据</li>
+<li>当我们往一个组合后的流读取数据时, 实际上是往组合中的最后一个流读取数据</li>
+</ul>
+
+<p>基于上述的原则, 利用<code>Duplex Stream</code>或<code>Transform Stream</code>能很轻松做到组合多个流, 而在这里使用第三方库<code>multipipe</code></p>
+
+<pre><code class="language-js">const zlib = require(&#39;zlib&#39;);
+const crypto = require(&#39;crypto&#39;);
+const combine = require(&#39;multipipe&#39;);
+
+module.exports.compressAndEncrypt = password =&gt; {
+  // 返回一个组合后的流
+  return combine(
+    // 压缩数据
+    zlib.createGzip(),
+
+    // 加密数据
+    crypto.createCipher(&#39;aes192&#39;, password)
+  );
+};
+
+module.exports.decryptAndDecompress = password =&gt; {
+  return combine(
+    // 解密数据
+    crypto.createDecipher(&#39;aes192&#39;, password),
+    // 解压数据
+    zlib.createGunzip()
+  );
+};
+</code></pre>
+
+<p>组合后的<code>Stream</code>使用方法与普通<code>Stream</code>无异.</p>
+
+<h4 id="toc_27">Forking streams</h4>
+
+<p>针对<code>Readable Stream</code>能fork出多个流, 提供给后续多个pipe的数据<br/>
+<img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-20%20%E4%B8%8B%E5%8D%884.48.39.png" alt="屏幕快照 2017-10-20 下午4.48.39"/></p>
+
+<p>而实现方法也非常简单, 直接在同一个<code>Readable Stream</code>实例上分别调用<code>pipe</code>方法.</p>
+
+<ul>
+<li>对输入的文件同时进行<code>sha1</code>与<code>md5</code>哈希计算</li>
+</ul>
+
+<pre><code class="language-js">const fs = require(&#39;fs&#39;);
+const crypto = require(&#39;crypto&#39;);
+
+const sha1Stream = crypto.createHash(&#39;sha1&#39;);
+sha1Stream.setEncoding(&#39;base64&#39;);
+
+const md5Stream = crypto.createHash(&#39;md5&#39;);
+md5Stream.setEncoding(&#39;base64&#39;);
+
+const inputFile = process.argv[2];
+const inputStream = fs.createReadStream(inputFile);
+// 在同一个inputStream实例上调用pipe
+// 完成 Fork Stream
+inputStream
+  .pipe(sha1Stream)
+  .pipe(fs.createWriteStream(inputFile + &#39;.sha1&#39;));
+
+inputStream
+  .pipe(md5Stream)
+  .pipe(fs.createWriteStream(inputFile + &#39;.md5&#39;));
+</code></pre>
+
+<h4 id="toc_28">Merging streams</h4>
+
+<blockquote>
+<p>整个多个流</p>
+</blockquote>
+
+<p><img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-20%20%E4%B8%8B%E5%8D%8810.27.15.png" alt="屏幕快照 2017-10-20 下午10.27.15"/></p>
+
+<p>实现方法:</p>
+
+<ul>
+<li>在多个留上使用<code>pipe</code>方法导向同一个流, 并把<code>pipe</code>方法的自动结束<code>Stream</code>设为<code>false</code>({end: false})</li>
+<li>订阅多个流的<code>end</code>事件, 应用自定义的处理<code>end</code>事件函数</li>
+</ul>
+
+<p>示例: 将多个文件流导向同一个压缩处理流中</p>
+
+<pre><code class="language-js">const tar = require(&#39;tar&#39;);
+const fstream = require(&#39;fstream&#39;);
+const path = require(&#39;path&#39;);
+
+const destination = path.resolve(process.argv[2]);
+const sourceA = path.resolve(process.argv[3]);
+const sourceB = path.resolve(process.argv[4]);
+
+// 获取压缩流(Writable Stream)
+const pack = tar.Pack();
+// 将压缩后的流写入文件中
+pack.pipe(fstream.Writer(destination));
+
+let endCount = 0;
+// 用于在多个流处理结束后
+// 关闭 压缩流
+function onEnd() {
+  if(++endCount === 2) {
+    pack.end();
+  }
+}
+
+const sourceStreamA = fstream.Reader({type: &quot;Directory&quot;, path: sourceA})
+  .on(&#39;end&#39;, onEnd);
+
+const sourceStreamB = fstream.Reader({type: &quot;Directory&quot;, path: sourceB})
+  .on(&#39;end&#39;, onEnd);
+
+// 两个流重定向至 pack
+sourceStreamA.pipe(pack, {end: false});
+sourceStreamB.pipe(pack, {end: false});
+</code></pre>
+
+<h4 id="toc_29">Multiplexing and demultiplexing</h4>
+
+<blockquote>
+<p>复用单个流写入多个数据, 在另一端从单个流中解离出多个数据<br/>
+<img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-20%20%E4%B8%8B%E5%8D%8811.13.06.png" alt="屏幕快照 2017-10-20 下午11.13.06"/><br/>
+在两段利用对称的<code>mux</code>和<code>demux</code>函数融合与分离多个流</p>
+</blockquote>
+
+<p>示例: 创建CS服务, <code>Server</code>接收数据并写入文件中(log服务), <code>Client</code>发送日志数据.</p>
+
+<ul>
+<li><code>Client</code></li>
+</ul>
+
+<pre><code class="language-js">const child_process = require(&#39;child_process&#39;);
+const net = require(&#39;net&#39;);
+
+// multiplexChannels 用于将多个流(sources)
+// 同时写入同一个流(destination)中
+function multiplexChannels(sources, destination) {
+  let totalChannels = sources.length;
+  // 遍历sources数组中的多个流
+  for (let i = 0; i &lt; sources.length; i++) {
+    sources[i]
+      // 订阅 readable 事件
+      .on(&#39;readable&#39;, function () {
+        let chunk;
+        // 利用 Non-Flowing 模式
+        while ((chunk = this.read()) !== null) {
+          const outBuff = new Buffer(1 + 4 + chunk.length);
+          // 每一个buffer头部
+          // 8 bits用于标识数据的ID
+          outBuff.writeUInt8(i, 0);
+          // 紧接着的32 bits用于记录当前chunk的长度
+          outBuff.writeUInt32BE(chunk.length, 1);
+          // 将 chunk 复制到 outBuffer 中
+          chunk.copy(outBuff, 5);
+          console.log(&#39;Sending packet to channel: &#39; + i);
+          // 将数据写入 destination 流中
+          destination.write(outBuff);
+        }
+      })
+      .on(&#39;end&#39;, () =&gt; {
+        // 在所有sources上订阅end事件
+        if (--totalChannels === 0) {
+          // 当所有流处理完毕,
+          // 关闭 destination
+          destination.end();
+        }
+      });
+  }
+}
+
+const socket = net.connect(3000, () =&gt; {
+  const child = child_process.fork(
+    process.argv[2],
+    process.argv.slice(3), {
+      silent: true
+    }
+  );
+  multiplexChannels([child.stdout, child.stderr], socket);
+});
+</code></pre>
+
+<p><code>Client</code>中使用<code>Non-Flowing</code>模式非常重要, 每次往<code>destination</code>中写入一个完整的<code>Chunk</code>, 不会导致多个<code>Chunk</code>交错在一起.</p>
+
+<ul>
+<li><code>Server</code></li>
+</ul>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const net = require(&#39;net&#39;);
+const fs = require(&#39;fs&#39;);
+
+function demultiplexChannel(source, destinations) {
+  let currentChannel = null;
+  let currentLength = null;
+  source
+    // 订阅 readable 事件
+    .on(&#39;readable&#39;, () =&gt; {
+      let chunk;
+      if (currentChannel === null) {
+        // 从source中读取 8 bits, 获得管道的ID
+        chunk = source.read(1);
+        currentChannel = chunk &amp;&amp; chunk.readUInt8(0);
+      }
+
+      if (currentLength === null) {
+        // 从source中读取 32 bits, 获的Chunk的长度
+        chunk = source.read(4);
+        // 转换字节序
+        currentLength = chunk &amp;&amp; chunk.readUInt32BE(0);
+        if (currentLength === null) {
+          // 如果 currentLength 获取失败
+          // 表明 tcp 流在传输过程中被切分
+          // 在下次可读事件时重新读取
+          return;
+        }
+      }
+      // 从source中读取chunk长度的数据
+      chunk = source.read(currentLength);
+      if (chunk === null) {
+        // 如果currentLength长度的数据读取失败
+        // 说明TCP流被拆包
+        // 也需要在下次可读事件时再重新读取
+        return;
+      }
+
+      console.log(&#39;Received packet from: &#39; + currentChannel);
+
+      // 往 destinations 中写入chunk
+      destinations[currentChannel].write(chunk);
+      // 写入完成后复原头部数据
+      currentChannel = null;
+      currentLength = null;
+    })
+    .on(&#39;end&#39;, () =&gt; {
+      destinations.forEach(destination =&gt; destination.end());
+      console.log(&#39;Source channel closed&#39;);
+    });
+}
+
+net.createServer(socket =&gt; {
+    const stdoutStream = fs.createWriteStream(&#39;stdout.log&#39;);
+    const stderrStream = fs.createWriteStream(&#39;stderr.log&#39;);
+    demultiplexChannel(socket, [stdoutStream, stderrStream]);
+  })
+  .listen(3000, () =&gt; console.log(&#39;Server started&#39;));
+</code></pre>
+
+<p><code>Server</code>利用了<code>Client</code>中<code>Chunk</code>串行写入与TCP协议的实现中按序移交到用户态的特性, 按序读取<code>Chunk</code>并写入文件中.</p>
+
+<p>运行结果<br/>
+<img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-21%20%E4%B8%8A%E5%8D%8812.14.05.png" alt="屏幕快照 2017-10-21 上午12.14.05"/></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Node.js设计模式 · 第四章]]></title>
+    <link href="zerolocusta.github.io/15064131114315.html"/>
+    <updated>2017-09-26T16:05:11+08:00</updated>
+    <id>zerolocusta.github.io/15064131114315.html</id>
+    <content type="html"><![CDATA[
+<h2 id="toc_0">Asynchronous Control Flow Patterns with ES2015 and Beyond</h2>
+
+<blockquote>
+<p>本章主要讲述了ES6中的Promise, Generator特性与使用方法, 以及稍微探讨了async/await</p>
+</blockquote>
+
+<hr/>
+
+<h2 id="toc_1">摘要</h2>
+
+<ul>
+<li>Promise</li>
+<li>Generator</li>
+<li>async / await</li>
+</ul>
+
+<hr/>
+
+<h2 id="toc_2">Promise</h2>
+
+<p>除了上一章的CPS风格之外, 在JS中实现异步编程还有另外一些风格, 例如ES6新加入的Promise</p>
+
+<h3 id="toc_3">What is a promise?</h3>
+
+<blockquote>
+<p>在JavaScript中, <code>Promise</code>按照<a href="https://promisesaplus.com/">Promise a+</a>标准实现</p>
+</blockquote>
+
+<p><code>Promise</code>指的是对异步操作的抽象, 而<code>Promise</code>又有多种状态</p>
+
+<ul>
+<li>当<code>Promise</code>操作未完成时状态称为<code>pending</code></li>
+<li>当<code>Promise</code>操作成功完成时状态称为<code>fulfilled</code></li>
+<li>当<code>Promise</code>操作失败时状态称为<code>rejected</code></li>
+<li>无论<code>Promise</code>操作成功或者失败, 状态都叫<code>settled</code></li>
+</ul>
+
+<p>在JavaScript中, <code>Promise</code>被实现为一个对象, <strong>实例中</strong>提供了<code>then</code>方法用于接收异步事件的完成状态</p>
+
+<ul>
+<li><code>promise.then(onFulfilled[, onRejected])</code>: <code>onFulfilled</code>和<code>onRejected</code>都是接收一个形参的函数,<code>onFulfilled</code>用于接收<code>Promise</code>成功执行之后的结果, 而<code>onRejected</code>用于接收<code>Promise</code>执行失败的结果, 返回值为<strong>另一个</strong>处于<code>pending</code>状态的<code>Promise</code>实例</li>
+</ul>
+
+<p>和异步CPS风格作对比</p>
+
+<pre><code class="language-js">// CPS风格
+asyncOperation(arg, (err, result) =&gt; {
+    if (err) { 
+        //处理错误
+        return;
+    } 
+    // 正常处理流程 
+});
+
+// Promise风格, 假设asyncOperation返回一个Promise的实例
+// 传入了两个函数用于处理 正常事件 和 异常事件
+asyncOperation(arg).then(result =&gt; { 
+    //do stuff with result   
+}, err =&gt; {
+    //handle error   
+});
+</code></pre>
+
+<p><code>then()</code>方法还有一些很重要的属性</p>
+
+<ol>
+<li><code>then()</code>必然返回另外一个<code>Promise</code>实例, 只有当第一个<code>Promise</code>解决或被拒绝后, 第二个<code>Promise</code>才会被解决 (<code>then</code>方法是异步的, 但返回的另一个<code>Promise</code>只有在第一个<code>Promse</code>解决或被拒绝后才开始执行)</li>
+<li>由于<code>then()</code>函数返回另一个<code>Promise</code>实例, 有可能形成一个<code>Promise</code>链, <code>onFulfilled</code>或<code>onRejected</code>的返回值会在<code>Promise</code>链中传递
+
+<ul>
+<li>当<code>onFulfilled</code>或<code>onRejected</code>的返回值为<code>Promise</code>实例<strong>以外</strong>的值时, 以此返回值作为下一个<code>Promise</code>中传递给<code>onFulfilled</code>函数的值</li>
+<li>当<code>onFulFilled</code>返回一个<code>Promise</code>实例时, <code>then()</code>方法的返回值会替换为<code>onFulFilled</code>的返回值, 但是当第一个<code>Promise</code>被拒绝时, 第二个<code>Promise</code>的<code>onFulfilled</code>方法将不会被调用</li>
+</ul></li>
+</ol>
+
+<p>由于上述的特性, 我们可以非常容易实现一个串行执行的<code>Promise</code>链</p>
+
+<pre><code class="language-js">asyncOperation(arg).then(result1 =&gt; {
+    // asyncOperation返回另一个Promise实例 
+    return asyncOperation(arg2);
+}).then(result2 =&gt; {
+    // 返回一个普通的值  
+    return &#39;done&#39;;
+}).then(undefined, err =&gt; {
+    // 利用 onRejected 函数捕抓异常
+});
+</code></pre>
+
+<p><img src="media/15064131114315/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-26%20%E4%B8%8B%E5%8D%889.34.16.png" alt="屏幕快照 2017-09-26 下午9.34.16"/></p>
+
+<h4 id="toc_4">Promise对象</h4>
+
+<ol>
+<li>构造函数<code>Constructor (new Promise(function(resolve, reject) {}))</code>
+
+<ul>
+<li><code>resolve(obj)</code>: 会将<code>Promise</code>置为<code>Fulfilled</code>状态</li>
+<li><code>reject(err)</code> : 会将<code>Promise</code>置为<code>Rejected</code>状态</li>
+</ul></li>
+<li>静态方法
+
+<ul>
+<li><code>Promise.resolve(obj)</code>: 将会创建一个已解决的<code>Promise</code>实例</li>
+<li><code>Promise.reject(err)</code> : 将会创建一个被拒绝的<code>Promise</code>实例</li>
+<li><code>Promise.all(iterable)</code> : 返回一个新的<code>Promise</code>实例, 并且在<code>iterable</code>中<strong>所有</strong><code>Promise</code>状态为<code>Fulfilled</code>时, 返回的<code>Promise</code>实例状态会被置为<code>Fulfilled</code>, 如果<code>iterable</code>中至少有一个<code>Promise</code>状态为<code>Rejected</code>时, 返回的<code>Promise</code>实例状态也会被置为<code>Rejected</code>并且拒因为<strong>第一个</strong>被拒绝<code>Promise</code>的拒因</li>
+<li><code>Promise.race(iterable)</code> : 返回一个<code>Promise</code>实例, 当<code>iterable</code>中任何一个<code>Promise</code>解决或被拒绝时, 返回的<code>Promise</code>实例以同样的原因完成.</li>
+</ul></li>
+<li>实例方法
+
+<ul>
+<li><code>promise.then(onFulfilled, onRejected)</code> : 已经介绍过了</li>
+<li><code>promise.catch(onRejected)</code> : 是<code>promise.then(undefined, onRejected)</code>的语法糖</li>
+</ul></li>
+</ol>
+
+<h4 id="toc_5">Promisifying a Node.js style function</h4>
+
+<blockquote>
+<p>创建一个工具函数将CPS风格函数转换为Promise</p>
+</blockquote>
+
+<p>遵循了JavaScript编程风格(Callbacks come last 和 Error come First)的函数是很容易被转换成Promise的, 而且<code>util.promisify</code>也提供了这样的函数, 书中也给出了一个实现</p>
+
+<pre><code class="language-js">module.exports.promisify = function (callbackBasedApi) {
+    // 包裹 callbackBasedApi, 返回一个新函数
+    return function promisified() {
+        // Function.arguments 是 Function 实例中存储着形参对象
+        // 仅在 Node.js下生效
+
+        // 将 arguments 对象 转换为数组
+        const args = [].slice.call(arguments);
+        // 创建一个Promise实例
+        return new Promise((resolve, reject) =&gt; {
+            // 按照callback come last的约定在形参末尾推入回调函数
+            args.push((err, result) =&gt; { 
+                if (err) {
+                    return reject(err);
+                }
+                if (arguments.length &lt;= 2) {
+                    resolve(result);
+                } else {
+                    resolve([].slice.call(arguments, 1));
+                }
+            });
+            // 调用 callbackBasedApi, callback被替换
+            callbackBasedApi.apply(null, args);
+        });
+    }
+};
+</code></pre>
+
+<p>这段代码将<code>reject</code>和<code>resolve</code>置入需要被包裹的函数的回调形参中, 令函数完成调用callback时, 触发<code>Promise</code>状态的变换.</p>
+
+<h3 id="toc_6">Sequential execution</h3>
+
+<blockquote>
+<p>串行执行的<code>spider</code>网络爬虫, 以<code>Promise</code>的风格实现</p>
+</blockquote>
+
+<p>首先把之前的CPS风格函数用<code>promisify</code>将其Promise风格化</p>
+
+<pre><code class="language-js">const utilities = require(&#39;./utilities&#39;);
+const request = utilities.promisify(require(&#39;request&#39;));
+const mkdirp = utilities.promisify(require(&#39;mkdirp&#39;));
+const fs = require(&#39;fs&#39;);
+const readFile = utilities.promisify(fs.readFile);
+const writeFile = utilities.promisify(fs.writeFile);
+</code></pre>
+
+<p>对<code>download</code>函数<code>Promise</code>化</p>
+
+<pre><code class="language-js">function download(url, filename) {
+    console.log(`Downloading ${url}`);
+    let body;
+    return request(url)
+    .then(response =&gt; {
+        body = response.body;
+        // 返回新的Promise
+        return mkdirp(path.dirname(filename));
+    })
+    .then(
+        // writeFile 同样返回一个Promise
+        () =&gt; writeFile(filename, body)
+    )
+    .then(() =&gt; {
+        console.log(`Downloaded and saved: ${url}`);
+        return body;
+    });
+}
+</code></pre>
+
+<p>对<code>spider</code>函数<code>Promise</code>化</p>
+
+<pre><code class="language-js">function spider(url, nesting) {
+  let filename = utilities.urlToFilename(url);
+  // 先从本地查找此URL是否已被下载
+  return readFile(filename, &#39;utf8&#39;)
+    .then(
+      // 如果已存在则直接从文件中查找其他链接
+      (body) =&gt; (spiderLinks(url, body, nesting)),
+      // 不存在则下载URL
+      (err) =&gt; {
+        if (err.code !== &#39;ENOENT&#39;) {
+          throw err;
+        }
+
+        return download(url, filename)
+          .then(body =&gt; spiderLinks(url, body, nesting));
+      }
+    );
+}
+</code></pre>
+
+<h4 id="toc_7">Sequential iteration</h4>
+
+<p>还记得串行模式的核心是控制遍历的速度, 也就是通过自制的<code>iterator</code>函数去遍历任务, 而<code>spider</code>中是由<code>spiderLinks</code>去控制多个URL下载</p>
+
+<pre><code class="language-js">function spiderLinks(currentUrl, body, nesting) {
+  // 初始化用于控制串行流的Promise
+  let promise = Promise.resolve();
+  if (nesting === 0) {
+    return promise;
+  }
+  // 获取页面内链接
+  const links = utilities.getPageLinks(currentUrl, body);
+  links.forEach(link =&gt; {
+    // 利用Promise只有在上一个Promise执行成功, 下一个Promise才会执行的特性
+    // 串行执行多个Promise实例
+    promise = promise.then(() =&gt; spider(link, nesting - 1));
+  });
+
+  return promise;
+}
+</code></pre>
+
+<p>利用链式调用<code>Promise</code>只有在上一个<code>Promise</code>完成后才会执行下一个<code>Promise</code>的特性, 串行执行</p>
+
+<p>执行结果<br/>
+<img src="media/15064131114315/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-27%20%E4%B8%8B%E5%8D%888.06.48.png" alt="屏幕快照 2017-09-27 下午8.06.48"/></p>
+
+<h4 id="toc_8">Sequential iteration – the pattern</h4>
+
+<blockquote>
+<p>串行遍历在<code>Promise</code>风格下的经典模式</p>
+</blockquote>
+
+<pre><code class="language-js">// 构造任务队列
+let tasks = [ /* ... */ ]
+// 初始化 Promise 链
+let promise = Promise.resolve();
+// 构造 Promise 任务链
+tasks.forEach(task =&gt; {
+  promise = promise.then(() =&gt; {
+    return task();
+  });
+});
+// 启动 Promise
+promise.then(() =&gt; {
+  //All tasks completed 
+});
+</code></pre>
+
+<p>而这里遍历<code>task</code>就是一个对任务队列的<strong>化约</strong>操作, 也可以用<code>reduce</code>函数代替</p>
+
+<pre><code class="language-js">// 构造任务队列
+let tasks = [ /* ... */ ]
+let promise = tasks.reduce((prev, task) =&gt; {
+  // 利用 reduce 形成 Promise 链
+  return prev.then(() =&gt; {
+    return task();
+  });
+}, Promise.resolve());
+// 启动 Promise
+promise.then(() =&gt; {
+  //All tasks completed 
+});
+</code></pre>
+
+<hr/>
+
+<h3 id="toc_9">Parallel execution</h3>
+
+<blockquote>
+<p>并行执行的<code>spider</code>网络爬虫, 以<code>Promise</code>的风格实现</p>
+</blockquote>
+
+<p>只需要修改<code>spiderLink</code>并利用<code>Promise.all</code>并行运行多个任务就可以了</p>
+
+<pre><code class="language-js">function spiderLinks(currentUrl, body, nesting) {
+  //  爬取深度
+  if (nesting === 0) {
+    return Promise.resolve();
+  }
+  // 获取页面内所有链接
+  const links = utilities.getPageLinks(currentUrl, body);
+  // 构造Promise任务列表
+  const promises = links.map(link =&gt; spider(link, nesting - 1));
+  // 并行运行多个promise
+  return Promise.all(promises);
+}
+</code></pre>
+
+<h3 id="toc_10">Limited parallel execution</h3>
+
+<p>在上一章的<strong>Limited parallel execution</strong>小节中, 构造了一个<code>TaskQueuee</code>用于限制和管理任务, 这里用<code>Promise</code>风格实现一遍</p>
+
+<p>修改<code>TaskQueue</code></p>
+
+<pre><code class="language-js"> class TaskQueue {
+  constructor(concurrency) {
+    this.concurrency = concurrency;
+    this.running = 0;
+    // 队列中存储着多个promise
+    this.queue = [];
+  }
+
+  pushTask(task) {
+    this.queue.push(task);
+    // 同样充当在任务推入队列后Notify的作用
+    this.next();
+  }
+
+  next() {
+    while (this.running &lt; this.concurrency &amp;&amp; this.queue.length) {
+      // 获取 queue 中第一个 promise
+      const task = this.queue.shift();
+      // 设置promise完成后减少running, 让出资源
+      task().then(() =&gt; {
+        this.running--;
+        this.next();
+      });
+      this.running++;
+    }
+  }
+};
+</code></pre>
+
+<p>修改<code>spiderLinks</code>, 接入<code>TaskQueue</code></p>
+
+<pre><code class="language-js">// 构造任务队列, 限制并发数为2
+let downloadQueue = new TaskQueue(2);
+
+function spiderLinks(currentUrl, body, nesting) {
+  // 达到爬取深度, 返回 Fulfilled 状态的 Promise
+  if(nesting === 0) {
+    return Promise.resolve();
+  }
+  // 获取页面内所有链接
+  const links = utilities.getPageLinks(currentUrl, body);
+  // 如果页面内没有链接, 返回一个 Fulfilled 的Promise
+  if(links.length === 0) {
+    return Promise.resolve();
+  }
+  // 返回一个Promise实例
+  return new Promise((resolve, reject) =&gt; {
+    let completed = 0;
+    let errored = false;
+    links.forEach(link =&gt; {
+      let task = () =&gt; {
+        // task 返回一个 promise 实例
+        return spider(link, nesting - 1)
+          .then(() =&gt; {
+            // 当所有链接爬取完毕时Promise置为Fulfilled状态
+            if(++completed === links.length) {
+              resolve();
+            }
+          })
+          .catch(() =&gt; {
+            // 出现异常时
+            if (!errored) {
+              errored = true;
+              reject();
+            }
+          })
+        ;
+      };
+      // 将Promise任务推入任务队列
+      downloadQueue.pushTask(task);
+    }); 
+  });
+}
+</code></pre>
+
+<h3 id="toc_11">Exposing callbacks and promises in public APIs</h3>
+
+<blockquote>
+<p>在使用优秀的第三方库的时候, 很多函数都会同时提供<code>callback</code>风格和<code>Promise</code>风格的API<br/>
+一是为了兼容旧的API接口, 又能同时提供<code>Promise</code>风格的新接口</p>
+</blockquote>
+
+<p>书中的示例</p>
+
+<pre><code class="language-js"> function asyncDivision(dividend, divisor, cb) {
+  return new Promise((resolve, reject) =&gt; { // [1]
+    // 注意到函数名是 asyncDivision, 
+    // 利用 process.nextTick 使函数异步执行
+    process.nextTick(() =&gt; {
+      const result = dividend / divisor;
+      if (isNaN(result) || !Number.isFinite(result)) {
+        const error = new Error(&#39;Invalid operands&#39;);
+        // 除了 reject Promise, 
+        // 也要将错误传递到 callback 中
+        if (cb) {
+          cb(error);
+        }
+        return reject(error);
+      }
+      // 正常调用callback
+      if (cb) {
+        cb(null, result);
+      }
+      // 同时将promise置为Fulfilled状态
+      resolve(result);
+    });
+  });
+};
+</code></pre>
+
+<p>使用的时候, 如果我们不传递<code>callback</code>形参, 那么<code>cb</code>此时为<code>undefined</code>, 表明使用者需要的是<code>Promise</code>风格的接口, 反之则是需要CPS风格的接口</p>
+
+<p>然而我个人认为这断代码存在问题, 在出现异常时不仅调用<code>cb(error)</code>传递异常, 还调用<code>reject(error)</code>将<code>Promise</code>置为<code>Reject</code>状态, 这样会导致使用者就算意图只使用<code>callback</code>风格的API时, 没对返回的<code>Promise</code>调用<code>promise.catch</code>捕抓错误的话就会引发Node告警<br/>
+例如</p>
+
+<pre><code class="language-js">asyncDivision(10, 0, (error, result) =&gt; {
+  if (error) {
+    return console.error(error);
+  }
+  console.log(result);
+});
+</code></pre>
+
+<p>发生除零错误, 而且已经在<code>callback</code>中处理了错误, 但由于没有对返回的<code>Promise</code>进行错误捕抓, Node也会进行告警<br/>
+<img src="media/15064131114315/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-30%20%E4%B8%8A%E5%8D%8811.23.19.png" alt="屏幕快照 2017-09-30 上午11.23.19"/><br/>
+    这明显不是我们所需要的结果, 所以对函数改良一下</p>
+
+<pre><code class="language-js">function asyncDivision(dividend, divisor, cb) {
+  if (cb) {
+    return process.nextTick(() =&gt; {
+      const result = dividend / divisor;
+      if (isNaN(result) || !Number.isFinite(result)) {
+        const error = new Error(&#39;Invalid operands&#39;);
+        return cb(error);
+      }
+      cb(null, result);
+    })
+  }
+  return new Promise((resolve, reject) =&gt; {
+    asyncDivision(dividend, divisor, (err, result) =&gt; {
+      if (err)
+        return reject(err)
+      return resolve(result);
+    })
+  })
+};
+</code></pre>
+
+<p>在传入了<code>callback</code>情况下无需返回一个<code>Promise</code>实例, 从而分离两种风格, 就不会导致Node对异常告警了</p>
+
+<p><img src="media/15064131114315/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-30%20%E4%B8%8A%E5%8D%8811.40.27.png" alt="屏幕快照 2017-09-30 上午11.40.27"/></p>
+
+<h2 id="toc_12">Generators</h2>
+
+<blockquote>
+<p>ES6中的生成器, 类似于Python中的生成器, 实现状态的暂存和通信</p>
+</blockquote>
+
+<p>生成器一般用于模拟协程, 或者用于无限长度的流</p>
+
+<pre><code class="language-js">// ES6 中利用 function* 标识生成器函数
+function* fruitGenerator() {
+  // yield用于挂起生成器
+  yield &#39;apple&#39;;
+  yield &#39;orange&#39;;
+  return &#39;watermelon&#39;;
+}
+</code></pre>
+
+<p>使用生成器</p>
+
+<pre><code class="language-js">// 实例化生成器
+const newFruitGenerator = fruitGenerator();
+// Generator.next用于 载入/恢复 生成器
+console.log(newFruitGenerator.next());
+console.log(newFruitGenerator.next());
+console.log(newFruitGenerator.next());
+</code></pre>
+
+<p>运行结果<br/>
+<img src="media/15064131114315/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-30%20%E4%B8%8B%E5%8D%8810.03.53.png" alt="屏幕快照 2017-09-30 下午10.03.53"/></p>
+
+<p>当生成器函数返回时, 状态<code>Done</code> 为真.</p>
+
+<h3 id="toc_13">Generators as iterators</h3>
+
+<blockquote>
+<p>遍历生成器</p>
+</blockquote>
+
+<p>利用<code>done</code>指示生成器遍历进度</p>
+
+<pre><code class="language-js">function* iteratorGenerator(num) {
+  for (let i = 0; i &lt;num; i++) {
+    yield i;
+  }
+}
+
+// 初始化生成器
+const iterator = iteratorGenerator(3);
+
+let currentItem = iterator.next();
+// 遍历生成器
+while (!currentItem.done) {
+  console.log(currentItem.value);
+  currentItem = iterator.next();
+}
+</code></pre>
+
+<p>运行结果<br/>
+<img src="media/15064131114315/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-01%20%E4%B8%8B%E5%8D%8812.17.14.png" alt="屏幕快照 2017-10-01 下午12.17.14"/></p>
+
+<h3 id="toc_14">Passing values back to a generator</h3>
+
+<blockquote>
+<p>生成器的数据流是双向的, 不仅可以从生成器得到数据, 还可以向生成器发送数据</p>
+</blockquote>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+function* twoWayGenerator() {
+  const what = yield null;
+  console.log(&#39;Hello &#39; + what);
+}
+
+const twoWay = twoWayGenerator();
+// 第一次 next() 返回 null
+twoWay.next();
+// 第二次 next() 将数据传递至 what, 并结束生成器
+twoWay.next(&#39;world&#39;);
+</code></pre>
+
+<p>运行结果将会打印出<code>Hello world</code></p>
+
+<h3 id="toc_15">Asynchronous control flow with generators</h3>
+
+<blockquote>
+<p>既然生成器能做到控制流的暂停和恢复, 那么用于模拟协程暂停与恢复就很容易了</p>
+</blockquote>
+
+<pre><code class="language-js">function asyncFlow(generatorFunction) {
+  // 嵌套声明的 callback 函数
+  function callback(err) {
+    if (err) { 
+      return generator.throw(err); 
+    }
+    // 通过 Functions.arguments 获取 callback 的形参
+    // 剔除掉err, 也就是 callback 的结果
+    const results = [].slice.call(arguments, 1);
+    // 恢复协程, 并将结果返回至挂起点
+    generator.next(results.length &gt; 1 ? results : results[0]); 
+  }
+  // 实例化深层器
+  const generator = generatorFunction(callback);
+  // 启动生成器
+  generator.next(); 
+}
+</code></pre>
+
+<p><code>asyncFlow</code>函数通过传入生成器函数, 并在<code>callback</code>中恢复和传递生成器的结果从而达到操作完成时恢复生成器的功能.</p>
+
+<p>用例: 复制一个文件<br/>
+<code>js<br/>
+// 创建匿名生成器函数<br/>
+asyncFlow(function* (callback) {<br/>
+  const fileName = path.basename(__filename);<br/>
+  // 替换callback<br/>
+  const myself = yield fs.readFile(fileName, &#39;utf8&#39;, callback);<br/>
+  yield fs.writeFile(`clone_of_${fileName}`, myself, callback);<br/>
+  console.log(&#39;Clone created&#39;);<br/>
+});<br/>
+</code></p>
+
+<h4 id="toc_16">JavaScript 中的 Chunk</h4>
+
+<blockquote>
+<p>JS中的Chunk其实是将典型的CPS函数<code>柯里化</code>成为只剩下<code>callback</code>参数的函数, 例如</p>
+
+<pre><code class="language-js">function readFileChunk(filename, options) {
+ return (callback) =&gt; {
+  fs.readFile(filename, options, callback)
+ }
+}
+</code></pre>
+
+<p><code>readFileChunk</code>函数将<code>fs.readFile</code>柯里化成为仅接受<code>callback</code>的函数</p>
+</blockquote>
+
+<ul>
+<li><p>Thunk的作用<br/>
+注意到上面的<code>asyncFlow</code>函数, 传入的形参是带<code>callback</code>的生成器函数, 而在使用<code>yield</code>时, 仍需要往CPS风格函数传入<code>callback</code>, 这看起来并不简约, 于是出现了新的<code>asyncFlow</code>生成器控制函数及<code>Thunk</code>技术, 解决生成器函数风格问题.</p></li>
+<li><p>基于<code>Chunk</code>的<code>asyncFlow</code></p></li>
+</ul>
+
+<pre><code class="language-js">function asyncFlowWithThunks(generatorFunction) {
+  function callback(err) {
+    if (err) {
+      return generator.throw(err);
+    }
+    const results = [].slice.call(arguments, 1);
+    const thunk = generator.next(results.length &gt; 1 ? results : results[0]).value;
+    // 检查 Thunk 并且传入 callback
+    thunk &amp;&amp; thunk(callback);
+  }
+  // 初始化生成器
+  const generator = generatorFunction();
+  // 生成器函数将会返回一个 Thunk
+  const thunk = generator.next().value;
+  // 检查 Thunk 并且传入 callback
+  thunk &amp;&amp; thunk(callback);
+}
+</code></pre>
+
+<ul>
+<li>函数<code>Thunk</code>化</li>
+</ul>
+
+<pre><code class="language-js">const readFileThunk = (filename, options) =&gt; {
+  return (cb) =&gt; {
+    fs.readFile(filename, options, cb);
+  }
+};
+
+const writeFileThunk = (filename, options) =&gt; {
+  return (cb) =&gt; {
+    fs.writeFile(filename, options, cb);
+  }
+};
+</code></pre>
+
+<p>使用示例</p>
+
+<pre><code class="language-js">asyncFlowWithThunks(function* () {
+  const fileName = path.basename(__filename);
+  const myself = yield readFileThunk(fileName, &#39;utf8&#39;);
+  yield writeFileThunk(`clone_of_${fileName}`, myself);
+  console.log(&#39;Clone created&#39;);
+});
+</code></pre>
+
+<p>如此一来, 整个生成器流控制函数就简练很多了.</p>
+
+<h4 id="toc_17">thunkify</h4>
+
+<p>就像之前的<code>promisify</code>一样, <code>thunkify</code>能方便将普通的CPS风格函数转换为<code>Thunk</code>风格函数, 方便应用到生成器中</p>
+
+<pre><code class="language-js">function thunkify(fn) {
+  assert(&#39;function&#39; == typeof fn, &#39;function required&#39;);
+
+  return function () {
+    let args = [].slice.call(arguments)
+    let ctx = this;
+    // 返回一个 Thunk 化后的函数
+    // done 代表 callback 函数
+    return function (done) {
+      let called;
+      // 在形参末尾推入 callback
+      args.push(function () {
+        if (called) return;
+        called = true;
+        done.apply(null, arguments);
+      });
+      // 调用fn
+      try {
+        fn.apply(ctx, args);
+      } catch (err) {
+        done(err);
+      }
+    }
+  }
+}
+</code></pre>
+
+<h4 id="toc_18">Generator-based control flow using co</h4>
+
+<p><code>co</code>是Node.js中一个控制异步流程的库, 支持</p>
+
+<ul>
+<li>Thunks</li>
+<li>Promises</li>
+<li>Arrays</li>
+<li>Objects</li>
+<li>Generators</li>
+<li>Generator functions</li>
+</ul>
+
+<h4 id="toc_19">Sequential execution</h4>
+
+<blockquote>
+<p>利用<code>co</code>与<code>Thunk</code>技术实现串行执行</p>
+</blockquote>
+
+<p>同样是以<code>spider</code>为例</p>
+
+<ul>
+<li>首先利用<code>thunkify</code>将普通函数转化为<code>Thunk</code>风格</li>
+</ul>
+
+<pre><code class="language-js">const co = require(&#39;co&#39;);
+const request = thunkify(require(&#39;request&#39;));
+const fs = require(&#39;fs&#39;);
+const mkdirp = thunkify(require(&#39;mkdirp&#39;));
+const readFile = thunkify(fs.readFile);
+const writeFile = thunkify(fs.writeFile);
+const nextTick = thunkify(process.nextTick);
+</code></pre>
+
+<ul>
+<li>利用生成器改造函数</li>
+</ul>
+
+<pre><code class="language-js">// 将 download 改造成生成器函数
+function* download(url, filename) {
+  console.log(&#39;Downloading &#39; + url);
+  const response = yield request(url);
+  const body = response[1];
+  // 等待 mkdirp 完成
+  yield mkdirp(path.dirname(filename));
+  // 等待 writeFile 完成
+  yield writeFile(filename, body);
+  console.log(`Downloaded and saved: ${url}`);
+  return body;
+}
+
+// 将 spider 改造成生成器函数
+function* spider(url, nesting) {
+  const filename = utilities.urlToFilename(url);
+  let body;
+  try {
+    // readFile 已被 Thunk 化, 返回文件 body
+    body = yield readFile(filename, &#39;utf8&#39;);
+  } catch (err) {
+    if (err.code !== &#39;ENOENT&#39;) {
+      throw err;
+    }
+    body = yield download(url, filename);
+  }
+  yield spiderLinks(url, body, nesting);
+}
+
+// 以及 Sequential execution 最重要的
+// 控制任务载入速度的 spiderLinks
+function* spiderLinks(currentUrl, body, nesting) {
+  if (nesting === 0) {
+    return nextTick();
+  }
+
+  const links = utilities.getPageLinks(currentUrl, body);
+  for (let i = 0; i &lt; links.length; i++) {
+    yield spider(links[i], nesting - 1);
+  }
+}
+
+</code></pre>
+
+<ul>
+<li>利用<code>co</code>库启动生成器</li>
+</ul>
+
+<pre><code class="language-js co(function*">  try {
+    yield spider(process.argv[2], 1);
+    console.log(&#39;Download complete&#39;);
+  } catch (err) {
+    console.log(err);
+  }
+});
+</code></pre>
+
+<h4 id="toc_20">Parallel execution</h4>
+
+<ul>
+<li> 利用<code>co</code>能并发载入生成器数组中元素的特性, 改造<code>spiderLinks</code>即可</li>
+</ul>
+
+<pre><code class="language-js">function* spiderLinks(currentUrl, body, nesting) {
+  if (nesting === 0) {
+    return nextTick();
+  }
+
+  const links = utilities.getPageLinks(currentUrl, body);
+  // spide 函数返回一个生成器实例
+  const tasks = links.map(link =&gt; spider(link, nesting - 1));
+  // 返回一个生成器数组
+  yield tasks;
+}
+</code></pre>
+
+<h4 id="toc_21">Limited parallel execution</h4>
+
+<ul>
+<li>以<code>生产者-消费者</code>模式, 控制并发任务数</li>
+</ul>
+
+<pre><code class="language-js">class TaskQueue {
+  constructor(concurrency) {
+    this.concurrency = concurrency;
+    this.taskQueue = [];
+    this.consumerQueue = [];
+    // 创建 worker
+    this.spawnWorkers(concurrency);
+  }
+
+  pushTask(task) {
+    if (this.consumerQueue.length !== 0) {
+      // 相当于 notify, 通知被挂起的生成器
+      this.consumerQueue.shift()(null, task);
+    } else {
+      // 说明当前已达任务上限, 推入任务队列
+      this.taskQueue.push(task);
+    }
+  }
+
+  spawnWorkers(concurrency) {
+    const self = this;
+    for (let i = 0; i &lt; concurrency; i++) {
+      co(function* () {
+        while (true) {
+          // worker获取下一个任务
+          const task = yield self.nextTask();
+          // 载入任务
+          yield task;
+        }
+      });
+    }
+  }
+
+  nextTask() {
+    // nextTask 返回一个 Thunk, 这样 co 库才能载入这个生成器
+    return callback =&gt; {
+      // co 在获得这个 Thunk 函数后
+      // 这个生成器被马上激活
+      if (this.taskQueue.length !== 0) {
+        // 如果任务队列中存在任务
+        // 那么将它返回至生成器另一端
+        return callback(null, this.taskQueue.shift());
+      }
+      // 如果任务队列为空
+      // 那么挂起这个生成器, 直到 pushTask 被调用
+      this.consumerQueue.push(callback);
+    }
+  }
+}
+</code></pre>
+
+<p>利用<code>Generator</code>模拟的任务队列设计的非常巧妙, <code>this.consumerQueue</code>保存了<code>worker</code>生成器的状态, 用于在有新的任务时触发</p>
+
+<h4 id="toc_22">Async await using Babel</h4>
+
+<blockquote>
+<p><code>async</code> 和 <code>await</code> 已经在<code>Node.js 8</code>中完全支持, 而不需要 Babel 了</p>
+</blockquote>
+
+<pre><code class="language-js">function getPageHtml(url) {
+  return new Promise((resolve, reject) =&gt; {
+    request(url, (error, response, body) =&gt; {
+      resolve(body);
+    });
+  });
+}
+
+async function main() {
+  const html = await getPageHtml(&#39;http://google.com&#39;);
+  console.log(html);
+}
+
+main();
+</code></pre>
+
+<p><code>async</code>和<code>await</code>利用了原有的<code>Promise</code>, 并将传给<code>resolve</code>的值通过<code>await</code>返回, 传递给<code>reject</code>的值将会以异常的形式抛出, 通过<code>try...catch</code>捕获.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[libco 源码阅读 · 系统调用钩子]]></title>
+    <link href="zerolocusta.github.io/15061378949226.html"/>
+    <updated>2017-09-23T11:38:14+08:00</updated>
+    <id>zerolocusta.github.io/15061378949226.html</id>
+    <content type="html"><![CDATA[
+<p>libco中将常用的I/O调用都做了替换,为的是将现有的业务无痛切换到libco中.<br/>
+由于替换掉的系统调用函数太多这里只选取<code>read</code><code>write</code>两个系统调用展示.</p>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[libco 源码阅读 · 事件循环调度器]]></title>
@@ -609,6 +3433,905 @@ int co_cond_timedwait(stCoCond_t *, int timeout_ms);
 </ul>
 
 <p>之后再探讨</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Node.js设计模式 · 第三章]]></title>
+    <link href="zerolocusta.github.io/15057240638063.html"/>
+    <updated>2017-09-18T16:41:03+08:00</updated>
+    <id>zerolocusta.github.io/15057240638063.html</id>
+    <content type="html"><![CDATA[
+<h2 id="toc_0">Asynchronous Control Flow Patterns with Callbacks</h2>
+
+<blockquote>
+<p>JavaScript著名的回调地狱  </p>
+</blockquote>
+
+<h2 id="toc_1">摘要</h2>
+
+<ul>
+<li>回调风格的JavaScript与一般顺序风格的区别</li>
+<li>以回调风格写一个网络爬虫</li>
+<li>回调风格的JavaScript需要注意的事项</li>
+<li>async库</li>
+</ul>
+
+<hr/>
+
+<h2 id="toc_2">写在前面</h2>
+
+<p>这一章以网络爬虫代码以及他的各种不同风格变种为主, 代码量巨大.</p>
+
+<hr/>
+
+<h2 id="toc_3">The difficulties of asynchronous programming</h2>
+
+<p>从顺序式编程转向以回调为主的异步CPS风格的确会有很多不适应的地方, 虽然在bluebird出现之后有了Promise, ES6之后引入的生成器和原生的Promise, ES7更是引入了async/await, 不过不少旧代码仍然是CPS风格, 而且就得浏览器也并不支持新的ES标准, 所以学习异步CPS风格还是很有必要的.</p>
+
+<p>而异步CPS风格很容易引起问题, 例如</p>
+
+<ul>
+<li>callback的处理在另一个函数内部, 就像上一章中无法被捕获的错误一样, callback抛出的错误上浮到Eventloop层面</li>
+<li>callback中又会用到很多的闭包, 不正确地使用闭包会引起内存泄漏</li>
+<li>回调的嵌套很容易造成回调地狱, 到时候代码阅读起来异常困难</li>
+</ul>
+
+<hr/>
+
+<h3 id="toc_4">Creating a simple web spider</h3>
+
+<p>书里面以网络爬虫的代码示例阐释回调地狱的问题.<br/>
+爬虫的功能: 输入一个URL, 然后将整个HTML下载到本地<br/>
+同时这个爬虫还利用了两个开源库:</p>
+
+<ul>
+<li>request : 用于发起HTTP请求</li>
+<li>mkdirp:   用于递归的创建文件及其文件夹
+观察一下这个爬虫的核心源码:</li>
+</ul>
+
+<pre><code class="language-js">const request = require(&#39;request&#39;);
+const fs = require(&#39;fs&#39;);
+const mkdirp = require(&#39;mkdirp&#39;);
+const path = require(&#39;path&#39;);
+// utilities 是作者做的一个简单的库吗提供了一些简单的工具函数
+const utilities = require(&#39;./utilities&#39;);
+
+function spider(url, callback) {
+    // 将 url 转换成 文件名
+    // 例如, 会将 https://bangumi.bilibili.com/movie/ 
+    // 转换成 bangumi.bilibili.com/movie.html 这样一个文件路径
+    const filename = utilities.urlToFilename(url);
+    // 首先检查文件是否存在, 也就是说这个url是否已经下载了
+    fs.exists(filename, exists =&gt; {
+        if (!exists) {
+            // 如果不存在就开始下载这个url
+            console.log(`Downloading ${url}`);
+            // 发起HTTP请求
+            request(url, (err, response, body) =&gt; {
+                if (err) {
+                    // Error Come First的方法处理错误
+                    callback(err);
+                } else {
+                    // 创建文件
+                    mkdirp(path.dirname(filename), err =&gt; {
+                        if (err) {
+                           //同样以Error Come First的方法处理错误
+                            callback(err);
+                        } else {
+                            // 将Http Body写入文件
+                            fs.writeFile(filename, body, err =&gt; {
+                                if (err) {
+                                    callback(err);
+                                } else {
+                                    // 回调 callback
+                                    callback(null, filename, true);
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        } else {
+              // 如果文件已经存在. 直接回调callback
+            callback(null, filename, false);
+        }
+    });
+}
+
+
+spider(process.argv[2], (err, filename, downloaded) =&gt; {
+    if (err) {
+        console.log(err);
+    } else if (downloaded) {
+        console.log(`Completed the download of &quot;${filename}&quot;`);
+    } else {
+        console.log(`&quot;${filename}&quot; was already downloaded`);
+    }
+});
+</code></pre>
+
+<p>以<code>node index.js https://bangumi.bilibili.com/movie/</code>命令调用这个spider, 输出的结果<br/>
+<img src="media/15057240638063/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-17%20%E4%B8%8A%E5%8D%8811.55.07.png" alt="屏幕快照 2017-09-17 上午11.55.07"/></p>
+
+<hr/>
+
+<h3 id="toc_5">The callback hell</h3>
+
+<blockquote>
+<p>JS回调地狱  </p>
+</blockquote>
+
+<p>从上面的代码里面看到, JS这种嵌套的回调很容易造成代码混乱, 即使是spider这种功能直白简单的代码, 也写成了多层回调的嵌套</p>
+
+<p>回调地狱造成的问题:</p>
+
+<ul>
+<li>难以阅读,、追踪代码</li>
+<li>重复的命名在嵌套的回调函数中不断出现, 例如err</li>
+<li>滥用闭包容易导致内存泄漏</li>
+</ul>
+
+<hr/>
+
+<h2 id="toc_6">Using plain JavaScript</h2>
+
+<blockquote>
+<p>在只使用JavaScript的特性时, 如何减少回调嵌套的深度</p>
+</blockquote>
+
+<p>在不使用第三方库的情况下, 有哪些方法去减少回调嵌套的深度和分支</p>
+
+<h4 id="toc_7">对于单个callback的风格约束</h4>
+
+<ol>
+<li>在出现分支时候尽快跳出当前逻辑, 利用return,  continue 和 break.</li>
+</ol>
+
+<pre><code class="language-js">// 相比起
+if(err)
+    callback(err)
+else
+    callback(null, args...)
+
+// 更倾向于使用
+if(err)
+    return callback(err)
+callback(null, args...)
+</code></pre>
+
+<p>减少分支和代码量, 改善代码的可读性<br/>
+2. 尽量使用具名函数代替匿名函数</p>
+
+<p>书里利用上面的<code>spider</code>作为例子</p>
+
+<pre><code>spider由三个部分组成:
+    1. 查找本地是否已经存在url对应的文件
+    2. 发起HTTP请求
+    3. 创建并将请求保存为文件
+</code></pre>
+
+<ul>
+<li>将<code>创建并将请求保存为文件</code>的功能抽离出来, 抽象成单个函数</li>
+</ul>
+
+<pre><code class="language-js">// spider中 创建并将请求保存为文件 的部分
+mkdirp(path.dirname(filename),
+    err =&gt; {
+        if (err) {
+            callback(err);
+        } else {
+            fs.writeFile(filename, body, err =&gt; {
+                if (err) {
+                    callback(err);
+                } else {
+                    callback(null, filename, true);
+                }
+            })
+        }
+    })
+
+// 将它抽象成 saveFile 函数
+function saveFile(filename, contents, callback) {
+    mkdirp(path.dirname(filename), err =&gt; {
+        if (err)
+            return callback(err)
+        fs.writeFile(filename, contents, callback)
+    })
+}
+</code></pre>
+
+<ul>
+<li>将<code>发起HTTP请求</code>和<code>创建并将请求保存为文件</code>的部分抽象为单个函数</li>
+</ul>
+
+<pre><code class="language-js">// spider中 发起HTTP请求 和 创建并将请求保存为文件 的部分
+request(url, (err, response, body) =&gt; {
+    if (err) {
+        // Error Come First的方法处理错误
+        callback(err);
+    } else {
+        // 创建文件
+        mkdirp(path.dirname(filename), err =&gt; {
+            if (err) {
+                // 同样以Error Come First的方法处理错误
+                callback(err);
+            } else {
+                // 将Http Body写入文件
+                fs.writeFile(filename, body, err =&gt; {
+                    if (err) {
+                        callback(err);
+                    } else {
+                        // 回调 callback
+                        callback(null, filename, true);
+                    }
+                });
+            }
+        });
+    }
+});
+
+// 抽象成download函数
+function download(url, filename, callback) {
+    console.log(`Downloading ${url}`)
+    request(url, (err, response, body) =&gt; {
+        if (err)
+            return callback(err)
+        saveFile(filename, body, (err) =&gt; {
+            if (err)
+                return callback(err)
+            callback(null, filename, true)
+        })
+    })
+}
+</code></pre>
+
+<ul>
+<li>最后利用函数替换掉<code>spider</code>中的功能</li>
+</ul>
+
+<pre><code class="language-js">function spider(url, callback) {
+    const filename = utilities.urlToFilename(url);
+    fs.exists(filename, exists =&gt; {
+        if (exists) {
+            return callback(null, filename, false);
+        }
+        download(url, filename, err =&gt; {
+            if (err) {
+                return callback(err);
+            }
+            callback(null, filename, true);
+        })
+    });
+}
+</code></pre>
+
+<p>完成修改的<code>spider</code>函数和之前由回调地狱组成的<code>spider</code>清晰许多, 而且分离出来的<code>savaFile</code>和<code>download</code>函数还可以复用.</p>
+
+<hr/>
+
+<h3 id="toc_8">Sequential execution</h3>
+
+<blockquote>
+<p>构建一个工具函数, 将多个函数以串行化的方式通过管道传递结果的方式执行<br/><br/>
+<img src="media/15057240638063/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-17%20%E4%B8%8B%E5%8D%887.05.30.png" alt="屏幕快照 2017-09-17 下午7.05.30"/></p>
+</blockquote>
+
+<h4 id="toc_9">Executing a known set of tasks in sequence</h4>
+
+<p>要在CPS风格中实现类似于管道的方式处理多个任务, 要有一个用于流式处理任务的函数, 类似于</p>
+
+<pre><code class="language-js">// 通过asyncOperation这样的中间函数
+// 实现多个任务之间间的解离
+function task1(callback) {
+  asyncOperation(() =&gt; {
+    task2(callback);
+  });
+}
+
+function task2(callback) {
+  asyncOperation(() =&gt; {
+    task3(callback);
+  });
+}
+
+function task3(callback) {
+  asyncOperation(() =&gt; {
+    callback();
+  });
+}
+
+task1(() =&gt; {
+  console.log(&#39;tasks 1, 2 and 3 executed&#39;);
+});
+</code></pre>
+
+<p>上面这一段代码中的<code>asyncOperation</code>函数就是一个流式任务处理函数, 利用这种中间函数的意义是, 一个任务只需知道下一个任务, 实现了多个任务之间的解耦.</p>
+
+<h4 id="toc_10">Web spider version 2</h4>
+
+<p>仍然以spider的代码为蓝本进行修改, 新的<code>spider</code>实现了获取页面内所有的连接并下载的功能, 并且重新进行了功能切分<br/>
+        1. spider函数用于下载url指向的页面<br/>
+        2. spiderLinks函数用于获取当前页面内所有链接, 并再次调用spider</p>
+
+<p>首先是新添加的<code>spiderLinks</code>函数</p>
+
+<pre><code class="language-js">// spiderLinks函数用于查找当前页面所有连接并下载
+// 参数列表中的 nesting 表示爬取的深度
+function spiderLinks(currentUrl, body, nesting, callback) {
+  if (nesting === 0) {
+    // 如果爬去深度为0, 那么在下一tick调用callback
+    return process.nextTick(callback);
+  }
+  // utilities.getPageLinks 的作用是获取页面内所有链接,并返回一个列表
+  let links = utilities.getPageLinks(currentUrl, body);
+
+  // spiderLinks 内部定义iterate函数, 用于遍历links列表
+  function iterate(index) {
+    if (index === links.length) {
+      // links列表遍历完毕, 调用回调函数
+      return callback();
+    }
+    // 调用 spider 函数爬取下一个链接的内容
+    spider(links[index], nesting - 1, function (err) {
+      if (err) {
+        return callback(err);
+      }
+      // 方位links列表下一个url
+      iterate(index + 1);
+    });
+  }
+  // 初始调用, 访问links列表第一个元素
+  iterate(0);
+}
+</code></pre>
+
+<p><code>saveFile</code>方法没有变化,  <code>download</code>方法发生了变化</p>
+
+<pre><code class="language-js">function download(url, filename, callback) {
+  console.log(`Downloading ${url}`);
+  request(url, (err, response, body) =&gt; {
+    if (err) {
+      return callback(err);
+    }
+    saveFile(filename, body, err =&gt; {
+      if (err) {
+        return callback(err);
+      }
+      console.log(`Downloaded and saved: ${url}`);
+      // 由于需要查找出body中的链接, 
+      // 下载完成后传递给callback的形参修改成了body
+      callback(null, body);
+    });
+  });
+}
+</code></pre>
+
+<p><code>spider</code>函数</p>
+
+<pre><code class="language-js">function spider(url, nesting, callback) {
+  const filename = utilities.urlToFilename(url);
+  // 由于需要从 body 中查找a标签
+  // 所以从fs.exists 改成 fs.readFile
+  fs.readFile(filename, &#39;utf8&#39;, function (err, body) {
+    if (err) {
+      // 如果网页未下载的本地
+      if (err.code !== &#39;ENOENT&#39;) {
+        return callback(err);
+      }
+      // 此处的return只是为了减少一个else
+      return download(url, filename, function (err, body) {
+        if (err) {
+          return callback(err);
+        }
+        // 调用 spiderLinks 查找页面内链接并下载
+        spiderLinks(url, body, nesting, callback);
+      });
+    }
+    // 已经下载url对应的文件, 直接调用 spiderLinks
+    spiderLinks(url, body, nesting, callback);
+  });
+}
+
+spider(process.argv[2], 1, (err) =&gt; {
+  if (err) {
+    console.log(err);
+    process.exit();
+  } else {
+    console.log(&#39;Download complete&#39;);
+  }
+});
+</code></pre>
+
+<p>最后是运行结果:<br/>
+<img src="media/15057240638063/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-18%20%E4%B8%8B%E5%8D%8812.29.07.png" alt="屏幕快照 2017-09-18 下午12.29.07"/></p>
+
+<pre><code>其实是以参数中的url为节点, 展开广度优先搜索
+个人觉得这个模式用在`spider`上面没有感觉代码更清晰易读, 反而`spiderLinks`和`spider`耦合更严重了, 不太认同书中的做法..
+</code></pre>
+
+<h4 id="toc_11">Sequential execution 风格总结</h4>
+
+<p>串行执行分割的核心模式抽离出来, 其实是<code>iterator</code>函数, 为了达到串行执行的目的, 没有用<code>forEach</code>等关键字遍历任务列表(for..遍历无法令异步函数串行),  取而代之的是<code>iterator</code>函数</p>
+
+<pre><code class="language-js">function iterate(index) {
+  if (index === tasks.length) {
+    return finish();
+  }
+  const task = tasks[index];
+  task(function () {
+    iterate(index + 1);
+  });
+}
+
+function finish() {
+  //iteration completed
+}
+
+iterate(0);
+</code></pre>
+
+<hr/>
+
+<h3 id="toc_12">Parallel execution</h3>
+
+<blockquote>
+<p>对于不要求执行顺序的任务, 并行执行是最好的<br/><br/>
+    并发执行图示:<br/>
+<img src="media/15057240638063/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-18%20%E4%B8%8B%E5%8D%883.10.01.png" alt="屏幕快照 2017-09-18 下午3.10.01"/><br/>
+吐槽 -&gt; (然而JS除非开子进程, 不然做不到并行, 只能并发)</p>
+</blockquote>
+
+<p>在I/O密集型的应用中, 并发还是能最大限度模拟并行效果的<br/>
+<img src="media/15057240638063/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-18%20%E4%B8%8B%E5%8D%884.58.09.png" alt="屏幕快照 2017-09-18 下午4.58.09"/></p>
+
+<blockquote>
+<p>在上图中, I/O密集型的Task依赖于EventLoop同时发起多个I/O, 以并发的形式模拟并行I/</p>
+</blockquote>
+
+<h4 id="toc_13">Web spider version 3</h4>
+
+<p>同样以<code>spider</code>函数为基础进行修改<br/>
+首先, <code>saveFile</code>和<code>download</code>两个函数都没有修改.</p>
+
+<p>而<code>spiderLinks</code>进行了大幅度修改</p>
+
+<pre><code class="language-js">function spiderLinks(currentUrl, body, nesting, callback) {
+  // 同样是以nesting表示 爬取页面的深度
+  if(nesting === 0) {
+    // 已达到爬取深度, 不再爬取页面
+    return process.nextTick(callback);
+  }
+  // 获取当前页面内所有链接
+  const links = utilities.getPageLinks(currentUrl, body);  //[1]
+  if(links.length === 0) {
+    // 当前页面没有其他链接
+    return process.nextTick(callback);
+  }
+  // completed 用于标示所有并行任务是否完成
+  let completed = 0, hasErrors = false;
+
+  // done 函数 在任务中执行, 一旦任务执行完毕就调用done
+  // 从而记录任务的完成数量
+  function done(err) {
+    if(err) {
+      // 其中一个任务出现错误立刻调用callback
+      hasErrors = true;
+      return callback(err);
+    }
+    if(++completed === links.length &amp;&amp; !hasErrors) {
+      // 在所有任务完成并且没有错误的情况下
+      return callback();
+    }
+  }
+  // 遍历links列表, 同时触发多个spider任务
+  links.forEach(function(link) {
+    spider(link, nesting - 1, done);
+  });
+}
+</code></pre>
+
+<p><code>spider</code>的修改</p>
+
+<pre><code class="language-js">// 在并行的模式下, 需要用spidering标识链接是否正在下载
+// 否则会出现同时重复下载的情况
+let spidering = new Map();
+
+function spider(url, nesting, callback) {
+  if(spidering.has(url)) {
+    // 如果当前url已经在爬取或爬取过了, 那么直接返回
+    // 这个处理方式存在问题
+    return process.nextTick(callback);
+  }
+  // 标识当前url正在下载
+  spidering.set(url, true);
+  // 以下功能与 Web spider version 2 的一样
+  const filename = utilities.urlToFilename(url);
+  fs.readFile(filename, &#39;utf8&#39;, function(err, body) {
+    if(err) {
+      if(err.code !== &#39;ENOENT&#39;) {
+        return callback(err);
+      }
+
+      return download(url, filename, function(err, body) {
+        if(err) {
+          return callback(err);
+        }
+        spiderLinks(url, body, nesting, callback);
+      });
+    }
+
+    spiderLinks(url, body, nesting, callback);
+  });
+}
+
+spider(process.argv[2], 1, (err) =&gt; {
+  if(err) {
+    console.log(err);
+    process.exit();
+  } else {
+    console.log(&#39;Download complete&#39;);
+  }
+});
+</code></pre>
+
+<p>运行结果:<br/>
+<img src="media/15057240638063/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-18%20%E4%B8%8B%E5%8D%889.46.12.png" alt="屏幕快照 2017-09-18 下午9.46.12"/><br/>
+其实书里的这段代码存在问题, 在<code>spider</code>函数里, 处理重复爬取的链接时可能会导致程序提前结束</p>
+
+<pre><code class="language-js">  if(spidering.has(url)) {
+    // 如果当前url已经在爬取或爬取过了, 那么直接返回
+    // 这个处理方式存在问题
+    // 加入当前链接重复而且恰好是最后一个任务
+    // 有可能在当前链接未完成爬取时提前结束程序
+    return process.nextTick(callback);
+  }
+</code></pre>
+
+<h4 id="toc_14">Parallel execution 风格总结</h4>
+
+<p>以<code>forEach</code>遍历任务列表并同时启动多个任务, 添加一个<code>completed</code>标识用于标识所有任务是否完成</p>
+
+<pre><code class="language-js">const tasks = [ /* ... */ ];
+let completed = 0;
+tasks.forEach(task =&gt; {
+  task(() =&gt; {
+    if (++completed === tasks.length) {
+      finish();
+    }
+  });
+});
+
+function finish() {
+  //all the tasks completed
+}
+</code></pre>
+
+<h4 id="toc_15">Fixing race conditions with concurrent tasks</h4>
+
+<p>在其他语言中, 多线程+阻塞任务是一种普遍的并发模型, 而在Node.js中, 单协程+异步任务+多路复用I/O也能用于模拟并发, 而并发就有可能导致静态条件的出现<br/>
+而并发风格的<code>spider</code>中就存在这个竞态条件</p>
+
+<pre><code class="language-js">function spider(url, nesting, callback) {
+  const filename = utilities.urlToFilename(url);
+  // 问题出现在fs.readFile这里
+  fs.readFile(filename, &#39;utf8&#39;, (err, body) =&gt; {
+        if (err) {
+          if (err.code !== &#39;ENOENT&#39;) {
+            return callback(err);
+          }
+          return download(url, filename, function (err, body) {
+          //...
+</code></pre>
+
+<p>在<code>fs.readFile</code>中传递给他的回调函数是在文件读取完成之后执行的, 而这期间有可能有一个相同文件名的url传入spider, 也就是说同一个url有可能导致重复下载.<br/>
+<img src="media/15057240638063/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-19%20%E4%B8%8A%E5%8D%8811.06.59.png" alt="屏幕快照 2017-09-19 上午11.06.59"/><br/>
+解决办法: 添加用于记录当前url是否已经爬取的<code>spidering</code>Map</p>
+
+<pre><code class="language-js">const spidering = new Map();
+
+function spider(url, nesting, callback) {
+  if (spidering.has(url)) {
+    return process.nextTick(callback);
+  }
+  spidering.set(url, true); 
+  //...
+</code></pre>
+
+<p>修改之后的代码就是<code>Web Spider Version 3</code>了</p>
+
+<h4 id="toc_16">Limited parallel execution</h4>
+
+<blockquote>
+<p>无限制的并行执行会导致资源快速消耗, 最后资源耗尽导致程序终止, 限制并发数显然是必须的.</p>
+</blockquote>
+
+<p>限制并发数但又能最大化利用并发的好处</p>
+
+<ul>
+<li>运行尽可能多的任务, 但设置一个同时运行任务书的上限</li>
+<li>每当一个任务运行完马上运行另一个被挂起的任务
+<img src="media/15057240638063/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-19%20%E4%B8%8B%E5%8D%882.48.40.png" alt="屏幕快照 2017-09-19 下午2.48.40"/>
+遵循这两条规则, 对<code>spider</code>进行修改</li>
+</ul>
+
+<pre><code class="language-js">// 任务队列
+const tasks = [...];
+
+let
+  // 设置最大并发数为2
+  concurrency = 2,
+  // 记录当前正在运行的任务数量
+  running = 0,
+  // 记录当前已完成的任务数量
+  completed = 0,
+  // 记录当前任务列表下标
+  index = 0;
+
+// next 函数起到了迭代器的作用
+function next() {
+  // while 循环限制并发数
+  while (running &lt; concurrency &amp;&amp; index &lt; tasks.length) {
+    // 从任务队列获取新的任务
+    task = tasks[index++];
+    // task 是一个以callback为形参的函数
+    task(() =&gt; {
+      if (completed === tasks.length) {
+        return finish();
+      }
+      // 当前任务完成时, 减少running计数器以让出并发资源
+      completed++, running--;
+      next();
+    });
+    // 当前任务开始时, 增加running计数器以限制并发数
+    running++;
+  }
+}
+next();
+
+function finish() {
+  //all tasks finished
+}
+</code></pre>
+
+<p>修改过的<code>spider</code>融合了<code>Sequential execution</code>和<code>Paraller execution</code>两种风格, <code>next()</code>函数充当了<code>Sequential execution</code>中<code>iterator</code>的作用, 而<code>next()</code>函数中运行多个任务由融入了<code>Paraller execution</code>的风格.</p>
+
+<h4 id="toc_17">Queues to the rescue</h4>
+
+<blockquote>
+<p>最常用的限制并发数的方法还是任务队列</p>
+</blockquote>
+
+<p>将<code>Limited parallel execution</code>中的函数抽离出来, 抽象成<code>TaskQueue</code></p>
+
+<pre><code class="language-js">class TaskQueue {
+  // 构造是传入最大并发数
+  constructor(concurrency) {
+    this.concurrency = concurrency;
+    // 记录当前正在运行的任务数
+    this.running = 0;
+    // 任务队列
+    this.queue = [];
+  }
+
+  pushTask(task) {
+    // 添加新的任务
+    this.queue.push(task);
+    // 调用新的任务
+    // 相当于平常任务队列中的notifyAll操作
+    this.next();
+  }
+  // next函数无太大变化
+  next() {
+    while (this.running &lt; this.concurrency &amp;&amp; this.queue.length) {
+      const task = this.queue.shift();
+      task(() =&gt; {
+        this.running--;
+        this.next();
+      });
+      this.running++;
+    }
+  }
+};
+</code></pre>
+
+<p>与平时的任务队列不用, 这个任务列表不仅用于存放任务, 任务的执行也由它负责</p>
+
+<h4 id="toc_18">Web spider version 4</h4>
+
+<p>利用<code>TaskQueue</code>修改<code>spider</code></p>
+
+<pre><code class="language-js">// 限制最大并发数为2
+const downloadQueue = new TaskQueue(2);
+
+function spiderLinks(currentUrl, body, nesting, callback) {
+  if (nesting === 0) {
+    return process.nextTick(callback);
+  }
+  const links = utilities.getPageLinks(currentUrl, body);
+  if (links.length === 0) {
+    return process.nextTick(callback);
+  }
+  let completed = 0,
+    hasErrors = false;
+  // 遍历链接列表
+  links.forEach(link =&gt; {
+    // 往任务队列中添加新任务
+    downloadQueue.pushTask(done =&gt; {
+      spider(link, nesting - 1, err =&gt; {
+        if (err) {
+          hasErrors = true;
+          return callback(err);
+        }
+        if (++completed === links.length &amp;&amp; !hasErrors) {
+          callback();
+        }
+        done();
+      });
+    });
+  });
+}
+</code></pre>
+
+<p><code>spider</code>任务将由<code>downloadQueue</code>执行</p>
+
+<hr/>
+
+<h2 id="toc_19">The async library</h2>
+
+<blockquote>
+<p><a href="https://www.npmjs.com/package/async">async</a>是一个非常著名的用于处理异步风格的库</p>
+</blockquote>
+
+<h3 id="toc_20">利用<code>async</code>库对<code>Sequential execution</code>风格进行改造</h3>
+
+<p><code>Web spider version 2</code>是网络爬虫的<code>Sequential execution</code>版本, 以此为基础利用<code>async</code>对它进行修改<br/>
+在<code>async</code>库中, <code>async.series</code>是用于串行执行函数的, 具体签名为<br/>
+<code>async.series(tasks, [callback])</code></p>
+
+<ul>
+<li><code>tasks</code>表示任务列表, 存放着多个函数, <code>tasks</code>中存放的是签名为<code>function (callback) {}</code>的函数,</li>
+<li><code>callback</code>会作为形参传递给<code>tasks</code>中最后一个函数.</li>
+</ul>
+
+<p>利用<code>async.series</code>改造<code>download</code>函数</p>
+
+<pre><code class="language-js">function download(url, filename, callback) {
+  console.log(`Downloading ${url}`);
+  // 声明body变量, 用于在多个task间传递结果
+  let body;
+  async.series([
+    // 第一个函数, 发出请求
+    callback =&gt; {   
+      request(url, (err, response, resBody) =&gt; {
+        if (err) {
+          return callback(err);
+        }
+        body = resBody;
+        callback();
+      });
+    },
+    // 第二个函数, 创建目录, 并将mkdirp柯里化
+    mkdirp.bind(null, path.dirname(filename)), //[2]    
+    // 第三个函数, 将请求写入文件
+    callback =&gt; { //[3]       
+      fs.writeFile(filename, body, callback);
+    }
+  ], 
+  // async.series 形参中的callback
+  err =&gt; { //[4]
+    if (err) {
+      return callback(err);
+    }
+    console.log(`Downloaded and saved: ${url}`);
+    callback(null, body);
+  });
+}
+</code></pre>
+
+<h4 id="toc_21">Sequential iteration</h4>
+
+<p><code>Sequential execution</code>中, 典型的模式是利用<code>iterator</code>函数控制任务的遍历时间点<br/>
+在<code>async</code>库中, <code>async.eachSeries(coll, iteratee, [callback])</code>能做同样的事情</p>
+
+<ul>
+<li><code>coll</code>, 需要遍历的集合</li>
+<li><code>iteratee</code>, 处理集合中元素的函数</li>
+<li><code>callback</code>, 在<code>coll</code>遍历完毕时调用</li>
+</ul>
+
+<p>修改<code>spiderLinks</code></p>
+
+<pre><code class="language-js">function spiderLinks(currentUrl, body, nesting, callback) {
+  if (nesting === 0) {
+    return process.nextTick(callback);
+  }
+  const links = utilities.getPageLinks(currentUrl, body);
+  if (links.length === 0) {
+    return process.nextTick(callback);
+  }
+  async.eachSeries(links, (link, callback) =&gt; {
+    spider(link, nesting - 1, callback);
+  }, callback);
+}
+</code></pre>
+
+<hr/>
+
+<h3 id="toc_22">利用<code>async</code>库对<code>Parallel execution</code>风格进行改造</h3>
+
+<p>这里的改造非常简单, 只需要将上面的<code>spiderLinks</code>中的<code>async.eachSeries</code>改为<code>async.each</code>就可以了</p>
+
+<pre><code class="language-js">function spiderLinks(currentUrl, body, nesting, callback) { 
+  // ...  
+  async.each(links, (link, callback) =&gt; {
+    spider(link, nesting - 1, callback);
+  }, callback);
+}
+</code></pre>
+
+<p>但是这里也并没有对并发任务数进行限制, 不过<code>async</code>也提供了和<code>TaskQueue</code>相似的工具<br/>
+<code>async.queue(worker, concurrency)</code></p>
+
+<ul>
+<li><code>worker</code>是签名为<code>function worker(task, callback)</code>的函数</li>
+<li><code>concurrency</code> 设置并发数上限</li>
+<li><code>async.queue</code>函数返回一个任务队列实例</li>
+</ul>
+
+<p>根据<code>async.queue</code>的<a href="https://caolan.github.io/async/docs.html#queue">文档</a>, 函数会返回一个<code>QueueObject</code>, 我们主要用到他的<code>push</code>方法</p>
+
+<ul>
+<li><code>push(task, [callback])</code> 
+
+<ul>
+<li><code>task</code> : 传递给<code>worker</code>函数的形参</li>
+<li><code>callback</code>: 同样是传递给<code>worker</code>函数的形参</li>
+</ul></li>
+</ul>
+
+<h4 id="toc_23">利用<code>async.queue</code>修改<code>Web Spider Version 4</code></h4>
+
+<pre><code class="language-js">const downloadQueue = async.queue( function(taskData, callback) {
+  spider(taskData.link, taskData.nesting - 1, callback);
+}, 2);
+
+function spiderLinks(currentUrl, body, nesting, callback) {
+  if (nesting === 0) {
+    return process.nextTick(callback);
+  }
+  const links = utilities.getPageLinks(currentUrl, body);
+  if (links.length === 0) {
+    return process.nextTick(callback);
+  }
+  const completed = 0,
+    hasErrors = false;
+  links.forEach(function (link) {
+    // 构造taskData
+    // 由于async.queue在构造时设置好了worker函数
+    // 无法以闭包方式传递link和nesting
+    // 需要包装至object中传递
+    const taskData = {
+      link: link,
+      nesting: nesting
+    };
+    // 往队列中推入数据和callback
+    downloadQueue.push(taskData, err =&gt; {
+      if (err) {
+        hasErrors = true;
+        return callback(err);
+      }
+      if (++completed === links.length &amp;&amp; !hasErrors) {
+        callback();
+      }
+    });
+  });
+}
+</code></pre>
+
+<hr/>
 
 ]]></content>
   </entry>
