@@ -1,0 +1,1213 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>
+    
+  Node.js设计模式 · 第五章 - zerolocust
+  
+
+  </title>
+  <meta name="author" content="">
+  <meta name="description" content="locustchen的博客">
+
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <link href="asset/css/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="atom.xml" rel="alternate" title="zerolocust" type="application/atom+xml">
+  <script src="asset/js/modernizr-2.0.js"></script>
+  <script src="asset/js/jquery.min.js"></script>
+  <script src="asset/highlightjs/highlight.pack.js"></script>
+  <link href="asset/highlightjs/styles/solarized_light.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script>hljs.initHighlightingOnLoad();</script>
+
+  <style type="text/css">
+  .cat-children-p{ padding: 6px 0px;}
+  .hljs{background: none;}
+  </style>
+  <script type="text/javascript">
+  var isAddSildbar = true;
+  </script>
+  <script src="asset/js/octopress.js" type="text/javascript"></script>
+</head>
+<script type="text/javascript">
+//链接新开窗口
+function addBlankTargetForLinks () {
+  $('a[href^="http"]').each(function(){
+      $(this).attr('target', '_blank');
+  });
+}
+$(document).ready(function(event) {
+  addBlankTargetForLinks();
+});
+</script>
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="index.html">zerolocust</a></h1>
+  
+    <h2>locustchen的博客</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zerolocusta.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+
+  <li id=""><a target="self" href="index.html">Home</a></li>
+
+  <li id=""><a target="_self" href="archives.html">Archives</a></li>
+
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content"> 
+<div>
+	<article class="hentry" role="article">
+	<header>
+			  	<h1 class="entry-title">Node.js设计模式 · 第五章</h1>
+				<p class="meta"><time datetime="2017-10-13T20:01:52+08:00" pubdate data-updated="true">2017/10/13 20:1 下午</time></p>
+			 </header>
+		  	<div class="entry-content">
+			  	<h2 id="toc_0">Coding with Streams</h2>
+
+<blockquote>
+<p>Stream作为Node.js中非常重要的概念, 在Node.js的官方库中有着广泛的体现(fs, socket, child_process等), 这一章将会阐述Stream的理念及使用方法</p>
+</blockquote>
+
+<h2 id="toc_1">摘要</h2>
+
+<ul>
+<li><code>Stream</code> 之于 <code>Node.js</code></li>
+<li><code>Stream</code> 的使用方法</li>
+</ul>
+
+<h2 id="toc_2">Buffering versus streaming</h2>
+
+<blockquote>
+<p><code>Buffer</code> 与 <code>Stream</code> 的区别</p>
+</blockquote>
+
+<ul>
+<li><code>Buffer</code>模式的特性</li>
+</ul>
+
+<p>大部分的异步API都是使用<code>Buffer</code>模式, 当数据<strong>接收完成</strong>的时候将它传递给<code>callback</code><br/>
+<img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-14%20%E4%B8%8A%E5%8D%8810.39.50.png" alt="屏幕快照 2017-10-14 上午10.39.50"/></p>
+
+<blockquote>
+<p>在<code>t1</code>时刻, 系统仅收到<code>Hello N</code>几个字符, 还未收到一个完整的数据, 而在<code>t2</code>时刻系统接收到剩下的数据, 组成了完成的包<code>Hello Node.js</code>, 此时才把他提交给消费者</p>
+</blockquote>
+
+<p>特点: 使用<code>Buffer</code>模式的API在完成与未完成的状态之间有着完整的界限</p>
+
+<ul>
+<li><code>Stream</code>模式的特性</li>
+</ul>
+
+<p><code>Stream</code>模式与<code>Buffer</code>模式最大的不同是在<strong>接收到数据时, <code>Stream</code>模式的API会不断往消费者提交数据</strong><br/>
+<img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-14%20%E4%B8%8A%E5%8D%8811.08.37.png" alt="屏幕快照 2017-10-14 上午11.08.37"/></p>
+
+<blockquote>
+<p>在<code>t1</code>时刻, 系统接收到了<code>Hello N</code>, 马上提交给消费者, 然后在接收到剩下的<code>ode.js</code>, 也马上提交到消费者</p>
+</blockquote>
+
+<p><code>Stream</code>相对于<code>Buffer</code>的优势</p>
+
+<ul>
+<li>更小的空间复杂度: <code>Buffer</code>需要开辟出一块空间用于存储接收到的数据, 在接收完毕时提交到消费者处, 而<code>Stream</code>在接收到数据后马上提交到消费者除, 空间的消耗小了很多.</li>
+<li>更紧凑的时间: 相当于给后续函数提供了增量解析数据的可能性</li>
+<li>可组合性: 利用<code>Stream</code>提供的<code>pipe</code>管道将多个流组合起来 </li>
+</ul>
+
+<h3 id="toc_3">Spatial efficiency</h3>
+
+<p>V8引擎有一个限制, <code>buffer</code>大小在32位机器上不能大于<code>1GB - 1 Byte</code>, 64位系统上不能大于<code>2GB - 1 bytes</code>. (截止目前8.0版本)</p>
+
+<p>下面给出两段代码, 演示<code>Buffer</code>与<code>Stream</code>两种不同风格下如何对文件进行压缩处理</p>
+
+<h4 id="toc_4">Gzipping using a buffered API</h4>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const fs = require(&#39;fs&#39;);
+const zlib = require(&#39;zlib&#39;);
+
+const file = process.argv[2];
+
+// 读入文件
+fs.readFile(file, (err, buffer) =&gt; {
+  // 压缩文件
+  zlib.gzip(buffer, (err, buffer) =&gt; {
+    // 将压缩后文件写入硬盘
+    fs.writeFile(file + &#39;.gz&#39;, buffer, err =&gt; {
+      console.log(&#39;File successfully compressed&#39;);
+    });
+  });
+});
+</code></pre>
+
+<p>在压缩大于2GB的文件时(测试环境: MacOS 10.13, 内存 16GB), 无法正确压缩文件</p>
+
+<h4 id="toc_5">Gzipping using streams</h4>
+
+<pre><code class="language-js">fs.createReadStream(file)
+  .pipe(zlib.createGzip())
+  .pipe(fs.createWriteStream(file + &#39;.gz&#39;))
+  .on(&#39;finish&#39;, () =&gt; console.log(&#39;File successfully compressed&#39;))
+;
+</code></pre>
+
+<ul>
+<li><code>fs.createReadStream</code>创建了具有<code>stream.Readable</code>特性的对象(<code>trait</code>)</li>
+<li><code>zlib.createGzip</code>返回的<code>Gzip</code>实例具有<code>stream.Transform</code>的特性, 这个特性是同时具有可读和科协的流</li>
+<li><code>fs.createWriteStream</code>创建了具有<code>stream.Writeable</code>特性的对象</li>
+</ul>
+
+<p>相当于<code>fs.createReadStream file | zlib.createGzip | fs.createWriteStream file.gz</code></p>
+
+<p>由此突破了v8中对<code>Buffer</code>的限制, 经测试, 压缩大于2GB的文件并未出现问题</p>
+
+<h3 id="toc_6">Time efficiency</h3>
+
+<p>由于<code>Stream</code>能做到增量处理, 在时间的利用率上也非常有优势</p>
+
+<p>设计一个CS服务</p>
+
+<ul>
+<li><code>Client</code> : 读取文件, 压缩文件, 发送文件</li>
+<li><code>Server</code> : 接收文件, 解压文件, 保存文件</li>
+</ul>
+
+<p>如果这套逻辑采用<code>Buffer</code>模式实现, 读取,压缩,发送都要等待文件完成读入<code>Buffer</code>, 随后才能进行下一步操作, 虽然得益于<code>Node.js</code>的事件循环机制, 多个用户并不会因此阻塞, 但从单个用户来看, 处理时间变长了许多.</p>
+
+<ul>
+<li><code>Server</code> 的 <code>Stream</code> 模式实现</li>
+</ul>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const http = require(&#39;http&#39;);
+const fs = require(&#39;fs&#39;);
+const zlib = require(&#39;zlib&#39;);
+
+// 创建HTTP服务
+const server = http.createServer((req, res) =&gt; {
+  // 从HTTP头部读取文件名
+  const filename = req.headers.filename;
+  console.log(&#39;File request received: &#39; + filename);
+  req
+    // 解压文件的流
+    .pipe(zlib.createGunzip())
+    // 创建写入文件的流
+    .pipe(fs.createWriteStream(filename))
+    .on(&#39;finish&#39;, () =&gt; {
+      res.writeHead(201, {&#39;Content-Type&#39;: &#39;text/plain&#39;});
+      res.end(&#39;That\&#39;s it\n&#39;);
+      console.log(`File saved: ${filename}`);
+    });
+});
+
+server.listen(3000, () =&gt; console.log(&#39;Listening&#39;));
+
+</code></pre>
+
+<ul>
+<li><code>Client</code> 的 <code>Stream</code> 模式实现 </li>
+</ul>
+
+<pre><code class="language-js">const options = {
+  hostname: server,
+  port: 3000,
+  path: &#39;/&#39;,
+  method: &#39;PUT&#39;,
+  headers: {
+    // 设置HTTP请求头部
+    filename: path.basename(file),
+    &#39;Content-Type&#39;: &#39;application/octet-stream&#39;,
+    &#39;Content-Encoding&#39;: &#39;gzip&#39;
+  }
+};
+
+const req = http.request(options, res =&gt; {
+  console.log(&#39;Server response: &#39; + res.statusCode);
+});
+// 创建可写 Stream
+fs.createReadStream(file)
+  // 创建压缩文件的流
+  .pipe(zlib.createGzip())
+  // HttpClient 继承了 Stream.Writeable
+  // 此处将压缩后的数据写入HTTP请求中
+  .pipe(req)
+  .on(&#39;finish&#39;, () =&gt; {
+    console.log(&#39;File successfully sent&#39;);
+  })
+;
+</code></pre>
+
+<p><img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-15%20%E4%B8%8B%E5%8D%887.19.51.png" alt="屏幕快照 2017-10-15 下午7.19.51"/></p>
+
+<h3 id="toc_7">Composability</h3>
+
+<blockquote>
+<p>得益于<code>Stream</code>中的<code>pipe</code>方法, 多个流组合起来非常方便简洁</p>
+</blockquote>
+
+<p>对于上面的CS压缩文件传输模型, 加入加密传输功能对于<code>Stream</code>来说非常简单</p>
+
+<ul>
+<li><code>Client</code></li>
+</ul>
+
+<pre><code class="language-js">fs.createReadStream(file)
+  .pipe(zlib.createGzip())
+  // 对压缩后文件进行加密
+  .pipe(crypto.createCipher(&#39;aes192&#39;, &#39;a_shared_secret&#39;))
+  .pipe(req)
+  .on(&#39;finish&#39;, () =&gt; {
+    console.log(&#39;File successfully sent&#39;);
+  });
+</code></pre>
+
+<ul>
+<li><code>Server</code></li>
+</ul>
+
+<pre><code class="language-js">const server = http.createServer((req, res) =&gt; {
+  const filename = req.headers.filename;
+  console.log(&#39;File request received: &#39; + filename);
+  req
+    // 对收到的请求进行解密
+    .pipe(crypto.createDecipher(&#39;aes192&#39;, &#39;a_shared_secret&#39;))
+    .pipe(zlib.createGunzip())
+    .pipe(fs.createWriteStream(filename))
+    .on(&#39;finish&#39;, () =&gt; {
+      res.writeHead(201, {&#39;Content-Type&#39;: &#39;text/plain&#39;});
+      res.end(&#39;That\&#39;s it\n&#39;);
+      console.log(`File saved: ${filename}`);
+    })
+  ;
+});
+</code></pre>
+
+<p>的确只以非常小的改动, 添加上加解密的功能, 但个人认为对于<code>async/await</code>来说, 在工程组合上<code>Stream</code>并无太大优势.</p>
+
+<hr/>
+
+<h3 id="toc_8">Getting started with streams</h3>
+
+<blockquote>
+<p>到目前为止, 我们只是看到了如何使用已有的<code>Stream</code>模块, 接下来介绍如何创建自己的<code>Stream</code>模块</p>
+</blockquote>
+
+<p>不难看出, 上面的<code>fs.createReadStream</code>和<code>fs.createWriteStream</code>都会返回一个<code>Stream</code>对象, 而在<code>Node.js</code>官方库中, <code>Stream</code>模块中具有几个可被继承的对象</p>
+
+<ul>
+<li><code>stream.Readable</code></li>
+<li><code>stream.Writable</code></li>
+<li><code>stream.Duplex</code></li>
+<li><code>stream.Transform</code></li>
+</ul>
+
+<p>以上的类均继承了<code>EventEmitter</code>, 实现了<code>end</code>事件, <code>error</code>事件等</p>
+
+<p><code>Stream</code>除了能像<code>fs.createReadFile</code>之类处理IO的二进制流之外(二进制流以Chunk的形式体现), <code>Stream</code>也能传递<code>Object</code>, 能从上一个<code>Stream</code>不断生成<code>Object</code>传递到下一个<code>Stream</code>中, 所以<code>Stream</code>不仅能应用于IO处理中, 普通的对象处理也能得到<code>Stream</code>的好处.</p>
+
+<hr/>
+
+<h3 id="toc_9">Readable streams</h3>
+
+<blockquote>
+<p>可读流的使用和创建</p>
+</blockquote>
+
+<p><code>Readable streams</code>有两种从中读取数据的方法, <code>non-flowing mode</code>和<code>flowing mode</code></p>
+
+<h4 id="toc_10">The non-flowing mode</h4>
+
+<p><code>non-flowing mode</code>很直白, 从可读流中读取数据直到无数据可读, 由于监听<code>readable</code>后是<code>listener</code>主动从流中读取数据, 相对于<code>flowing mode</code>, 数据并未从事件监听器流入<code>listener</code></p>
+
+<pre><code class="language-js">process.stdin
+  // 订阅了 readable
+  // 当流变的可读取时调用回调函数
+  .on(&#39;readable&#39;, () =&gt; {
+    let chunk;
+    console.log(&#39;New data available&#39;);
+    // 不断循环读取数据直至结束
+    while ((chunk = process.stdin.read()) !== null) {
+      console.log(
+        `Chunk read: (${chunk.length}) &quot;${chunk.toString()}&quot;`
+      );
+    }
+  })
+  .on(&#39;end&#39;, () =&gt; process.stdout.write(&#39;End of stream&#39;));
+</code></pre>
+
+<p>运行结果</p>
+
+<p><img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-16%20%E4%B8%8A%E5%8D%8810.21.07.png" alt="屏幕快照 2017-10-16 上午10.21.07"/></p>
+
+<h4 id="toc_11">Flowing mode</h4>
+
+<p>还有一种从<code>Stream</code>中读取数据的方式是通过监听<code>data</code>事件, </p>
+
+<p><code>stream</code>同时提供了<code>data</code>事件, 每当<code>Readable Stream</code>接收到新的数据时, <code>listener</code>就会被触发, 同时数据以形参的形式传递到<code>listener</code>中</p>
+
+<pre><code class="language-js">process.stdin
+  .on(&#39;data&#39;, chunk =&gt; {
+    console.log(&#39;New data available&#39;);
+    console.log(
+      `Chunk read: (${chunk.length}) &quot;${chunk.toString()}&quot;`
+    );
+  })
+  .on(&#39;end&#39;, () =&gt; process.stdout.write(&#39;End of stream&#39;));
+</code></pre>
+
+<h4 id="toc_12">Implementing Readable streams</h4>
+
+<blockquote>
+<p>创建自己的<code>Readable Stream</code></p>
+</blockquote>
+
+<p>创建自己的<code>Readable Stream</code>类的时候, 需要继承<code>stream.Readable</code>, 并实现<code>_read</code>方法, 通过<code>stream.Readable.push</code>方法往<code>Stream</code>内部提供的<code>Buffer</code>推入数据.</p>
+
+<p>书里提供了一个利用<code>chance</code>库生成随机字符串, 并且将生成的字符串作为流输出<br/>
+ <strong>(往流中推入<code>null</code>表示流的结束)</strong></p>
+
+<pre><code class="language-js"> class RandomStream extends stream.Readable {
+  constructor(options) {
+    super(options);
+  }
+  // 实现 _read 接口
+  _read(size) {
+    // 生成随机字符串
+    const chunk = chance.string();
+    console.log(`Pushing chunk of size: ${chunk.length}`);
+    // 将随机串推入内部buffer
+    this.push(chunk, &#39;utf8&#39;);
+    // 有 5% 的概率出现 true
+    if (chance.bool({
+        likelihood: 5
+      })) {
+      this.push(null);
+    }
+  }
+}
+</code></pre>
+
+<p><code>RandomStream</code>使用示例</p>
+
+<pre><code class="language-js">const randomStream = new RandomStream();
+
+randomStream
+  // 订阅 data 事件
+  .on(&#39;data&#39;, (chunk) =&gt; {
+    console.log(`Chunk received: ${chunk.toString()}`);
+  })
+  .on(&#39;end&#39;, () =&gt; {
+    process.stdout.write(&#39;End of stream\n&#39;)
+  });
+</code></pre>
+
+<hr/>
+
+<h3 id="toc_13">Writable streams</h3>
+
+<h4 id="toc_14">Writing to a stream</h4>
+
+<blockquote>
+<p>如何往<code>Writable Stream</code>中写入数据</p>
+</blockquote>
+
+<p><code>stream.Writable</code>中有两个主要方法</p>
+
+<ul>
+<li><code>writable.write(chunk[, encoding][, callback])</code>: 往<code>Writable Stream</code>中写入<code>chunk</code></li>
+<li><code>writable.end([chunk][, encoding][, callback])</code>: 结束流</li>
+</ul>
+
+<p>示例:</p>
+
+<pre><code>往HTTP回包中写入数据
+</code></pre>
+
+<pre><code class="language-js">const Chance = require(&#39;chance&#39;);
+const chance = new Chance();
+
+require(&#39;http&#39;).createServer((req, res) =&gt; {
+  // 写入 HTTP 回包请求头部
+  res.writeHead(200, {
+    &#39;Content-Type&#39;: &#39;text/plain&#39;
+  });
+  while (chance.bool({
+      likelihood: 95
+    })) {
+    // 往 HTTP 回包请求中写入随机字符串
+    res.write(chance.string() + &#39;\n&#39;);
+  }
+  // 关闭流
+  res.end(&#39;\nThe end...\n&#39;);
+  res.on(&#39;finish&#39;, () =&gt; console.log(&#39;All data was sent&#39;)); //[5]
+}).listen(8080, () =&gt; console.log(&#39;Listening on http://localhost:8080&#39;));    
+</code></pre>
+
+<p>回应结果:<br/>
+ <img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-16%20%E4%B8%8B%E5%8D%887.50.35.png" alt="屏幕快照 2017-10-16 下午7.50.35"/></p>
+
+<h4 id="toc_15">Back-pressure</h4>
+
+<blockquote>
+<p>负反馈</p>
+</blockquote>
+
+<p><strong>当我们往<code>Writable Stream</code>内部的<code>Buffer</code>写入数据, 而<code>Buffer</code>的大小是有限制的, 写入数据如果过多而消费者未及时取出数据的话, 缓存很容易出现溢出现象</strong></p>
+
+<p>为了解决缓存过载的问题, <code>stream.Writable</code>在内部设置了<code>highWaterMark</code>属性(默认是16KB), 当内部缓存无法容纳更多的数据的时候<code>writable.write</code>将会返回<code>false</code>(<code>Readable Stream</code>内部也有相似的机制)</p>
+
+<p>应用负反馈后的<code>Http Stream</code></p>
+
+<pre><code class="language-js">require(&#39;http&#39;).createServer((req, res) =&gt; {
+  res.writeHead(200, {
+    &#39;Content-Type&#39;: &#39;text/plain&#39;
+  });
+
+  function generateMore() {
+    // 有 95% 的概率返回ture
+    while (chance.bool({
+        likelihood: 95
+      })) {
+      // 写入一段超长的字符串
+      let shouldContinue = res.write(
+        chance.string({
+          length: (16 * 1024) - 1
+        })
+      );
+      // 当
+      if (!shouldContinue) { //[3]
+        console.log(&#39;Backpressure&#39;);
+        // 如果buffer已经触及极限, 那么订阅 drain 事件
+        return res.once(&#39;drain&#39;, generateMore);
+      }
+    }
+    
+    res.end(&#39;\nThe end...\n&#39;, () =&gt; console.log(&#39;All data was sent&#39;));
+  }
+  generateMore();
+  
+}).listen(8080, () =&gt; console.log(&#39;Listening on http://localhost:8080&#39;));
+</code></pre>
+
+<p>这段代码有两个重点:</p>
+
+<ul>
+<li>创建了<code>generateMore</code>函数用于在缓存已满的情况下注册为<code>listener</code></li>
+<li>在<code>writable stream</code>上监听了<code>drain</code>事件, 根据官方文档的说法, 当<code>writable stream</code>从不可写变为可写时, 注册在<code>drain</code>事件上的<code>listener</code>将会被触发</li>
+</ul>
+
+<h4 id="toc_16">Implementing Writable streams</h4>
+
+<blockquote>
+<p>实现自己的可写流</p>
+</blockquote>
+
+<p>书中示例创建一个传递<code>Object</code>的<code>Stream</code>, 与实现<code>Readable Stream</code>相似, 只需继承<code>stream.Writable</code>后实现<code>_write</code>方法即可</p>
+
+<pre><code class="language-js">class ToFileStream extends stream.Writable {
+  constructor() {
+    // 启用 object 模式
+    super({objectMode: true});
+  }
+  // chunk 实为 
+  // {
+  //   path: &lt;path to file&gt;,
+  //   content : &lt; content of file&gt;
+  // }
+  // 的对象
+  _write (chunk, encoding, callback) {
+    // 创建目录
+    mkdirp(path.dirname(chunk.path), err =&gt; {
+      if (err) {
+        return callback(err);
+
+      }
+      // 写入文件
+      fs.writeFile(chunk.path, chunk.content, callback);
+    });
+  }
+}
+</code></pre>
+
+<p>使用示例</p>
+
+<pre><code class="language-js">let tfs = new ToFileStream();
+
+tfs.write({path: &quot;file1.txt&quot;, content: &quot;Hello&quot;});
+tfs.write({path: &quot;file2.txt&quot;, content: &quot;Node.js&quot;});
+tfs.write({path: &quot;file3.txt&quot;, content: &quot;Streams&quot;});
+tfs.end(() =&gt; console.log(&quot;All files created&quot;));
+</code></pre>
+
+<hr/>
+
+<h3 id="toc_17">Duplex streams</h3>
+
+<p><code>Duplex streams</code>表示一种双向的流, 同时继承了<code>Readable Stream</code> 和 <code>Writable Stream</code>, 适合用于具有双向通信功能的实现(例如Socket)<br/>
+<img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-16%20%E4%B8%8B%E5%8D%8811.41.05.png" alt="屏幕快照 2017-10-16 下午11.41.05"/></p>
+
+<h3 id="toc_18">Transform streams</h3>
+
+<p><code>Transform streams</code>是特殊的<code>Duplex streams</code>, 在<code>Readable Stream</code>和<code>Writable Stream</code> 之间提供额外的桥梁<br/>
+<img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-17%20%E4%B8%8A%E5%8D%8811.21.06.png" alt="屏幕快照 2017-10-17 上午11.21.06"/></p>
+
+<h4 id="toc_19">Implementing Transform streams</h4>
+
+<p><code>stream.Transform</code>类中有两个需要子类实现的方法</p>
+
+<ul>
+<li><code>_transform</code> : 用于在<code>write</code>时调用并写入内部缓存</li>
+<li><code>_flust</code>: 在<code>end</code>方法调用时将剩余数据推入内部缓存中</li>
+</ul>
+
+<p>示例: 往<code>Transform streams</code>写入字符串, 替换目标字符串并输出</p>
+
+<pre><code class="language-js">class ReplaceStream extends stream.Transform {
+  constructor(searchString, replaceString) {
+    super();
+    this.searchString = searchString;
+    this.replaceString = replaceString;
+    this.tailPiece = &#39;&#39;;
+  }
+
+  _transform(chunk, encoding, callback) {
+    // 利用 String.prototype.split 提取出所有目标字符串
+    const pieces = (this.tailPiece + chunk)
+      .split(this.searchString);
+    // 获取分片后字符串数组的末尾元素
+    const lastPiece = pieces[pieces.length - 1];
+    // 由于写入流的数据不一定是工整的,
+    // 需要从输入的流中读取至少searchString.length - 1个字符
+    // 用于与后续输入的数据进行拼接搜索
+    const tailPieceLen = this.searchString.length - 1;
+    // 从末尾切分出 tailPieceLen 长度的字符串
+    this.tailPiece = lastPiece.slice(-tailPieceLen);
+    // 去除 his.tailPiece 部分的字符串, 以免重复
+    pieces[pieces.length - 1] = lastPiece.slice(0, -tailPieceLen);
+    // pieces 是由 searchString 分割的字符串数组
+    // 经过slice去掉 searchString 后通过 replaceString
+    // 拼接字符串数组, 得到替换后的字符串
+    // 推入 Readable Stream 中
+    this.push(pieces.join(this.replaceString));
+    callback();
+  }
+  // 当流结束时, 切割下来的 tailPiece 仍未推入内部缓存
+  // 通过_flush将最后的字符串推入内部缓存
+  _flush(callback) {
+    this.push(this.tailPiece);
+    callback();
+  }
+}
+</code></pre>
+
+<p>使用示例:</p>
+
+<pre><code class="language-js const">// 指定替换的字符串
+const rs = new ReplaceStream(&#39;World&#39;, &#39;Node.js&#39;);
+// 订阅 Readable Stream 一侧上的 data 事件
+// 接收到数据时输出到终端
+rs.on(&#39;data&#39;, chunk =&gt; console.log(chunk.toString()));
+// 往 Writable Stream 一侧上写入数据
+rs.write(&#39;Hello W&#39;);
+rs.write(&#39;orld!&#39;);
+rs.end();
+</code></pre>
+
+<p><img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-18%20%E4%B8%8B%E5%8D%884.41.13.png" alt="屏幕快照 2017-10-18 下午4.41.13"/></p>
+
+<p>运行结果的输出对应了<code>ReplaceStream</code>的实现所映射出的<code>push数据</code>的行为.</p>
+
+<h4 id="toc_20">Through and from for working with streams</h4>
+
+<p>两个用于快速生成<code>Transform Stream</code> 和 <code>Readable Stream</code>的库</p>
+
+<ul>
+<li>through2 , 用于生成<code>Transform Stream</code></li>
+</ul>
+
+<pre><code class="language-js">const transform = through2([options], [_transform], [_flush])
+</code></pre>
+
+<ul>
+<li>from , 用于生成<code>Readable Stream</code>的库</li>
+</ul>
+
+<pre><code class="language-js">const readable = from2([options], _read)
+</code></pre>
+
+<h3 id="toc_21">Asynchronous control flow with streams</h3>
+
+<blockquote>
+<p>实际代码中如何使用<code>Stream</code><br/>
+之前的<code>spider</code>实例相似, 分别以<code>Sequential execution</code>和<code>Parallel execution</code>为例</p>
+</blockquote>
+
+<h4 id="toc_22">Sequential execution</h4>
+
+<p>以<code>Stream</code>实现一个线性执行拼接文件的功能.</p>
+
+<pre><code class="language-js">const fromArray = require(&#39;from2-array&#39;);
+const through = require(&#39;through2&#39;);
+const fs = require(&#39;fs&#39;);
+
+function concatFiles(destination, files, callback) {
+  // 创建用于存放拼接后文件的 Writable Stream
+  const destStream = fs.createWriteStream(destination);
+  // fromArray.obj 将会遍历 files
+  // 将多个文件名通过 pipe 传递到下一个 Stream
+  fromArray.obj(files)
+    // 利用 through2 创建一个 Transform Stream
+    .pipe(through.obj((file, enc, done) =&gt; {
+      //  通过文件名创建 Readable Stream
+      const src = fs.createReadStream(file);
+      // 往目标文件中写入数据
+      // 由于 pipe 在完成时会自动调用end函数
+      // 但destStream并未将所有文件拼接完成,
+      // 此处将 end 设为 false
+      src.pipe(destStream, {
+        end: false,
+      });
+      // 当前文件拼接完毕时调用done函数
+      // 以供 fromArray 向 pipe 传递下一个文件名
+      src.on(&#39;end&#39;, done);
+    }))
+    // 在所有文件遍历完毕时
+    // 介素 Writable Stream
+    .on(&#39;finish&#39;, () =&gt; {
+      destStream.end();
+      callback();
+    });
+}
+</code></pre>
+
+<p><code>Stream</code>风格的串行执行和上两章中的串行执行风格其实有很多相似的地方</p>
+
+<ul>
+<li><code>fromArray.obj</code>逐个遍历文件名并传递到下个流中, 而<code>through.obj</code>中的回调函数在处理完单个文件时, 通过调用<code>done</code>触发下个文件的处理, 类似于上两章串行执行风格中的<code>next</code>函数, 以控制任务遍历的速度</li>
+<li>在所有文件处理完毕时, <code>destStream.end</code>标识处理结束, 与上两章串行执行风格中, 执行完毕调用<code>callback</code>相似</li>
+</ul>
+
+<h4 id="toc_23">Unordered parallel execution</h4>
+
+<blockquote>
+<p>利用<code>Stream</code>实现非顺序的并行执行任务</p>
+</blockquote>
+
+<pre><code class="language-js">class ParallelStream extends stream.Transform {
+  constructor(userTransform) {
+    super({
+      objectMode: true
+    });
+    // userTransform 存放处理任务的函数
+    // 也就是用于处理任务的 worker 函数
+    this.userTransform = userTransform;
+    // 用于记录当前正在运行任务数
+    this.running = 0;
+    this.terminateCallback = null;
+  }
+
+  _transform(chunk, enc, done) {
+    this.running++;
+    // 将数据传递到 worker 函数
+    this.userTransform(chunk, enc, this._onComplete.bind(this), this.push.bind(this));
+    // 由于是并发执行 userTransform
+    // 我们有自己的_onComplete函数处理worker函数完成事件
+    // 需要调用done触发流中下一个任务
+    done();
+  }
+
+  _flush(done) {
+    if (this.running &gt; 0) {
+      // 在流结束时还有任务运行时
+      // 暂不结束当前流
+      this.terminateCallback = done;
+    } else {
+      done();
+    }
+  }
+
+  _onComplete(err) {
+    // 减少运行任务数
+    this.running--;
+    if (err) {
+      // 往 error 事件发送错误
+      return this.emit(&#39;error&#39;, err);
+    }
+    // _onComplete在每次task完成都会触发
+    if (this.running === 0) {
+      this.terminateCallback &amp;&amp; this.terminateCallback();
+    }
+  }
+}
+</code></pre>
+
+<p><code>Stream</code>的并行执行模式有几点重要的地方</p>
+
+<ul>
+<li>利用<code>Stream</code>中的<code>done</code>函数, 强制<code>Stream</code>处理下一个元素</li>
+<li>通过<code>running</code>记录正在执行的任务</li>
+<li>任务完成时调用<code>_onComplete</code>函数, 触发完成事件.</li>
+</ul>
+
+<h4 id="toc_24">Unordered limited parallel execution</h4>
+
+<p>在并行执行中加入并发任务数限制</p>
+
+<pre><code class="language-js">class LimitedParallelStream extends stream.Transform {
+  // 加入 concurrency 限制并发数
+  constructor(concurrency, userTransform) {
+    super({objectMode: true});
+    this.concurrency = concurrency;
+    this.userTransform = userTransform;
+    this.running = 0;
+    this.terminateCallback = null;
+    this.continueCallback = null;
+  }
+
+  _transform(chunk, enc, done) {
+    this.running++;
+    this.userTransform(chunk, enc,  this.push.bind(this), this._onComplete.bind(this));
+    if(this.running &lt; this.concurrency) {
+      // 未触及并发上限
+      // 调用 done 促使 Stream 传入下一个任务
+      done();
+    } else {
+      // 当某个任务完成时,
+      // 调用的 _onComplete 函数的时候将会调用continueCallback
+      // 此时触发Stream 传入下一个任务
+      this.continueCallback = done;
+    }
+  }
+
+  _flush(done) {
+    if(this.running &gt; 0) {
+      this.terminateCallback = done;
+    } else {
+      done();
+    }
+  }
+
+  _onComplete(err) {
+    this.running--;
+    if(err) {
+      return this.emit(&#39;error&#39;, err);
+    }
+    // 由continueCallback指示是否存在等待执行的任务
+    const tmpCallback = this.continueCallback;
+    this.continueCallback = null;
+    tmpCallback &amp;&amp; tmpCallback();
+    if(this.running === 0) {
+      this.terminateCallback &amp;&amp; this.terminateCallback();
+    }
+  }
+}
+</code></pre>
+
+<ul>
+<li>这里利用了<code>Stream</code>的机制来充当任务队列, 任务存储在<code>pipe</code>中的上一个<code>Stream</code>中, 而任务控制通过<code>done</code>来控制任务流入的速度</li>
+</ul>
+
+<hr/>
+
+<h3 id="toc_25">Piping patterns</h3>
+
+<blockquote>
+<p>利用<code>pipe</code>设计和组合<code>Stream</code></p>
+</blockquote>
+
+<h4 id="toc_26">Combining streams</h4>
+
+<p>将多个<code>Stream</code>组合起来, 对外只暴露成一个<code>Stream</code><br/>
+将<code>Stream</code>组合起来有多个优点</p>
+
+<ul>
+<li>将多个流简化, 对外暴露单个接口</li>
+<li>流的错误处理简化, 所有被组合的流的错误信息被重定向到组合后的流的错误事件里, 对外接口只需订阅组合后流的错误时间即可</li>
+</ul>
+
+<p><img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-20%20%E4%B8%8A%E5%8D%8811.28.49.png" alt="屏幕快照 2017-10-20 上午11.28.49"/></p>
+
+<p>组合多个流基于两个原则:</p>
+
+<ul>
+<li>当我们往一个组合后的流写入数据时, 实际上是往组合中的第一个流写入数据</li>
+<li>当我们往一个组合后的流读取数据时, 实际上是往组合中的最后一个流读取数据</li>
+</ul>
+
+<p>基于上述的原则, 利用<code>Duplex Stream</code>或<code>Transform Stream</code>能很轻松做到组合多个流, 而在这里使用第三方库<code>multipipe</code></p>
+
+<pre><code class="language-js">const zlib = require(&#39;zlib&#39;);
+const crypto = require(&#39;crypto&#39;);
+const combine = require(&#39;multipipe&#39;);
+
+module.exports.compressAndEncrypt = password =&gt; {
+  // 返回一个组合后的流
+  return combine(
+    // 压缩数据
+    zlib.createGzip(),
+
+    // 加密数据
+    crypto.createCipher(&#39;aes192&#39;, password)
+  );
+};
+
+module.exports.decryptAndDecompress = password =&gt; {
+  return combine(
+    // 解密数据
+    crypto.createDecipher(&#39;aes192&#39;, password),
+    // 解压数据
+    zlib.createGunzip()
+  );
+};
+</code></pre>
+
+<p>组合后的<code>Stream</code>使用方法与普通<code>Stream</code>无异.</p>
+
+<h4 id="toc_27">Forking streams</h4>
+
+<p>针对<code>Readable Stream</code>能fork出多个流, 提供给后续多个pipe的数据<br/>
+<img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-20%20%E4%B8%8B%E5%8D%884.48.39.png" alt="屏幕快照 2017-10-20 下午4.48.39"/></p>
+
+<p>而实现方法也非常简单, 直接在同一个<code>Readable Stream</code>实例上分别调用<code>pipe</code>方法.</p>
+
+<ul>
+<li>对输入的文件同时进行<code>sha1</code>与<code>md5</code>哈希计算</li>
+</ul>
+
+<pre><code class="language-js">const fs = require(&#39;fs&#39;);
+const crypto = require(&#39;crypto&#39;);
+
+const sha1Stream = crypto.createHash(&#39;sha1&#39;);
+sha1Stream.setEncoding(&#39;base64&#39;);
+
+const md5Stream = crypto.createHash(&#39;md5&#39;);
+md5Stream.setEncoding(&#39;base64&#39;);
+
+const inputFile = process.argv[2];
+const inputStream = fs.createReadStream(inputFile);
+// 在同一个inputStream实例上调用pipe
+// 完成 Fork Stream
+inputStream
+  .pipe(sha1Stream)
+  .pipe(fs.createWriteStream(inputFile + &#39;.sha1&#39;));
+
+inputStream
+  .pipe(md5Stream)
+  .pipe(fs.createWriteStream(inputFile + &#39;.md5&#39;));
+</code></pre>
+
+<h4 id="toc_28">Merging streams</h4>
+
+<blockquote>
+<p>整个多个流</p>
+</blockquote>
+
+<p><img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-20%20%E4%B8%8B%E5%8D%8810.27.15.png" alt="屏幕快照 2017-10-20 下午10.27.15"/></p>
+
+<p>实现方法:</p>
+
+<ul>
+<li>在多个留上使用<code>pipe</code>方法导向同一个流, 并把<code>pipe</code>方法的自动结束<code>Stream</code>设为<code>false</code>({end: false})</li>
+<li>订阅多个流的<code>end</code>事件, 应用自定义的处理<code>end</code>事件函数</li>
+</ul>
+
+<p>示例: 将多个文件流导向同一个压缩处理流中</p>
+
+<pre><code class="language-js">const tar = require(&#39;tar&#39;);
+const fstream = require(&#39;fstream&#39;);
+const path = require(&#39;path&#39;);
+
+const destination = path.resolve(process.argv[2]);
+const sourceA = path.resolve(process.argv[3]);
+const sourceB = path.resolve(process.argv[4]);
+
+// 获取压缩流(Writable Stream)
+const pack = tar.Pack();
+// 将压缩后的流写入文件中
+pack.pipe(fstream.Writer(destination));
+
+let endCount = 0;
+// 用于在多个流处理结束后
+// 关闭 压缩流
+function onEnd() {
+  if(++endCount === 2) {
+    pack.end();
+  }
+}
+
+const sourceStreamA = fstream.Reader({type: &quot;Directory&quot;, path: sourceA})
+  .on(&#39;end&#39;, onEnd);
+
+const sourceStreamB = fstream.Reader({type: &quot;Directory&quot;, path: sourceB})
+  .on(&#39;end&#39;, onEnd);
+
+// 两个流重定向至 pack
+sourceStreamA.pipe(pack, {end: false});
+sourceStreamB.pipe(pack, {end: false});
+</code></pre>
+
+<h4 id="toc_29">Multiplexing and demultiplexing</h4>
+
+<blockquote>
+<p>复用单个流写入多个数据, 在另一端从单个流中解离出多个数据<br/>
+<img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-20%20%E4%B8%8B%E5%8D%8811.13.06.png" alt="屏幕快照 2017-10-20 下午11.13.06"/><br/>
+在两段利用对称的<code>mux</code>和<code>demux</code>函数融合与分离多个流</p>
+</blockquote>
+
+<p>示例: 创建CS服务, <code>Server</code>接收数据并写入文件中(log服务), <code>Client</code>发送日志数据.</p>
+
+<ul>
+<li><code>Client</code></li>
+</ul>
+
+<pre><code class="language-js">const child_process = require(&#39;child_process&#39;);
+const net = require(&#39;net&#39;);
+
+// multiplexChannels 用于将多个流(sources)
+// 同时写入同一个流(destination)中
+function multiplexChannels(sources, destination) {
+  let totalChannels = sources.length;
+  // 遍历sources数组中的多个流
+  for (let i = 0; i &lt; sources.length; i++) {
+    sources[i]
+      // 订阅 readable 事件
+      .on(&#39;readable&#39;, function () {
+        let chunk;
+        // 利用 Non-Flowing 模式
+        while ((chunk = this.read()) !== null) {
+          const outBuff = new Buffer(1 + 4 + chunk.length);
+          // 每一个buffer头部
+          // 8 bits用于标识数据的ID
+          outBuff.writeUInt8(i, 0);
+          // 紧接着的32 bits用于记录当前chunk的长度
+          outBuff.writeUInt32BE(chunk.length, 1);
+          // 将 chunk 复制到 outBuffer 中
+          chunk.copy(outBuff, 5);
+          console.log(&#39;Sending packet to channel: &#39; + i);
+          // 将数据写入 destination 流中
+          destination.write(outBuff);
+        }
+      })
+      .on(&#39;end&#39;, () =&gt; {
+        // 在所有sources上订阅end事件
+        if (--totalChannels === 0) {
+          // 当所有流处理完毕,
+          // 关闭 destination
+          destination.end();
+        }
+      });
+  }
+}
+
+const socket = net.connect(3000, () =&gt; {
+  const child = child_process.fork(
+    process.argv[2],
+    process.argv.slice(3), {
+      silent: true
+    }
+  );
+  multiplexChannels([child.stdout, child.stderr], socket);
+});
+</code></pre>
+
+<p><code>Client</code>中使用<code>Non-Flowing</code>模式非常重要, 每次往<code>destination</code>中写入一个完整的<code>Chunk</code>, 不会导致多个<code>Chunk</code>交错在一起.</p>
+
+<ul>
+<li><code>Server</code></li>
+</ul>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const net = require(&#39;net&#39;);
+const fs = require(&#39;fs&#39;);
+
+function demultiplexChannel(source, destinations) {
+  let currentChannel = null;
+  let currentLength = null;
+  source
+    // 订阅 readable 事件
+    .on(&#39;readable&#39;, () =&gt; {
+      let chunk;
+      if (currentChannel === null) {
+        // 从source中读取 8 bits, 获得管道的ID
+        chunk = source.read(1);
+        currentChannel = chunk &amp;&amp; chunk.readUInt8(0);
+      }
+
+      if (currentLength === null) {
+        // 从source中读取 32 bits, 获的Chunk的长度
+        chunk = source.read(4);
+        // 转换字节序
+        currentLength = chunk &amp;&amp; chunk.readUInt32BE(0);
+        if (currentLength === null) {
+          // 如果 currentLength 获取失败
+          // 表明 tcp 流在传输过程中被切分
+          // 在下次可读事件时重新读取
+          return;
+        }
+      }
+      // 从source中读取chunk长度的数据
+      chunk = source.read(currentLength);
+      if (chunk === null) {
+        // 如果currentLength长度的数据读取失败
+        // 说明TCP流被拆包
+        // 也需要在下次可读事件时再重新读取
+        return;
+      }
+
+      console.log(&#39;Received packet from: &#39; + currentChannel);
+
+      // 往 destinations 中写入chunk
+      destinations[currentChannel].write(chunk);
+      // 写入完成后复原头部数据
+      currentChannel = null;
+      currentLength = null;
+    })
+    .on(&#39;end&#39;, () =&gt; {
+      destinations.forEach(destination =&gt; destination.end());
+      console.log(&#39;Source channel closed&#39;);
+    });
+}
+
+net.createServer(socket =&gt; {
+    const stdoutStream = fs.createWriteStream(&#39;stdout.log&#39;);
+    const stderrStream = fs.createWriteStream(&#39;stderr.log&#39;);
+    demultiplexChannel(socket, [stdoutStream, stderrStream]);
+  })
+  .listen(3000, () =&gt; console.log(&#39;Server started&#39;));
+</code></pre>
+
+<p><code>Server</code>利用了<code>Client</code>中<code>Chunk</code>串行写入与TCP协议的实现中按序移交到用户态的特性, 按序读取<code>Chunk</code>并写入文件中.</p>
+
+<p>运行结果<br/>
+<img src="media/15078961128669/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-21%20%E4%B8%8A%E5%8D%8812.14.05.png" alt="屏幕快照 2017-10-21 上午12.14.05"/></p>
+
+			</div>
+
+		
+	  
+		<footer>
+		 <p class="meta">
+
+			
+			<span class="categories">
+			 
+			</span>
+		    </p>
+		    <p class="meta">
+		      
+		 </p>
+	    
+		<div class="sharing">
+		  
+          
+
+          
+
+		</div>
+
+	    <p class="meta">
+	    
+	        <a class="basic-alignment left" href="15087314678145.html" 
+	        title="Previous Post: Node.js设计模式 · 第六章">&laquo; Node.js设计模式 · 第六章</a>
+	    
+	    
+	        <a class="basic-alignment right" href="15064131114315.html" 
+	        title="Next Post: Node.js设计模式 · 第四章">Node.js设计模式 · 第四章 &raquo;</a>
+	    
+	    </p>
+	  </footer>
+	</article>
+</div>
+ <aside class="sidebar"> 
+
+	<section>
+	  <h1>Categories</h1>
+	  <ul id="recent_posts">
+	  
+	        
+	      </li>
+	   
+	  </ul>
+	</section>
+	<section>
+	  <h1>Recent Posts</h1>
+	  <ul id="recent_posts">
+	  
+	      
+		      <li class="post">
+		        <a href="15087314678145.html">Node.js设计模式 · 第六章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15078961128669.html">Node.js设计模式 · 第五章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15064131114315.html">Node.js设计模式 · 第四章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15061378949226.html">libco 源码阅读 · 系统调用钩子</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15058774867304.html">libco 源码阅读 · 事件循环调度器</a>
+		      </li>
+	     
+	  
+	      
+	  
+	      
+	   
+	  </ul>
+	</section>
+	
+</aside> </div></div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2017 -  -
+  <span class="credit">Powered by <a target="_blank" href="https://zerolocusta.github.io">zerolocusta</a> &nbsp;&nbsp; Theme by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+
+  
+    
+
+<script src="asset/chart/all-min.js"></script><script type="text/javascript">$(function(){    var mwebii=0;    var mwebChartEleId = 'mweb-chart-ele-';    $('pre>code').each(function(){        mwebii++;        var eleiid = mwebChartEleId+mwebii;        if($(this).hasClass('language-sequence')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = Diagram.parse($(this).text());            diagram.drawSVG(eleiid,{theme: 'simple'});        }else if($(this).hasClass('language-flow')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = flowchart.parse($(this).text());            diagram.drawSVG(eleiid);        }    });});</script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><script type="text/x-mathjax-config">MathJax.Hub.Config({TeX: { equationNumbers: { autoNumber: "AMS" } }});</script>
+
+</body>
+</html>

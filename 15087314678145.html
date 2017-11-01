@@ -1,0 +1,1075 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>
+    
+  Node.js设计模式 · 第六章 - zerolocust
+  
+
+  </title>
+  <meta name="author" content="">
+  <meta name="description" content="locustchen的博客">
+
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <link href="asset/css/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="atom.xml" rel="alternate" title="zerolocust" type="application/atom+xml">
+  <script src="asset/js/modernizr-2.0.js"></script>
+  <script src="asset/js/jquery.min.js"></script>
+  <script src="asset/highlightjs/highlight.pack.js"></script>
+  <link href="asset/highlightjs/styles/solarized_light.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script>hljs.initHighlightingOnLoad();</script>
+
+  <style type="text/css">
+  .cat-children-p{ padding: 6px 0px;}
+  .hljs{background: none;}
+  </style>
+  <script type="text/javascript">
+  var isAddSildbar = true;
+  </script>
+  <script src="asset/js/octopress.js" type="text/javascript"></script>
+</head>
+<script type="text/javascript">
+//链接新开窗口
+function addBlankTargetForLinks () {
+  $('a[href^="http"]').each(function(){
+      $(this).attr('target', '_blank');
+  });
+}
+$(document).ready(function(event) {
+  addBlankTargetForLinks();
+});
+</script>
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="index.html">zerolocust</a></h1>
+  
+    <h2>locustchen的博客</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zerolocusta.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+
+  <li id=""><a target="self" href="index.html">Home</a></li>
+
+  <li id=""><a target="_self" href="archives.html">Archives</a></li>
+
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content"> 
+<div>
+	<article class="hentry" role="article">
+	<header>
+			  	<h1 class="entry-title">Node.js设计模式 · 第六章</h1>
+				<p class="meta"><time datetime="2017-10-23T12:04:27+08:00" pubdate data-updated="true">2017/10/23 12:4 下午</time></p>
+			 </header>
+		  	<div class="entry-content">
+			  	<h2 id="toc_0">Design Patterns</h2>
+
+<blockquote>
+<p>经典设计模式在JS中的实现与应用</p>
+</blockquote>
+
+<h2 id="toc_1">摘要</h2>
+
+<ul>
+<li>Factory</li>
+<li>Revealing constructor pattern</li>
+<li>Proxy</li>
+<li>Decorator</li>
+<li>Adapter</li>
+<li>Strategy</li>
+<li>State</li>
+<li>Template</li>
+<li>Middleware</li>
+<li>Command</li>
+</ul>
+
+<h3 id="toc_2">Factory</h3>
+
+<blockquote>
+<p>工厂模式</p>
+</blockquote>
+
+<p>经典工厂模式, 根据不同参数返回不同的示例</p>
+
+<pre><code class="language-js">// Image 基类
+class Image {
+  constructor(path) {
+    this.path = path;
+  }
+};
+// 继承自 Image, 用于表示 Gif 图像
+class ImageGif extends Image {
+  constructor(path) {
+    if (!path.match(/\.gif/)) {
+      throw new Error(`${path} is not a GIF image`);
+    }
+    super(path);
+  }
+};
+// 继承自 Image, 用于表示 Jpg 图像
+class ImageJpg extends Image {
+  constructor(path) {
+    if (!path.match(/\.jpe?g$/)) {
+      throw new Error(`${path} is not a JPEG image`);
+    }
+    super(path);
+  }
+};
+// 继承自 Image, 用于表示 Png 图像
+class ImagePng extends Image {
+  constructor(path) {
+    if (!path.match(/\.png$/)) {
+      throw new Error(`${path} is not a PNG image`);
+    }
+    super(path);
+  }
+};
+// 工厂函数, 根据不同的文件名创建相应的图像实例
+function createImage(name) {
+  if(name.match(/\.jpe?g$/)) {
+    return new ImageJpeg(name);
+  } else if(name.match(/\.gif$/)) {
+    return new ImageGif(name);
+  } else if(name.match(/\.png$/)) {
+    return new ImagePng(name);
+  } else {
+    throw new Exception(&#39;Unsupported format&#39;);
+  }
+}
+</code></pre>
+
+<h4 id="toc_3">A mechanism to enforce encapsulation</h4>
+
+<blockquote>
+<p>利用工厂模式将封装性引入JavaScript</p>
+</blockquote>
+
+<ul>
+<li>利用闭包特性, 对外部属性进行封装, 避免通过对象直接访问私有属性</li>
+</ul>
+
+<pre><code class="language-js">function createPerson(name) {
+  // privateProperties 用于存放私有变量
+  const privateProperties = {};
+  // person 用于模拟类
+  const person = {
+    // 通过Getter 和 Setter访问外部
+    // privateProperties属性
+    setName: name =&gt; {
+      if (!name) throw new Error(&#39;A person must have a name&#39;);
+      privateProperties.name = name;
+    },
+    getName: () =&gt; {
+      return privateProperties.name;
+    }
+  };
+  
+  person.setName(name);
+  return person;
+}
+// 利用 createPerson 工厂函数创建person实例
+const person = createPerson(&#39;James Joyce&#39;);
+console.log(person.getName(), person);
+</code></pre>
+
+<h4 id="toc_4">Composable factory functions</h4>
+
+<blockquote>
+<p>利用第三方库<code>stampit</code>创建及组合工厂函数</p>
+</blockquote>
+
+<p>这章节里将一个对象的各种元素, 例如属性, 方法, 拆分为多个模块, 最后将他们组合起来, 利用工厂模式创建实例.</p>
+
+<p><code>stampit</code>有几个主要方法用于创建模块化的类</p>
+
+<ul>
+<li><code>init(...args)</code>: 用于指示创建出的模块构造函数的参数</li>
+<li><code>props(...args)</code>: 用于表示模块中拥有的属性</li>
+<li><code>methods(...args)</code>: 用于表示模块中拥有的方法</li>
+</ul>
+
+<p>附上<code>stampit</code>的<a href="https://github.com/stampit-org/stampit/blob/master/docs/API.md">API</a>文档地址</p>
+
+<p>使用示例:<br/>
+   通过<code>stampit</code>组合创造出具有多种技能的人物.</p>
+
+<pre><code class="language-js">const stampit = require(&#39;stampit&#39;);
+// 创建角色模块
+const character = stampit().
+props({
+  name: &#39;anonymous&#39;,
+  lifePoints: 100,
+  x: 0,
+  y: 0
+});
+// mover, 具有移动的方法
+const mover = stampit().
+methods({
+  move(xIncr, yIncr) {
+    this.x += xIncr;
+    this.y += yIncr;
+    console.log(`${this.name} moved to [${this.x}, ${this.y}]`);
+  }
+});
+// slasher, 类似于攻击的属性
+const slasher = stampit().
+methods({
+  // 添加 slash 方法
+  slash(direction) {
+    console.log(`${this.name} slashed to the ${direction}`);
+  }
+});
+// 射击
+const shooter = stampit().
+props({
+  // 添加bullets属性
+  bullets: 6
+}).
+methods({
+  // 添加shoot方法
+  shoot(direction) {
+    if (this.bullets &gt; 0) {
+      --this.bullets;
+      console.log(`${this.name} shoot to the ${direction}`);
+    }
+  }
+});
+// 类似于多继承, 利用compose方法将多个特性组合起来
+const runner = stampit.compose(character, mover);
+const samurai = stampit.compose(character, mover, slasher);
+const sniper = stampit.compose(character, shooter);
+const gunslinger = stampit.compose(character, mover, shooter);
+const westernSamurai = stampit.compose(gunslinger, samurai);
+
+const gojiro = westernSamurai();
+gojiro.name = &#39;Gojiro Kiryu&#39;;
+gojiro.move(1, 0);
+gojiro.slash(&#39;left&#39;);
+gojiro.shoot(&#39;right&#39;);
+</code></pre>
+
+<p><code>stampit.compose</code>将多个模块组合起来, 创建出新的工厂方法, 与类的多继承类似.</p>
+
+<h3 id="toc_5">Revealing constructor pattern</h3>
+
+<blockquote>
+<p>在构造函数中传入<code>executor</code>, 并在构造函数中马上执行</p>
+</blockquote>
+
+<p><code>Promise</code>就是<code>Revealing constructor pattern</code>的一种</p>
+
+<pre><code class="language-js">const p = new Promise(function(resolve, reject){
+    ...
+})
+</code></pre>
+
+<p>在<code>Promise</code>被构造出来的那一刻, 传入构造函数的函数就会被马上执行, 并通过<code>resolve</code>和<code>reject</code>改变和传递<code>promise</code>的状态和结果</p>
+
+<h4 id="toc_6">A read-only event emitter</h4>
+
+<blockquote>
+<p>构造一个以<code>Revealing constructor pattern</code>为原型的只读事件订阅类</p>
+</blockquote>
+
+<ul>
+<li>创建<code>Roee(Read-only Event Emitter)</code></li>
+</ul>
+
+<pre><code class="language-js">const EventEmitter = require(&#39;events&#39;);
+
+class Roee extends EventEmitter {
+  constructor(executor) {
+    super();
+    // 保存emit函数
+    const emit = this.emit.bind(this);
+    // 将 this.emit 置为 undefined
+    // 防止外部使用
+    this.emit = undefined;
+    // 执行executor
+    // 只能在 executor 中执行 emit 函数
+    executor(emit);
+  }
+};
+</code></pre>
+
+<ul>
+<li>利用<code>Roee</code>创建一个<code>ticker</code></li>
+</ul>
+
+<pre><code class="language-js">const ticker = new Roee((emit) =&gt; {
+  let tickCount = 0;
+  // 每秒向 listener 发送 tickCount
+  setInterval(() =&gt; emit(&#39;tick&#39;, tickCount++), 1000);
+});
+
+ticker.on(&#39;tick&#39;, (tickCount) =&gt; console.log(tickCount, &#39;TICK&#39;));
+</code></pre>
+
+<h3 id="toc_7">Proxy</h3>
+
+<blockquote>
+<p>代理模式</p>
+</blockquote>
+
+<p><img src="media/15087314678145/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-26%20%E4%B8%8B%E5%8D%885.47.55.png" alt="屏幕快照 2017-10-26 下午5.47.55"/></p>
+
+<h4 id="toc_8">Techniques for implementing proxies</h4>
+
+<blockquote>
+<p>在JavaScript上实现代理模式的方法</p>
+</blockquote>
+
+<h5 id="toc_9">实现代理模式的技巧</h5>
+
+<ul>
+<li>利用操纵原型链的方法实现代理模式, 两个重要的方法
+
+<ul>
+<li><code>Object.getPrototypeOf</code>: 获取对象/实例的原型</li>
+<li><code>Object.create</code>: 通过原型创建出新的对象, 常用于模拟类的继承</li>
+</ul></li>
+</ul>
+
+<pre><code class="language-js">function createProxy(subject) {
+  // 获取对象原型
+  const proto = Object.getPrototypeOf(subject);
+  // 创建 Proxy 类
+  function Proxy(subject) {
+    this.subject = subject;
+  }
+  // Proxy 继承 subject 的原型
+  Proxy.prototype = Object.create(proto);
+  // 代理 subject.hello 方法
+  Proxy.prototype.hello = function(){
+    return this.subject.hello() + &#39; world!&#39;;
+  };
+  
+  // 返回代理对象实例
+  return new Proxy(subject);
+}
+
+class Greeter {
+  hello() {
+    return &#39;Hello&#39;;
+  }
+
+  goodbye() {
+    return &#39;Goodbye&#39;;
+  }
+}
+
+const greeter = new Greeter();
+const proxy = createProxy(greeter);
+
+console.log(proxy.hello());
+console.log(proxy.goodbye());
+</code></pre>
+
+<p>运行结果<br/>
+<img src="media/15087314678145/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-26%20%E4%B8%8B%E5%8D%887.19.47.png" alt="屏幕快照 2017-10-26 下午7.19.47"/></p>
+
+<h5 id="toc_10">ES6中的<code>Proxy</code>类</h5>
+
+<p>ES6中提供了<code>Proxy</code>类, 这个<code>Proxy</code>与我们所说的代理模式并不是同一样事物, <code>Proxy</code>虽然实现了部分代理的特性, 但是更多是用于对<code>Object</code>的元编程中. </p>
+
+<p><code>Proxy(target, handler)</code>, <code>Proxy</code>的构造函数, <code>target</code>表示需要被代理的类, <code>handler</code>用于设置代理行为.</p>
+
+<p><code>handler</code>提供了相当多的属性用于描述代理的行为, 例如</p>
+
+<ul>
+<li><code>get</code>: 在读取对象中属性时调用</li>
+<li><code>set</code>: 在写入对象属性时调用</li>
+<li><code>has</code>: 对应<code>in</code>操作符</li>
+</ul>
+
+<p>等等方法用于对应语言层面的行为<br/>
+使用示例:</p>
+
+<pre><code class="language-js">const scientist = {
+  name: &#39;nikola&#39;,
+  surname: &#39;tesla&#39;
+};
+
+const uppercaseScientist = new Proxy(scientist, {
+  // 修改读取对象内属性的行为
+  // 对对象属性的值调用 toUpperCase() 并返回
+  get: (target, property) =&gt; target[property].toUpperCase()
+});
+// 运行结果 NIKOLA TESLA
+console.log(uppercaseScientist.name, uppercaseScientist.surname);
+</code></pre>
+
+<h3 id="toc_11">Decorator</h3>
+
+<blockquote>
+<p>装饰器模式</p>
+</blockquote>
+
+<p>相比起代理模式在原对象的方法进行行为的修改, 装饰器模式是在原对象上添加属性或方法.<br/>
+<img src="media/15087314678145/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-26%20%E4%B8%8B%E5%8D%8811.00.29.png" alt="屏幕快照 2017-10-26 下午11.00.29"/></p>
+
+<h4 id="toc_12">Techniques for implementing Decorators</h4>
+
+<blockquote>
+<p>在JavaScript上实现装饰器模式的方法</p>
+</blockquote>
+
+<h5 id="toc_13">实现装饰器模式的技巧</h5>
+
+<p>与实现代理模式类似, 利用操纵原型链的方法为被代理实例添加方法</p>
+
+<pre><code class="language-js">function decorate(component) {
+  const proto = Object.getPrototypeOf(component);
+  
+  function Decorator(component) {
+    this.component = component;
+  }
+  
+  Decorator.prototype = Object.create(proto);
+  
+  //添加新方法
+  Decorator.prototype.greetings = function() {
+    return &#39;Hi!&#39;;
+  };
+  return new Decorator(component);
+}
+
+class Greeter {
+  hello(subject) {
+    return `Hello ${subject}`;
+  }
+}
+
+const decoratedGreeter = decorate(new Greeter());
+console.log(decoratedGreeter.hello(&#39;world&#39;));
+console.log(decoratedGreeter.greetings());
+</code></pre>
+
+<h3 id="toc_14">Adapter</h3>
+
+<blockquote>
+<p>适配器模式<br/>
+<img src="media/15087314678145/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-28%20%E4%B8%8B%E5%8D%888.22.45.png" alt="屏幕快照 2017-10-28 下午8.22.45"/></p>
+</blockquote>
+
+<p><code>Adapter</code>充当中间层, 模拟<code>Adaptee</code>的行为, 以减少对客户端代码原用于调用<code>Adaptee</code>部分的修改.</p>
+
+<h4 id="toc_15">Techniques for implementing Adapters</h4>
+
+<blockquote>
+<p>适配器模式在JavaScript并没有什么需要用到元编程技巧的地方</p>
+</blockquote>
+
+<p>本节展示了一个用于模拟<code>fs</code>模块的<code>Adapter</code>, 而<code>Adapter</code>内部将<code>fs</code>主要方法重定向至访问数据库,并模拟<code>fs</code>模块的行为</p>
+
+<pre><code class="language-js">module.exports = function createFsAdapter(db) {
+  const fs = {};
+  // 模拟 fs.readFile 函数
+  fs.readFile = (filename, options, callback) =&gt; {
+    // 处理 callback come last
+    if (typeof options === &#39;function&#39;) {
+      callback = options;
+      options = {};
+    } else if(typeof options === &#39;string&#39;) {
+      options = {encoding: options};
+    }
+    // 通过 path.resolve 处理文件路径
+    // 从数据库中获取文件数据
+    db.get(path.resolve(filename), {
+        valueEncoding: options.encoding
+      },
+      // 传入 callback
+      (err, value) =&gt; {
+        if(err) {
+          // 模拟fs模块的异常信息
+          if(err.type === &#39;NotFoundError&#39;) {
+            err = new Error(`ENOENT, open &quot;${filename}&quot;`);
+            err.code = &#39;ENOENT&#39;;
+            err.errno = 34;
+            err.path = filename;
+          }
+          return callback &amp;&amp; callback(err);
+        }
+        callback &amp;&amp; callback(null, value);
+      }
+    );
+  };
+  // 模拟fs.writeFile
+  fs.writeFile = (filename, contents, options, callback) =&gt; {
+    if(typeof options === &#39;function&#39;) {
+      callback = options;
+      options = {};
+    } else if(typeof options === &#39;string&#39;) {
+      options = {encoding: options};
+    }
+    // 同样通过path.resolve解析文件路径
+    // 将文件放入数据库中
+    db.put(path.resolve(filename), contents, {
+      valueEncoding: options.encoding
+    }, callback);
+  };
+  // 返回包装后的文件模块
+  return fs;
+};
+</code></pre>
+
+<h3 id="toc_16">Strategy</h3>
+
+<blockquote>
+<p>策略模式</p>
+</blockquote>
+
+<p><img src="media/15087314678145/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-29%20%E4%B8%8B%E5%8D%8812.16.50.png" alt="屏幕快照 2017-10-29 下午12.16.50"/></p>
+
+<p>策略模式对外暴露相同的接口, 但对于不同类型的数据, 客户端可以选择不同的处理策略.</p>
+
+<h4 id="toc_17">Techniques for implementing Strategy</h4>
+
+<p>这一节展示利用策略模式, 对不同格式的配置文件<code>ini</code>及<code>json</code>进行读取和写入</p>
+
+<pre><code class="language-js">const fs = require(&#39;fs&#39;);
+const ini = require(&#39;ini&#39;);
+const objectPath = require(&#39;object-path&#39;);
+
+class Config {
+  // 构造方法处传入需要使用的策略对象
+  constructor(strategy) {
+    // 存放解析成对象后的配置
+    this.data = {};
+    // 用于存放策略对象, 对象需要实现 deserialize 及 serialize 方法
+    this.strategy = strategy;
+  }
+
+  get(path) {
+    // 获取对象内对应路径的数据
+    return objectPath.get(this.data, path);
+  }
+
+  set(path, value) {
+    // 设置对象内对应路径的数据
+    return objectPath.set(this.data, path, value);
+  }
+
+  read(file) {
+    console.log(`Deserializing from ${file}`);
+    // 根据不同的策略, 使用不同的解析器对配置文件进行解析
+    this.data = this.strategy.deserialize(fs.readFileSync(file, &#39;utf-8&#39;));
+  }
+
+  save(file) {
+    console.log(`Serializing to ${file}`);
+    fs.writeFileSync(file, this.strategy.serialize(this.data));
+  }
+}
+
+strategies = {};
+// 用于解析JSON文件的策略
+strategies.json = {
+  deserialize: data =&gt; JSON.parse(data),
+  serialize: data =&gt; JSON.stringify(data, null, &#39;  &#39;)
+};
+// 用于解析INI文件的策略
+strategies.ini = {
+  deserialize: data =&gt; ini.parse(data),
+  serialize: data =&gt; ini.stringify(data)
+};
+</code></pre>
+
+<h3 id="toc_18">State</h3>
+
+<blockquote>
+<p>状态模式</p>
+</blockquote>
+
+<p><img src="media/15087314678145/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-29%20%E4%B8%8B%E5%8D%8812.55.39.png" alt="屏幕快照 2017-10-29 下午12.55.39"/><br/>
+上面的策略模式选择策略的方式是开发者根据状况,在编写代码时选择不同的策略<br/>
+而状态模式是将对象编写成<strong>自动</strong>根据上下文去改变处理策略.</p>
+
+<h4 id="toc_19">Techniques for implementing State</h4>
+
+<p>本节展示一种自动切换状态的<code>socket</code>, 通过tcp协议传输JSON, 在连接失败时切换至<code>offline</code>状态, 并存储下需要发送的数据, 在连接成功时切换至<code>online</code>状态.</p>
+
+<ul>
+<li><code>offlineState</code>,用于处理连接断开时的状态</li>
+</ul>
+
+<pre><code class="language-js"> class OfflineState {
+
+  constructor(failsafeSocket) {
+    this.failsafeSocket = failsafeSocket;
+  }
+
+  send(data) {
+    // 连接断开时无法发送数据
+    // 利用 queue 暂存数据
+    this.failsafeSocket.queue.push(data);
+  }
+
+  activate() {
+    // retry 函数
+    const retry = () =&gt; {
+      setTimeout(() =&gt; this.activate(), 500);
+    };
+    // 连接到对端 socket
+    this.failsafeSocket.socket = jot.connect(
+      this.failsafeSocket.options,
+      () =&gt; {
+        // 连接完成时移除可能未被触发的 retry listener
+        this.failsafeSocket.socket.removeListener(&#39;error&#39;, retry);
+        // 连接完成时切换至 online 状态
+        this.failsafeSocket.changeState(&#39;online&#39;);
+      }
+    );
+    // 订阅 error 事件
+    this.failsafeSocket.socket.once(&#39;error&#39;, retry);
+  }
+};
+</code></pre>
+
+<ul>
+<li><code>onlineState</code>, 处理连接成功时正常发送数据的状态</li>
+</ul>
+
+<pre><code class="language-js">class OnlineState {
+  constructor(failsafeSocket) {
+    this.failsafeSocket = failsafeSocket;
+  }
+
+  send(data) {
+    this.failsafeSocket.socket.write(data);
+  };
+
+  activate() {
+    // 遍历并发送处于 offline 状态时未发送完成的数据
+    this.failsafeSocket.queue.forEach(data =&gt; {
+      this.failsafeSocket.socket.write(data);
+    });
+    // 清空队列
+    this.failsafeSocket.queue = [];
+    // 订阅 error 事件
+    // 出现异常时切换至 offline 状态
+    this.failsafeSocket.socket.once(&#39;error&#39;, () =&gt; {
+      this.failsafeSocket.changeState(&#39;offline&#39;);
+    });
+  }
+};
+</code></pre>
+
+<ul>
+<li><code>FailsafeSocket</code>, 整合<code>online</code>与<code>offline</code>两种状态</li>
+</ul>
+
+<pre><code class="language-js">class FailsafeSocket {
+  constructor(options) {
+    this.options = options;
+    this.queue = [];
+    this.currentState = null;
+    this.socket = null;
+    this.states = {
+      // FailsafeSocket 所具有的两种状态
+      offline: new OfflineState(this),
+      online: new OnlineState(this)
+    }; 
+    // 初始状态为 offline
+    this.changeState(&#39;offline&#39;);
+  }
+
+  changeState(state) {
+    console.log(&#39;Activating state: &#39; + state);
+    this.currentState = this.states[state];
+    // 激活状态对应的处理器
+    this.currentState.activate();
+  }
+
+  send(data) {
+    // 通过当前状态处理器发送数据
+    this.currentState.send(data);
+  }
+}
+</code></pre>
+
+<h3 id="toc_20">Template</h3>
+
+<blockquote>
+<p>模板模式</p>
+</blockquote>
+
+<p>与C++中重写父类虚方法类似, JS中模板模式中, 通过继承模板类并重写模板方法.</p>
+
+<p><img src="media/15087314678145/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-30%20%E4%B8%8A%E5%8D%8810.51.43.png" alt="屏幕快照 2017-10-30 上午10.51.43"/></p>
+
+<h4 id="toc_21">Techniques for implementing Template</h4>
+
+<p>以文件配置解析器为例, 留下<code>_serialize</code>与<code>_deserialize</code>给子类实现</p>
+
+<pre><code class="language-js">const fs = require(&#39;fs&#39;);
+const objectPath = require(&#39;object-path&#39;);
+
+class ConfigTemplate {
+  read (file) {
+    console.log(`Deserializing from ${file}`);
+    // 调用虚方法解析配置文件
+    this.data = this._deserialize(fs.readFileSync(file, &#39;utf-8&#39;));
+  }
+
+  save (file) {
+    console.log(`Serializing to ${file}`);
+    // 调用虚方法序列化配置文件
+    fs.writeFileSync(file, this._serialize(this.data));
+  }
+
+  get (path) {
+    return objectPath.get(this.data, path);
+  }
+
+  set (path, value) {
+    return objectPath.set(this.data, path, value);
+  }
+
+  _serialize () {
+    // 如果子类未实现虚方法则抛出错误
+    throw new Error(&#39;_serialize() must be implemented&#39;);
+  }
+
+  _deserialize () {
+    throw new Error(&#39;_deserialize() must be implemented&#39;);
+  }
+}
+</code></pre>
+
+<ul>
+<li>子类继承模板类并重写模板方法</li>
+</ul>
+
+<pre><code class="language-js">class JsonConfig extends ConfigTemplate {
+
+  _deserialize (data) {
+    return JSON.parse(data);
+  };
+
+  _serialize (data) {
+    return JSON.stringify(data, null, &#39;  &#39;);
+  }
+}
+</code></pre>
+
+<h3 id="toc_22">Middleware</h3>
+
+<blockquote>
+<p>中间件模式</p>
+</blockquote>
+
+<p><img src="media/15087314678145/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-30%20%E4%B8%8B%E5%8D%8812.44.47.png" alt="屏幕快照 2017-10-30 下午12.44.47"/></p>
+
+<p>中间件模式利用中间件管理器(<code>Middleware Manager</code>), 链式传递输入, 通过多个中间件过滤形成输出.</p>
+
+<p>以<code>koa</code>框架为例, 通过<code>app.use</code>传入一个<code>async函数</code>作为中间件处理并输出HTTP请求</p>
+
+<p>在<code>koa</code>中, 中间件函数的签名应该为<code>async functiong(ctx, next)</code>, 其中</p>
+
+<ul>
+<li><code>ctx</code>, 表示 <code>HTTP Response</code> 与 <code>HTTP Request</code></li>
+<li><code>next</code>, 表示中间件链中下一个中间件</li>
+</ul>
+
+<p>以<code>koa</code>官方实例为例</p>
+
+<pre><code class="language-js">const Koa = require(&#39;koa&#39;);
+const app = new Koa();
+
+app.use(async(ctx, next) =&gt; {
+  // 记录开始时间
+  const start = Date.now();
+  // await 下一个中间件
+  await next();
+  // 记录处理结束时间
+  const ms = Date.now() - start;
+  // 将处理事件设置在HTTP Response头部
+  ctx.set(&#39;X-Response-Time&#39;, `${ms}ms`);
+});
+
+app.use(async(ctx, next) =&gt; {
+  // 记录开始时间
+  const start = Date.now();
+  // await 下一个中间件
+  await next();
+  // 记录处理结束时间
+  const ms = Date.now() - start;
+  console.log(`${ctx.method} ${ctx.url} - ${ms}`);
+});
+
+app.use(async ctx =&gt; {
+  // 设置 HTTP Response 的 Body
+  ctx.body = &#39;Hello World&#39;;
+});
+
+app.listen(3000);
+</code></pre>
+
+<p>整个中间件执行顺序为</p>
+
+<p><img src="media/15087314678145/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-30%20%E4%B8%8B%E5%8D%881.12.05.png" alt="屏幕快照 2017-10-30 下午1.12.05"/></p>
+
+<h3 id="toc_23">Command</h3>
+
+<blockquote>
+<p>命令模式</p>
+</blockquote>
+
+<p>命令模式通过将对 对象的操作包括对操作的回放, 撤销等 封装起来作为命令, 客户端只需执行该命令即可操纵目标对象<br/>
+<img src="media/15087314678145/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-30%20%E4%B8%8B%E5%8D%883.43.12.png" alt="屏幕快照 2017-10-30 下午3.43.12"/></p>
+
+<ul>
+<li><code>Client</code>:  命令的创建及通过<code>Invoker</code>执行命令的对象</li>
+<li><code>Command</code>: 封装了对<code>Target</code>的执行命令</li>
+<li><code>Invoker</code>: 缓存历史和向<code>Target</code>发送命令</li>
+<li><code>Target</code>:  执行命令的对象</li>
+</ul>
+
+<p>通过命令模式执行操作而不是直接操作对象有以下优势</p>
+
+<ul>
+<li>命令可以被从新调整计划或是延后执行</li>
+<li>命令可以被序列化然后通过网络传输</li>
+<li>命令的执行历史可被保存, 并且在真正执行前可被撤销</li>
+<li>由于命令可被缓存以及调整, 在某些算法中非常适合用于数据同步</li>
+<li>多个命令可被组合, 执行过程可以被原子化</li>
+</ul>
+
+<h4 id="toc_24">Techniques for implementing Command</h4>
+
+<p>本节展示一个简单的Map服务, 通过<code>Command</code>设置其中键值对</p>
+
+<ul>
+<li><code>Target</code>组件</li>
+</ul>
+
+<pre><code class="language-js">// Target对象
+const statusUpdateService = {
+  // 存储服务状态
+  statusUpdates: {},
+  // 模拟远程对象发送状态
+  sendUpdate: function(status) {
+    console.log(&#39;Status sent: &#39; + status);
+    // 随机获取ID
+    let id = Math.floor(Math.random() * 1000000);
+    // 设置状态
+    statusUpdateService.statusUpdates[id] = status;
+    // 返回操作ID, 用于撤回操作
+    return id;
+  },
+  // 根据ID撤回操作
+  destroyUpdate: id =&gt; {
+    console.log(&#39;Status removed: &#39; + id);
+    delete statusUpdateService.statusUpdates[id];
+  }
+};
+</code></pre>
+
+<ul>
+<li><code>Command</code>对象</li>
+</ul>
+
+<pre><code class="language-js">//封装命令参数的 Command 对象
+function createSendStatusCmd(service, status) {
+  let postId = null;
+  // 创建Command对象
+  const command = () =&gt; {
+    postId = service.sendUpdate(status);
+  };
+  // undo方法用于撤销操作
+  command.undo = () =&gt; {
+    if(postId) {
+      service.destroyUpdate(postId);
+      postId = null;
+    }
+  };
+  // 命令的序列化方法
+  command.serialize = () =&gt; {
+    return {type: &#39;status&#39;, action: &#39;post&#39;, status: status};
+  };
+  
+  return command;
+}
+</code></pre>
+
+<ul>
+<li><code>Invoker</code>对象</li>
+</ul>
+
+<pre><code class="language-js">//Invoker 对象
+class Invoker {
+  constructor() {
+    // 用于保存命令操作历史
+    this.history = [];
+  }
+
+  run (cmd) {
+    // 保存命令执行历史
+    this.history.push(cmd);
+    // 执行命令
+    cmd();
+    console.log(&#39;Command executed&#39;, cmd.serialize());
+  }
+
+  delay (cmd, delay) {
+    // 延时执行命令
+    setTimeout( () =&gt; {
+      this.run(cmd);
+    }, delay)
+  }
+
+  undo () {
+    // 从命令历史中 pop出历史命令
+    const cmd = this.history.pop();
+    // 撤销命令
+    cmd.undo();
+    console.log(&#39;Command undone&#39;, cmd.serialize());
+  }
+  // 用于演示命令序列化并在远程执行
+  runRemotely (cmd) {
+    request.post(&#39;http://localhost:3000/cmd&#39;,
+      {json: cmd.serialize()},
+      err =&gt; {
+        console.log(&#39;Command executed remotely&#39;, cmd.serialize());
+      }
+    );
+  }
+}
+</code></pre>
+
+<p>最后是作为<code>Client</code>, 通过<code>Invoker</code>执行命令</p>
+
+<pre><code class="language-js">const invoker = new Invoker();
+const command = createSendStatusCmd(statusUpdateService, &#39;HI!&#39;);
+invoker.run(command);
+invoker.delay(command, 1000 * 60 * 60);
+invoker.undo();
+invoker.runRemotely(command);
+</code></pre>
+
+			</div>
+
+		
+	  
+		<footer>
+		 <p class="meta">
+
+			
+			<span class="categories">
+			 
+			</span>
+		    </p>
+		    <p class="meta">
+		      
+		 </p>
+	    
+		<div class="sharing">
+		  
+          
+
+          
+
+		</div>
+
+	    <p class="meta">
+	    
+	    
+	        <a class="basic-alignment right" href="15078961128669.html" 
+	        title="Next Post: Node.js设计模式 · 第五章">Node.js设计模式 · 第五章 &raquo;</a>
+	    
+	    </p>
+	  </footer>
+	</article>
+</div>
+ <aside class="sidebar"> 
+
+	<section>
+	  <h1>Categories</h1>
+	  <ul id="recent_posts">
+	  
+	        
+	      </li>
+	   
+	  </ul>
+	</section>
+	<section>
+	  <h1>Recent Posts</h1>
+	  <ul id="recent_posts">
+	  
+	      
+		      <li class="post">
+		        <a href="15087314678145.html">Node.js设计模式 · 第六章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15078961128669.html">Node.js设计模式 · 第五章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15064131114315.html">Node.js设计模式 · 第四章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15061378949226.html">libco 源码阅读 · 系统调用钩子</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15058774867304.html">libco 源码阅读 · 事件循环调度器</a>
+		      </li>
+	     
+	  
+	      
+	  
+	      
+	   
+	  </ul>
+	</section>
+	
+</aside> </div></div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2017 -  -
+  <span class="credit">Powered by <a target="_blank" href="https://zerolocusta.github.io">zerolocusta</a> &nbsp;&nbsp; Theme by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+
+  
+    
+
+<script src="asset/chart/all-min.js"></script><script type="text/javascript">$(function(){    var mwebii=0;    var mwebChartEleId = 'mweb-chart-ele-';    $('pre>code').each(function(){        mwebii++;        var eleiid = mwebChartEleId+mwebii;        if($(this).hasClass('language-sequence')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = Diagram.parse($(this).text());            diagram.drawSVG(eleiid,{theme: 'simple'});        }else if($(this).hasClass('language-flow')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = flowchart.parse($(this).text());            diagram.drawSVG(eleiid);        }    });});</script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><script type="text/x-mathjax-config">MathJax.Hub.Config({TeX: { equationNumbers: { autoNumber: "AMS" } }});</script>
+
+</body>
+</html>

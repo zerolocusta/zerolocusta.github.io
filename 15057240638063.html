@@ -1,0 +1,1082 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>
+    
+  Node.js设计模式 · 第三章 - zerolocust
+  
+
+  </title>
+  <meta name="author" content="">
+  <meta name="description" content="locustchen的博客">
+
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <link href="asset/css/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="atom.xml" rel="alternate" title="zerolocust" type="application/atom+xml">
+  <script src="asset/js/modernizr-2.0.js"></script>
+  <script src="asset/js/jquery.min.js"></script>
+  <script src="asset/highlightjs/highlight.pack.js"></script>
+  <link href="asset/highlightjs/styles/solarized_light.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script>hljs.initHighlightingOnLoad();</script>
+
+  <style type="text/css">
+  .cat-children-p{ padding: 6px 0px;}
+  .hljs{background: none;}
+  </style>
+  <script type="text/javascript">
+  var isAddSildbar = true;
+  </script>
+  <script src="asset/js/octopress.js" type="text/javascript"></script>
+</head>
+<script type="text/javascript">
+//链接新开窗口
+function addBlankTargetForLinks () {
+  $('a[href^="http"]').each(function(){
+      $(this).attr('target', '_blank');
+  });
+}
+$(document).ready(function(event) {
+  addBlankTargetForLinks();
+});
+</script>
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="index.html">zerolocust</a></h1>
+  
+    <h2>locustchen的博客</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zerolocusta.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+
+  <li id=""><a target="self" href="index.html">Home</a></li>
+
+  <li id=""><a target="_self" href="archives.html">Archives</a></li>
+
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content"> 
+<div>
+	<article class="hentry" role="article">
+	<header>
+			  	<h1 class="entry-title">Node.js设计模式 · 第三章</h1>
+				<p class="meta"><time datetime="2017-09-18T16:41:03+08:00" pubdate data-updated="true">2017/9/18 16:41 下午</time></p>
+			 </header>
+		  	<div class="entry-content">
+			  	<h2 id="toc_0">Asynchronous Control Flow Patterns with Callbacks</h2>
+
+<blockquote>
+<p>JavaScript著名的回调地狱  </p>
+</blockquote>
+
+<h2 id="toc_1">摘要</h2>
+
+<ul>
+<li>回调风格的JavaScript与一般顺序风格的区别</li>
+<li>以回调风格写一个网络爬虫</li>
+<li>回调风格的JavaScript需要注意的事项</li>
+<li>async库</li>
+</ul>
+
+<hr/>
+
+<h2 id="toc_2">写在前面</h2>
+
+<p>这一章以网络爬虫代码以及他的各种不同风格变种为主, 代码量巨大.</p>
+
+<hr/>
+
+<h2 id="toc_3">The difficulties of asynchronous programming</h2>
+
+<p>从顺序式编程转向以回调为主的异步CPS风格的确会有很多不适应的地方, 虽然在bluebird出现之后有了Promise, ES6之后引入的生成器和原生的Promise, ES7更是引入了async/await, 不过不少旧代码仍然是CPS风格, 而且就得浏览器也并不支持新的ES标准, 所以学习异步CPS风格还是很有必要的.</p>
+
+<p>而异步CPS风格很容易引起问题, 例如</p>
+
+<ul>
+<li>callback的处理在另一个函数内部, 就像上一章中无法被捕获的错误一样, callback抛出的错误上浮到Eventloop层面</li>
+<li>callback中又会用到很多的闭包, 不正确地使用闭包会引起内存泄漏</li>
+<li>回调的嵌套很容易造成回调地狱, 到时候代码阅读起来异常困难</li>
+</ul>
+
+<hr/>
+
+<h3 id="toc_4">Creating a simple web spider</h3>
+
+<p>书里面以网络爬虫的代码示例阐释回调地狱的问题.<br/>
+爬虫的功能: 输入一个URL, 然后将整个HTML下载到本地<br/>
+同时这个爬虫还利用了两个开源库:</p>
+
+<ul>
+<li>request : 用于发起HTTP请求</li>
+<li>mkdirp:   用于递归的创建文件及其文件夹
+观察一下这个爬虫的核心源码:</li>
+</ul>
+
+<pre><code class="language-js">const request = require(&#39;request&#39;);
+const fs = require(&#39;fs&#39;);
+const mkdirp = require(&#39;mkdirp&#39;);
+const path = require(&#39;path&#39;);
+// utilities 是作者做的一个简单的库吗提供了一些简单的工具函数
+const utilities = require(&#39;./utilities&#39;);
+
+function spider(url, callback) {
+    // 将 url 转换成 文件名
+    // 例如, 会将 https://bangumi.bilibili.com/movie/ 
+    // 转换成 bangumi.bilibili.com/movie.html 这样一个文件路径
+    const filename = utilities.urlToFilename(url);
+    // 首先检查文件是否存在, 也就是说这个url是否已经下载了
+    fs.exists(filename, exists =&gt; {
+        if (!exists) {
+            // 如果不存在就开始下载这个url
+            console.log(`Downloading ${url}`);
+            // 发起HTTP请求
+            request(url, (err, response, body) =&gt; {
+                if (err) {
+                    // Error Come First的方法处理错误
+                    callback(err);
+                } else {
+                    // 创建文件
+                    mkdirp(path.dirname(filename), err =&gt; {
+                        if (err) {
+                           //同样以Error Come First的方法处理错误
+                            callback(err);
+                        } else {
+                            // 将Http Body写入文件
+                            fs.writeFile(filename, body, err =&gt; {
+                                if (err) {
+                                    callback(err);
+                                } else {
+                                    // 回调 callback
+                                    callback(null, filename, true);
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        } else {
+              // 如果文件已经存在. 直接回调callback
+            callback(null, filename, false);
+        }
+    });
+}
+
+
+spider(process.argv[2], (err, filename, downloaded) =&gt; {
+    if (err) {
+        console.log(err);
+    } else if (downloaded) {
+        console.log(`Completed the download of &quot;${filename}&quot;`);
+    } else {
+        console.log(`&quot;${filename}&quot; was already downloaded`);
+    }
+});
+</code></pre>
+
+<p>以<code>node index.js https://bangumi.bilibili.com/movie/</code>命令调用这个spider, 输出的结果<br/>
+<img src="media/15057240638063/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-17%20%E4%B8%8A%E5%8D%8811.55.07.png" alt="屏幕快照 2017-09-17 上午11.55.07"/></p>
+
+<hr/>
+
+<h3 id="toc_5">The callback hell</h3>
+
+<blockquote>
+<p>JS回调地狱  </p>
+</blockquote>
+
+<p>从上面的代码里面看到, JS这种嵌套的回调很容易造成代码混乱, 即使是spider这种功能直白简单的代码, 也写成了多层回调的嵌套</p>
+
+<p>回调地狱造成的问题:</p>
+
+<ul>
+<li>难以阅读,、追踪代码</li>
+<li>重复的命名在嵌套的回调函数中不断出现, 例如err</li>
+<li>滥用闭包容易导致内存泄漏</li>
+</ul>
+
+<hr/>
+
+<h2 id="toc_6">Using plain JavaScript</h2>
+
+<blockquote>
+<p>在只使用JavaScript的特性时, 如何减少回调嵌套的深度</p>
+</blockquote>
+
+<p>在不使用第三方库的情况下, 有哪些方法去减少回调嵌套的深度和分支</p>
+
+<h4 id="toc_7">对于单个callback的风格约束</h4>
+
+<ol>
+<li>在出现分支时候尽快跳出当前逻辑, 利用return,  continue 和 break.</li>
+</ol>
+
+<pre><code class="language-js">// 相比起
+if(err)
+    callback(err)
+else
+    callback(null, args...)
+
+// 更倾向于使用
+if(err)
+    return callback(err)
+callback(null, args...)
+</code></pre>
+
+<p>减少分支和代码量, 改善代码的可读性<br/>
+2. 尽量使用具名函数代替匿名函数</p>
+
+<p>书里利用上面的<code>spider</code>作为例子</p>
+
+<pre><code>spider由三个部分组成:
+    1. 查找本地是否已经存在url对应的文件
+    2. 发起HTTP请求
+    3. 创建并将请求保存为文件
+</code></pre>
+
+<ul>
+<li>将<code>创建并将请求保存为文件</code>的功能抽离出来, 抽象成单个函数</li>
+</ul>
+
+<pre><code class="language-js">// spider中 创建并将请求保存为文件 的部分
+mkdirp(path.dirname(filename),
+    err =&gt; {
+        if (err) {
+            callback(err);
+        } else {
+            fs.writeFile(filename, body, err =&gt; {
+                if (err) {
+                    callback(err);
+                } else {
+                    callback(null, filename, true);
+                }
+            })
+        }
+    })
+
+// 将它抽象成 saveFile 函数
+function saveFile(filename, contents, callback) {
+    mkdirp(path.dirname(filename), err =&gt; {
+        if (err)
+            return callback(err)
+        fs.writeFile(filename, contents, callback)
+    })
+}
+</code></pre>
+
+<ul>
+<li>将<code>发起HTTP请求</code>和<code>创建并将请求保存为文件</code>的部分抽象为单个函数</li>
+</ul>
+
+<pre><code class="language-js">// spider中 发起HTTP请求 和 创建并将请求保存为文件 的部分
+request(url, (err, response, body) =&gt; {
+    if (err) {
+        // Error Come First的方法处理错误
+        callback(err);
+    } else {
+        // 创建文件
+        mkdirp(path.dirname(filename), err =&gt; {
+            if (err) {
+                // 同样以Error Come First的方法处理错误
+                callback(err);
+            } else {
+                // 将Http Body写入文件
+                fs.writeFile(filename, body, err =&gt; {
+                    if (err) {
+                        callback(err);
+                    } else {
+                        // 回调 callback
+                        callback(null, filename, true);
+                    }
+                });
+            }
+        });
+    }
+});
+
+// 抽象成download函数
+function download(url, filename, callback) {
+    console.log(`Downloading ${url}`)
+    request(url, (err, response, body) =&gt; {
+        if (err)
+            return callback(err)
+        saveFile(filename, body, (err) =&gt; {
+            if (err)
+                return callback(err)
+            callback(null, filename, true)
+        })
+    })
+}
+</code></pre>
+
+<ul>
+<li>最后利用函数替换掉<code>spider</code>中的功能</li>
+</ul>
+
+<pre><code class="language-js">function spider(url, callback) {
+    const filename = utilities.urlToFilename(url);
+    fs.exists(filename, exists =&gt; {
+        if (exists) {
+            return callback(null, filename, false);
+        }
+        download(url, filename, err =&gt; {
+            if (err) {
+                return callback(err);
+            }
+            callback(null, filename, true);
+        })
+    });
+}
+</code></pre>
+
+<p>完成修改的<code>spider</code>函数和之前由回调地狱组成的<code>spider</code>清晰许多, 而且分离出来的<code>savaFile</code>和<code>download</code>函数还可以复用.</p>
+
+<hr/>
+
+<h3 id="toc_8">Sequential execution</h3>
+
+<blockquote>
+<p>构建一个工具函数, 将多个函数以串行化的方式通过管道传递结果的方式执行<br/><br/>
+<img src="media/15057240638063/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-17%20%E4%B8%8B%E5%8D%887.05.30.png" alt="屏幕快照 2017-09-17 下午7.05.30"/></p>
+</blockquote>
+
+<h4 id="toc_9">Executing a known set of tasks in sequence</h4>
+
+<p>要在CPS风格中实现类似于管道的方式处理多个任务, 要有一个用于流式处理任务的函数, 类似于</p>
+
+<pre><code class="language-js">// 通过asyncOperation这样的中间函数
+// 实现多个任务之间间的解离
+function task1(callback) {
+  asyncOperation(() =&gt; {
+    task2(callback);
+  });
+}
+
+function task2(callback) {
+  asyncOperation(() =&gt; {
+    task3(callback);
+  });
+}
+
+function task3(callback) {
+  asyncOperation(() =&gt; {
+    callback();
+  });
+}
+
+task1(() =&gt; {
+  console.log(&#39;tasks 1, 2 and 3 executed&#39;);
+});
+</code></pre>
+
+<p>上面这一段代码中的<code>asyncOperation</code>函数就是一个流式任务处理函数, 利用这种中间函数的意义是, 一个任务只需知道下一个任务, 实现了多个任务之间的解耦.</p>
+
+<h4 id="toc_10">Web spider version 2</h4>
+
+<p>仍然以spider的代码为蓝本进行修改, 新的<code>spider</code>实现了获取页面内所有的连接并下载的功能, 并且重新进行了功能切分<br/>
+        1. spider函数用于下载url指向的页面<br/>
+        2. spiderLinks函数用于获取当前页面内所有链接, 并再次调用spider</p>
+
+<p>首先是新添加的<code>spiderLinks</code>函数</p>
+
+<pre><code class="language-js">// spiderLinks函数用于查找当前页面所有连接并下载
+// 参数列表中的 nesting 表示爬取的深度
+function spiderLinks(currentUrl, body, nesting, callback) {
+  if (nesting === 0) {
+    // 如果爬去深度为0, 那么在下一tick调用callback
+    return process.nextTick(callback);
+  }
+  // utilities.getPageLinks 的作用是获取页面内所有链接,并返回一个列表
+  let links = utilities.getPageLinks(currentUrl, body);
+
+  // spiderLinks 内部定义iterate函数, 用于遍历links列表
+  function iterate(index) {
+    if (index === links.length) {
+      // links列表遍历完毕, 调用回调函数
+      return callback();
+    }
+    // 调用 spider 函数爬取下一个链接的内容
+    spider(links[index], nesting - 1, function (err) {
+      if (err) {
+        return callback(err);
+      }
+      // 方位links列表下一个url
+      iterate(index + 1);
+    });
+  }
+  // 初始调用, 访问links列表第一个元素
+  iterate(0);
+}
+</code></pre>
+
+<p><code>saveFile</code>方法没有变化,  <code>download</code>方法发生了变化</p>
+
+<pre><code class="language-js">function download(url, filename, callback) {
+  console.log(`Downloading ${url}`);
+  request(url, (err, response, body) =&gt; {
+    if (err) {
+      return callback(err);
+    }
+    saveFile(filename, body, err =&gt; {
+      if (err) {
+        return callback(err);
+      }
+      console.log(`Downloaded and saved: ${url}`);
+      // 由于需要查找出body中的链接, 
+      // 下载完成后传递给callback的形参修改成了body
+      callback(null, body);
+    });
+  });
+}
+</code></pre>
+
+<p><code>spider</code>函数</p>
+
+<pre><code class="language-js">function spider(url, nesting, callback) {
+  const filename = utilities.urlToFilename(url);
+  // 由于需要从 body 中查找a标签
+  // 所以从fs.exists 改成 fs.readFile
+  fs.readFile(filename, &#39;utf8&#39;, function (err, body) {
+    if (err) {
+      // 如果网页未下载的本地
+      if (err.code !== &#39;ENOENT&#39;) {
+        return callback(err);
+      }
+      // 此处的return只是为了减少一个else
+      return download(url, filename, function (err, body) {
+        if (err) {
+          return callback(err);
+        }
+        // 调用 spiderLinks 查找页面内链接并下载
+        spiderLinks(url, body, nesting, callback);
+      });
+    }
+    // 已经下载url对应的文件, 直接调用 spiderLinks
+    spiderLinks(url, body, nesting, callback);
+  });
+}
+
+spider(process.argv[2], 1, (err) =&gt; {
+  if (err) {
+    console.log(err);
+    process.exit();
+  } else {
+    console.log(&#39;Download complete&#39;);
+  }
+});
+</code></pre>
+
+<p>最后是运行结果:<br/>
+<img src="media/15057240638063/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-18%20%E4%B8%8B%E5%8D%8812.29.07.png" alt="屏幕快照 2017-09-18 下午12.29.07"/></p>
+
+<pre><code>其实是以参数中的url为节点, 展开广度优先搜索
+个人觉得这个模式用在`spider`上面没有感觉代码更清晰易读, 反而`spiderLinks`和`spider`耦合更严重了, 不太认同书中的做法..
+</code></pre>
+
+<h4 id="toc_11">Sequential execution 风格总结</h4>
+
+<p>串行执行分割的核心模式抽离出来, 其实是<code>iterator</code>函数, 为了达到串行执行的目的, 没有用<code>forEach</code>等关键字遍历任务列表(for..遍历无法令异步函数串行),  取而代之的是<code>iterator</code>函数</p>
+
+<pre><code class="language-js">function iterate(index) {
+  if (index === tasks.length) {
+    return finish();
+  }
+  const task = tasks[index];
+  task(function () {
+    iterate(index + 1);
+  });
+}
+
+function finish() {
+  //iteration completed
+}
+
+iterate(0);
+</code></pre>
+
+<hr/>
+
+<h3 id="toc_12">Parallel execution</h3>
+
+<blockquote>
+<p>对于不要求执行顺序的任务, 并行执行是最好的<br/><br/>
+    并发执行图示:<br/>
+<img src="media/15057240638063/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-18%20%E4%B8%8B%E5%8D%883.10.01.png" alt="屏幕快照 2017-09-18 下午3.10.01"/><br/>
+吐槽 -&gt; (然而JS除非开子进程, 不然做不到并行, 只能并发)</p>
+</blockquote>
+
+<p>在I/O密集型的应用中, 并发还是能最大限度模拟并行效果的<br/>
+<img src="media/15057240638063/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-18%20%E4%B8%8B%E5%8D%884.58.09.png" alt="屏幕快照 2017-09-18 下午4.58.09"/></p>
+
+<blockquote>
+<p>在上图中, I/O密集型的Task依赖于EventLoop同时发起多个I/O, 以并发的形式模拟并行I/</p>
+</blockquote>
+
+<h4 id="toc_13">Web spider version 3</h4>
+
+<p>同样以<code>spider</code>函数为基础进行修改<br/>
+首先, <code>saveFile</code>和<code>download</code>两个函数都没有修改.</p>
+
+<p>而<code>spiderLinks</code>进行了大幅度修改</p>
+
+<pre><code class="language-js">function spiderLinks(currentUrl, body, nesting, callback) {
+  // 同样是以nesting表示 爬取页面的深度
+  if(nesting === 0) {
+    // 已达到爬取深度, 不再爬取页面
+    return process.nextTick(callback);
+  }
+  // 获取当前页面内所有链接
+  const links = utilities.getPageLinks(currentUrl, body);  //[1]
+  if(links.length === 0) {
+    // 当前页面没有其他链接
+    return process.nextTick(callback);
+  }
+  // completed 用于标示所有并行任务是否完成
+  let completed = 0, hasErrors = false;
+
+  // done 函数 在任务中执行, 一旦任务执行完毕就调用done
+  // 从而记录任务的完成数量
+  function done(err) {
+    if(err) {
+      // 其中一个任务出现错误立刻调用callback
+      hasErrors = true;
+      return callback(err);
+    }
+    if(++completed === links.length &amp;&amp; !hasErrors) {
+      // 在所有任务完成并且没有错误的情况下
+      return callback();
+    }
+  }
+  // 遍历links列表, 同时触发多个spider任务
+  links.forEach(function(link) {
+    spider(link, nesting - 1, done);
+  });
+}
+</code></pre>
+
+<p><code>spider</code>的修改</p>
+
+<pre><code class="language-js">// 在并行的模式下, 需要用spidering标识链接是否正在下载
+// 否则会出现同时重复下载的情况
+let spidering = new Map();
+
+function spider(url, nesting, callback) {
+  if(spidering.has(url)) {
+    // 如果当前url已经在爬取或爬取过了, 那么直接返回
+    // 这个处理方式存在问题
+    return process.nextTick(callback);
+  }
+  // 标识当前url正在下载
+  spidering.set(url, true);
+  // 以下功能与 Web spider version 2 的一样
+  const filename = utilities.urlToFilename(url);
+  fs.readFile(filename, &#39;utf8&#39;, function(err, body) {
+    if(err) {
+      if(err.code !== &#39;ENOENT&#39;) {
+        return callback(err);
+      }
+
+      return download(url, filename, function(err, body) {
+        if(err) {
+          return callback(err);
+        }
+        spiderLinks(url, body, nesting, callback);
+      });
+    }
+
+    spiderLinks(url, body, nesting, callback);
+  });
+}
+
+spider(process.argv[2], 1, (err) =&gt; {
+  if(err) {
+    console.log(err);
+    process.exit();
+  } else {
+    console.log(&#39;Download complete&#39;);
+  }
+});
+</code></pre>
+
+<p>运行结果:<br/>
+<img src="media/15057240638063/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-18%20%E4%B8%8B%E5%8D%889.46.12.png" alt="屏幕快照 2017-09-18 下午9.46.12"/><br/>
+其实书里的这段代码存在问题, 在<code>spider</code>函数里, 处理重复爬取的链接时可能会导致程序提前结束</p>
+
+<pre><code class="language-js">  if(spidering.has(url)) {
+    // 如果当前url已经在爬取或爬取过了, 那么直接返回
+    // 这个处理方式存在问题
+    // 加入当前链接重复而且恰好是最后一个任务
+    // 有可能在当前链接未完成爬取时提前结束程序
+    return process.nextTick(callback);
+  }
+</code></pre>
+
+<h4 id="toc_14">Parallel execution 风格总结</h4>
+
+<p>以<code>forEach</code>遍历任务列表并同时启动多个任务, 添加一个<code>completed</code>标识用于标识所有任务是否完成</p>
+
+<pre><code class="language-js">const tasks = [ /* ... */ ];
+let completed = 0;
+tasks.forEach(task =&gt; {
+  task(() =&gt; {
+    if (++completed === tasks.length) {
+      finish();
+    }
+  });
+});
+
+function finish() {
+  //all the tasks completed
+}
+</code></pre>
+
+<h4 id="toc_15">Fixing race conditions with concurrent tasks</h4>
+
+<p>在其他语言中, 多线程+阻塞任务是一种普遍的并发模型, 而在Node.js中, 单协程+异步任务+多路复用I/O也能用于模拟并发, 而并发就有可能导致静态条件的出现<br/>
+而并发风格的<code>spider</code>中就存在这个竞态条件</p>
+
+<pre><code class="language-js">function spider(url, nesting, callback) {
+  const filename = utilities.urlToFilename(url);
+  // 问题出现在fs.readFile这里
+  fs.readFile(filename, &#39;utf8&#39;, (err, body) =&gt; {
+        if (err) {
+          if (err.code !== &#39;ENOENT&#39;) {
+            return callback(err);
+          }
+          return download(url, filename, function (err, body) {
+          //...
+</code></pre>
+
+<p>在<code>fs.readFile</code>中传递给他的回调函数是在文件读取完成之后执行的, 而这期间有可能有一个相同文件名的url传入spider, 也就是说同一个url有可能导致重复下载.<br/>
+<img src="media/15057240638063/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-19%20%E4%B8%8A%E5%8D%8811.06.59.png" alt="屏幕快照 2017-09-19 上午11.06.59"/><br/>
+解决办法: 添加用于记录当前url是否已经爬取的<code>spidering</code>Map</p>
+
+<pre><code class="language-js">const spidering = new Map();
+
+function spider(url, nesting, callback) {
+  if (spidering.has(url)) {
+    return process.nextTick(callback);
+  }
+  spidering.set(url, true); 
+  //...
+</code></pre>
+
+<p>修改之后的代码就是<code>Web Spider Version 3</code>了</p>
+
+<h4 id="toc_16">Limited parallel execution</h4>
+
+<blockquote>
+<p>无限制的并行执行会导致资源快速消耗, 最后资源耗尽导致程序终止, 限制并发数显然是必须的.</p>
+</blockquote>
+
+<p>限制并发数但又能最大化利用并发的好处</p>
+
+<ul>
+<li>运行尽可能多的任务, 但设置一个同时运行任务书的上限</li>
+<li>每当一个任务运行完马上运行另一个被挂起的任务
+<img src="media/15057240638063/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-19%20%E4%B8%8B%E5%8D%882.48.40.png" alt="屏幕快照 2017-09-19 下午2.48.40"/>
+遵循这两条规则, 对<code>spider</code>进行修改</li>
+</ul>
+
+<pre><code class="language-js">// 任务队列
+const tasks = [...];
+
+let
+  // 设置最大并发数为2
+  concurrency = 2,
+  // 记录当前正在运行的任务数量
+  running = 0,
+  // 记录当前已完成的任务数量
+  completed = 0,
+  // 记录当前任务列表下标
+  index = 0;
+
+// next 函数起到了迭代器的作用
+function next() {
+  // while 循环限制并发数
+  while (running &lt; concurrency &amp;&amp; index &lt; tasks.length) {
+    // 从任务队列获取新的任务
+    task = tasks[index++];
+    // task 是一个以callback为形参的函数
+    task(() =&gt; {
+      if (completed === tasks.length) {
+        return finish();
+      }
+      // 当前任务完成时, 减少running计数器以让出并发资源
+      completed++, running--;
+      next();
+    });
+    // 当前任务开始时, 增加running计数器以限制并发数
+    running++;
+  }
+}
+next();
+
+function finish() {
+  //all tasks finished
+}
+</code></pre>
+
+<p>修改过的<code>spider</code>融合了<code>Sequential execution</code>和<code>Paraller execution</code>两种风格, <code>next()</code>函数充当了<code>Sequential execution</code>中<code>iterator</code>的作用, 而<code>next()</code>函数中运行多个任务由融入了<code>Paraller execution</code>的风格.</p>
+
+<h4 id="toc_17">Queues to the rescue</h4>
+
+<blockquote>
+<p>最常用的限制并发数的方法还是任务队列</p>
+</blockquote>
+
+<p>将<code>Limited parallel execution</code>中的函数抽离出来, 抽象成<code>TaskQueue</code></p>
+
+<pre><code class="language-js">class TaskQueue {
+  // 构造是传入最大并发数
+  constructor(concurrency) {
+    this.concurrency = concurrency;
+    // 记录当前正在运行的任务数
+    this.running = 0;
+    // 任务队列
+    this.queue = [];
+  }
+
+  pushTask(task) {
+    // 添加新的任务
+    this.queue.push(task);
+    // 调用新的任务
+    // 相当于平常任务队列中的notifyAll操作
+    this.next();
+  }
+  // next函数无太大变化
+  next() {
+    while (this.running &lt; this.concurrency &amp;&amp; this.queue.length) {
+      const task = this.queue.shift();
+      task(() =&gt; {
+        this.running--;
+        this.next();
+      });
+      this.running++;
+    }
+  }
+};
+</code></pre>
+
+<p>与平时的任务队列不用, 这个任务列表不仅用于存放任务, 任务的执行也由它负责</p>
+
+<h4 id="toc_18">Web spider version 4</h4>
+
+<p>利用<code>TaskQueue</code>修改<code>spider</code></p>
+
+<pre><code class="language-js">// 限制最大并发数为2
+const downloadQueue = new TaskQueue(2);
+
+function spiderLinks(currentUrl, body, nesting, callback) {
+  if (nesting === 0) {
+    return process.nextTick(callback);
+  }
+  const links = utilities.getPageLinks(currentUrl, body);
+  if (links.length === 0) {
+    return process.nextTick(callback);
+  }
+  let completed = 0,
+    hasErrors = false;
+  // 遍历链接列表
+  links.forEach(link =&gt; {
+    // 往任务队列中添加新任务
+    downloadQueue.pushTask(done =&gt; {
+      spider(link, nesting - 1, err =&gt; {
+        if (err) {
+          hasErrors = true;
+          return callback(err);
+        }
+        if (++completed === links.length &amp;&amp; !hasErrors) {
+          callback();
+        }
+        done();
+      });
+    });
+  });
+}
+</code></pre>
+
+<p><code>spider</code>任务将由<code>downloadQueue</code>执行</p>
+
+<hr/>
+
+<h2 id="toc_19">The async library</h2>
+
+<blockquote>
+<p><a href="https://www.npmjs.com/package/async">async</a>是一个非常著名的用于处理异步风格的库</p>
+</blockquote>
+
+<h3 id="toc_20">利用<code>async</code>库对<code>Sequential execution</code>风格进行改造</h3>
+
+<p><code>Web spider version 2</code>是网络爬虫的<code>Sequential execution</code>版本, 以此为基础利用<code>async</code>对它进行修改<br/>
+在<code>async</code>库中, <code>async.series</code>是用于串行执行函数的, 具体签名为<br/>
+<code>async.series(tasks, [callback])</code></p>
+
+<ul>
+<li><code>tasks</code>表示任务列表, 存放着多个函数, <code>tasks</code>中存放的是签名为<code>function (callback) {}</code>的函数,</li>
+<li><code>callback</code>会作为形参传递给<code>tasks</code>中最后一个函数.</li>
+</ul>
+
+<p>利用<code>async.series</code>改造<code>download</code>函数</p>
+
+<pre><code class="language-js">function download(url, filename, callback) {
+  console.log(`Downloading ${url}`);
+  // 声明body变量, 用于在多个task间传递结果
+  let body;
+  async.series([
+    // 第一个函数, 发出请求
+    callback =&gt; {   
+      request(url, (err, response, resBody) =&gt; {
+        if (err) {
+          return callback(err);
+        }
+        body = resBody;
+        callback();
+      });
+    },
+    // 第二个函数, 创建目录, 并将mkdirp柯里化
+    mkdirp.bind(null, path.dirname(filename)), //[2]    
+    // 第三个函数, 将请求写入文件
+    callback =&gt; { //[3]       
+      fs.writeFile(filename, body, callback);
+    }
+  ], 
+  // async.series 形参中的callback
+  err =&gt; { //[4]
+    if (err) {
+      return callback(err);
+    }
+    console.log(`Downloaded and saved: ${url}`);
+    callback(null, body);
+  });
+}
+</code></pre>
+
+<h4 id="toc_21">Sequential iteration</h4>
+
+<p><code>Sequential execution</code>中, 典型的模式是利用<code>iterator</code>函数控制任务的遍历时间点<br/>
+在<code>async</code>库中, <code>async.eachSeries(coll, iteratee, [callback])</code>能做同样的事情</p>
+
+<ul>
+<li><code>coll</code>, 需要遍历的集合</li>
+<li><code>iteratee</code>, 处理集合中元素的函数</li>
+<li><code>callback</code>, 在<code>coll</code>遍历完毕时调用</li>
+</ul>
+
+<p>修改<code>spiderLinks</code></p>
+
+<pre><code class="language-js">function spiderLinks(currentUrl, body, nesting, callback) {
+  if (nesting === 0) {
+    return process.nextTick(callback);
+  }
+  const links = utilities.getPageLinks(currentUrl, body);
+  if (links.length === 0) {
+    return process.nextTick(callback);
+  }
+  async.eachSeries(links, (link, callback) =&gt; {
+    spider(link, nesting - 1, callback);
+  }, callback);
+}
+</code></pre>
+
+<hr/>
+
+<h3 id="toc_22">利用<code>async</code>库对<code>Parallel execution</code>风格进行改造</h3>
+
+<p>这里的改造非常简单, 只需要将上面的<code>spiderLinks</code>中的<code>async.eachSeries</code>改为<code>async.each</code>就可以了</p>
+
+<pre><code class="language-js">function spiderLinks(currentUrl, body, nesting, callback) { 
+  // ...  
+  async.each(links, (link, callback) =&gt; {
+    spider(link, nesting - 1, callback);
+  }, callback);
+}
+</code></pre>
+
+<p>但是这里也并没有对并发任务数进行限制, 不过<code>async</code>也提供了和<code>TaskQueue</code>相似的工具<br/>
+<code>async.queue(worker, concurrency)</code></p>
+
+<ul>
+<li><code>worker</code>是签名为<code>function worker(task, callback)</code>的函数</li>
+<li><code>concurrency</code> 设置并发数上限</li>
+<li><code>async.queue</code>函数返回一个任务队列实例</li>
+</ul>
+
+<p>根据<code>async.queue</code>的<a href="https://caolan.github.io/async/docs.html#queue">文档</a>, 函数会返回一个<code>QueueObject</code>, 我们主要用到他的<code>push</code>方法</p>
+
+<ul>
+<li><code>push(task, [callback])</code> 
+
+<ul>
+<li><code>task</code> : 传递给<code>worker</code>函数的形参</li>
+<li><code>callback</code>: 同样是传递给<code>worker</code>函数的形参</li>
+</ul></li>
+</ul>
+
+<h4 id="toc_23">利用<code>async.queue</code>修改<code>Web Spider Version 4</code></h4>
+
+<pre><code class="language-js">const downloadQueue = async.queue( function(taskData, callback) {
+  spider(taskData.link, taskData.nesting - 1, callback);
+}, 2);
+
+function spiderLinks(currentUrl, body, nesting, callback) {
+  if (nesting === 0) {
+    return process.nextTick(callback);
+  }
+  const links = utilities.getPageLinks(currentUrl, body);
+  if (links.length === 0) {
+    return process.nextTick(callback);
+  }
+  const completed = 0,
+    hasErrors = false;
+  links.forEach(function (link) {
+    // 构造taskData
+    // 由于async.queue在构造时设置好了worker函数
+    // 无法以闭包方式传递link和nesting
+    // 需要包装至object中传递
+    const taskData = {
+      link: link,
+      nesting: nesting
+    };
+    // 往队列中推入数据和callback
+    downloadQueue.push(taskData, err =&gt; {
+      if (err) {
+        hasErrors = true;
+        return callback(err);
+      }
+      if (++completed === links.length &amp;&amp; !hasErrors) {
+        callback();
+      }
+    });
+  });
+}
+</code></pre>
+
+<hr/>
+
+			</div>
+
+		
+	  
+		<footer>
+		 <p class="meta">
+
+			
+			<span class="categories">
+			 
+			</span>
+		    </p>
+		    <p class="meta">
+		      
+		 </p>
+	    
+		<div class="sharing">
+		  
+          
+
+          
+
+		</div>
+
+	    <p class="meta">
+	    
+	        <a class="basic-alignment left" href="15058774867304.html" 
+	        title="Previous Post: libco 源码阅读 · 事件循环调度器">&laquo; libco 源码阅读 · 事件循环调度器</a>
+	    
+	    
+	        <a class="basic-alignment right" href="15057205491515.html" 
+	        title="Next Post: libco 源码阅读 · 协程实现">libco 源码阅读 · 协程实现 &raquo;</a>
+	    
+	    </p>
+	  </footer>
+	</article>
+</div>
+ <aside class="sidebar"> 
+
+	<section>
+	  <h1>Categories</h1>
+	  <ul id="recent_posts">
+	  
+	        
+	      </li>
+	   
+	  </ul>
+	</section>
+	<section>
+	  <h1>Recent Posts</h1>
+	  <ul id="recent_posts">
+	  
+	      
+		      <li class="post">
+		        <a href="15087314678145.html">Node.js设计模式 · 第六章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15078961128669.html">Node.js设计模式 · 第五章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15064131114315.html">Node.js设计模式 · 第四章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15061378949226.html">libco 源码阅读 · 系统调用钩子</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15058774867304.html">libco 源码阅读 · 事件循环调度器</a>
+		      </li>
+	     
+	  
+	      
+	  
+	      
+	   
+	  </ul>
+	</section>
+	
+</aside> </div></div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2017 -  -
+  <span class="credit">Powered by <a target="_blank" href="https://zerolocusta.github.io">zerolocusta</a> &nbsp;&nbsp; Theme by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+
+  
+    
+
+<script src="asset/chart/all-min.js"></script><script type="text/javascript">$(function(){    var mwebii=0;    var mwebChartEleId = 'mweb-chart-ele-';    $('pre>code').each(function(){        mwebii++;        var eleiid = mwebChartEleId+mwebii;        if($(this).hasClass('language-sequence')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = Diagram.parse($(this).text());            diagram.drawSVG(eleiid,{theme: 'simple'});        }else if($(this).hasClass('language-flow')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = flowchart.parse($(this).text());            diagram.drawSVG(eleiid);        }    });});</script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><script type="text/x-mathjax-config">MathJax.Hub.Config({TeX: { equationNumbers: { autoNumber: "AMS" } }});</script>
+
+</body>
+</html>

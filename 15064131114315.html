@@ -1,0 +1,1070 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>
+    
+  Node.js设计模式 · 第四章 - zerolocust
+  
+
+  </title>
+  <meta name="author" content="">
+  <meta name="description" content="locustchen的博客">
+
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <link href="asset/css/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="atom.xml" rel="alternate" title="zerolocust" type="application/atom+xml">
+  <script src="asset/js/modernizr-2.0.js"></script>
+  <script src="asset/js/jquery.min.js"></script>
+  <script src="asset/highlightjs/highlight.pack.js"></script>
+  <link href="asset/highlightjs/styles/solarized_light.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script>hljs.initHighlightingOnLoad();</script>
+
+  <style type="text/css">
+  .cat-children-p{ padding: 6px 0px;}
+  .hljs{background: none;}
+  </style>
+  <script type="text/javascript">
+  var isAddSildbar = true;
+  </script>
+  <script src="asset/js/octopress.js" type="text/javascript"></script>
+</head>
+<script type="text/javascript">
+//链接新开窗口
+function addBlankTargetForLinks () {
+  $('a[href^="http"]').each(function(){
+      $(this).attr('target', '_blank');
+  });
+}
+$(document).ready(function(event) {
+  addBlankTargetForLinks();
+});
+</script>
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="index.html">zerolocust</a></h1>
+  
+    <h2>locustchen的博客</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zerolocusta.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+
+  <li id=""><a target="self" href="index.html">Home</a></li>
+
+  <li id=""><a target="_self" href="archives.html">Archives</a></li>
+
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content"> 
+<div>
+	<article class="hentry" role="article">
+	<header>
+			  	<h1 class="entry-title">Node.js设计模式 · 第四章</h1>
+				<p class="meta"><time datetime="2017-09-26T16:05:11+08:00" pubdate data-updated="true">2017/9/26 16:5 下午</time></p>
+			 </header>
+		  	<div class="entry-content">
+			  	<h2 id="toc_0">Asynchronous Control Flow Patterns with ES2015 and Beyond</h2>
+
+<blockquote>
+<p>本章主要讲述了ES6中的Promise, Generator特性与使用方法, 以及稍微探讨了async/await</p>
+</blockquote>
+
+<hr/>
+
+<h2 id="toc_1">摘要</h2>
+
+<ul>
+<li>Promise</li>
+<li>Generator</li>
+<li>async / await</li>
+</ul>
+
+<hr/>
+
+<h2 id="toc_2">Promise</h2>
+
+<p>除了上一章的CPS风格之外, 在JS中实现异步编程还有另外一些风格, 例如ES6新加入的Promise</p>
+
+<h3 id="toc_3">What is a promise?</h3>
+
+<blockquote>
+<p>在JavaScript中, <code>Promise</code>按照<a href="https://promisesaplus.com/">Promise a+</a>标准实现</p>
+</blockquote>
+
+<p><code>Promise</code>指的是对异步操作的抽象, 而<code>Promise</code>又有多种状态</p>
+
+<ul>
+<li>当<code>Promise</code>操作未完成时状态称为<code>pending</code></li>
+<li>当<code>Promise</code>操作成功完成时状态称为<code>fulfilled</code></li>
+<li>当<code>Promise</code>操作失败时状态称为<code>rejected</code></li>
+<li>无论<code>Promise</code>操作成功或者失败, 状态都叫<code>settled</code></li>
+</ul>
+
+<p>在JavaScript中, <code>Promise</code>被实现为一个对象, <strong>实例中</strong>提供了<code>then</code>方法用于接收异步事件的完成状态</p>
+
+<ul>
+<li><code>promise.then(onFulfilled[, onRejected])</code>: <code>onFulfilled</code>和<code>onRejected</code>都是接收一个形参的函数,<code>onFulfilled</code>用于接收<code>Promise</code>成功执行之后的结果, 而<code>onRejected</code>用于接收<code>Promise</code>执行失败的结果, 返回值为<strong>另一个</strong>处于<code>pending</code>状态的<code>Promise</code>实例</li>
+</ul>
+
+<p>和异步CPS风格作对比</p>
+
+<pre><code class="language-js">// CPS风格
+asyncOperation(arg, (err, result) =&gt; {
+    if (err) { 
+        //处理错误
+        return;
+    } 
+    // 正常处理流程 
+});
+
+// Promise风格, 假设asyncOperation返回一个Promise的实例
+// 传入了两个函数用于处理 正常事件 和 异常事件
+asyncOperation(arg).then(result =&gt; { 
+    //do stuff with result   
+}, err =&gt; {
+    //handle error   
+});
+</code></pre>
+
+<p><code>then()</code>方法还有一些很重要的属性</p>
+
+<ol>
+<li><code>then()</code>必然返回另外一个<code>Promise</code>实例, 只有当第一个<code>Promise</code>解决或被拒绝后, 第二个<code>Promise</code>才会被解决 (<code>then</code>方法是异步的, 但返回的另一个<code>Promise</code>只有在第一个<code>Promse</code>解决或被拒绝后才开始执行)</li>
+<li>由于<code>then()</code>函数返回另一个<code>Promise</code>实例, 有可能形成一个<code>Promise</code>链, <code>onFulfilled</code>或<code>onRejected</code>的返回值会在<code>Promise</code>链中传递
+
+<ul>
+<li>当<code>onFulfilled</code>或<code>onRejected</code>的返回值为<code>Promise</code>实例<strong>以外</strong>的值时, 以此返回值作为下一个<code>Promise</code>中传递给<code>onFulfilled</code>函数的值</li>
+<li>当<code>onFulFilled</code>返回一个<code>Promise</code>实例时, <code>then()</code>方法的返回值会替换为<code>onFulFilled</code>的返回值, 但是当第一个<code>Promise</code>被拒绝时, 第二个<code>Promise</code>的<code>onFulfilled</code>方法将不会被调用</li>
+</ul></li>
+</ol>
+
+<p>由于上述的特性, 我们可以非常容易实现一个串行执行的<code>Promise</code>链</p>
+
+<pre><code class="language-js">asyncOperation(arg).then(result1 =&gt; {
+    // asyncOperation返回另一个Promise实例 
+    return asyncOperation(arg2);
+}).then(result2 =&gt; {
+    // 返回一个普通的值  
+    return &#39;done&#39;;
+}).then(undefined, err =&gt; {
+    // 利用 onRejected 函数捕抓异常
+});
+</code></pre>
+
+<p><img src="media/15064131114315/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-26%20%E4%B8%8B%E5%8D%889.34.16.png" alt="屏幕快照 2017-09-26 下午9.34.16"/></p>
+
+<h4 id="toc_4">Promise对象</h4>
+
+<ol>
+<li>构造函数<code>Constructor (new Promise(function(resolve, reject) {}))</code>
+
+<ul>
+<li><code>resolve(obj)</code>: 会将<code>Promise</code>置为<code>Fulfilled</code>状态</li>
+<li><code>reject(err)</code> : 会将<code>Promise</code>置为<code>Rejected</code>状态</li>
+</ul></li>
+<li>静态方法
+
+<ul>
+<li><code>Promise.resolve(obj)</code>: 将会创建一个已解决的<code>Promise</code>实例</li>
+<li><code>Promise.reject(err)</code> : 将会创建一个被拒绝的<code>Promise</code>实例</li>
+<li><code>Promise.all(iterable)</code> : 返回一个新的<code>Promise</code>实例, 并且在<code>iterable</code>中<strong>所有</strong><code>Promise</code>状态为<code>Fulfilled</code>时, 返回的<code>Promise</code>实例状态会被置为<code>Fulfilled</code>, 如果<code>iterable</code>中至少有一个<code>Promise</code>状态为<code>Rejected</code>时, 返回的<code>Promise</code>实例状态也会被置为<code>Rejected</code>并且拒因为<strong>第一个</strong>被拒绝<code>Promise</code>的拒因</li>
+<li><code>Promise.race(iterable)</code> : 返回一个<code>Promise</code>实例, 当<code>iterable</code>中任何一个<code>Promise</code>解决或被拒绝时, 返回的<code>Promise</code>实例以同样的原因完成.</li>
+</ul></li>
+<li>实例方法
+
+<ul>
+<li><code>promise.then(onFulfilled, onRejected)</code> : 已经介绍过了</li>
+<li><code>promise.catch(onRejected)</code> : 是<code>promise.then(undefined, onRejected)</code>的语法糖</li>
+</ul></li>
+</ol>
+
+<h4 id="toc_5">Promisifying a Node.js style function</h4>
+
+<blockquote>
+<p>创建一个工具函数将CPS风格函数转换为Promise</p>
+</blockquote>
+
+<p>遵循了JavaScript编程风格(Callbacks come last 和 Error come First)的函数是很容易被转换成Promise的, 而且<code>util.promisify</code>也提供了这样的函数, 书中也给出了一个实现</p>
+
+<pre><code class="language-js">module.exports.promisify = function (callbackBasedApi) {
+    // 包裹 callbackBasedApi, 返回一个新函数
+    return function promisified() {
+        // Function.arguments 是 Function 实例中存储着形参对象
+        // 仅在 Node.js下生效
+
+        // 将 arguments 对象 转换为数组
+        const args = [].slice.call(arguments);
+        // 创建一个Promise实例
+        return new Promise((resolve, reject) =&gt; {
+            // 按照callback come last的约定在形参末尾推入回调函数
+            args.push((err, result) =&gt; { 
+                if (err) {
+                    return reject(err);
+                }
+                if (arguments.length &lt;= 2) {
+                    resolve(result);
+                } else {
+                    resolve([].slice.call(arguments, 1));
+                }
+            });
+            // 调用 callbackBasedApi, callback被替换
+            callbackBasedApi.apply(null, args);
+        });
+    }
+};
+</code></pre>
+
+<p>这段代码将<code>reject</code>和<code>resolve</code>置入需要被包裹的函数的回调形参中, 令函数完成调用callback时, 触发<code>Promise</code>状态的变换.</p>
+
+<h3 id="toc_6">Sequential execution</h3>
+
+<blockquote>
+<p>串行执行的<code>spider</code>网络爬虫, 以<code>Promise</code>的风格实现</p>
+</blockquote>
+
+<p>首先把之前的CPS风格函数用<code>promisify</code>将其Promise风格化</p>
+
+<pre><code class="language-js">const utilities = require(&#39;./utilities&#39;);
+const request = utilities.promisify(require(&#39;request&#39;));
+const mkdirp = utilities.promisify(require(&#39;mkdirp&#39;));
+const fs = require(&#39;fs&#39;);
+const readFile = utilities.promisify(fs.readFile);
+const writeFile = utilities.promisify(fs.writeFile);
+</code></pre>
+
+<p>对<code>download</code>函数<code>Promise</code>化</p>
+
+<pre><code class="language-js">function download(url, filename) {
+    console.log(`Downloading ${url}`);
+    let body;
+    return request(url)
+    .then(response =&gt; {
+        body = response.body;
+        // 返回新的Promise
+        return mkdirp(path.dirname(filename));
+    })
+    .then(
+        // writeFile 同样返回一个Promise
+        () =&gt; writeFile(filename, body)
+    )
+    .then(() =&gt; {
+        console.log(`Downloaded and saved: ${url}`);
+        return body;
+    });
+}
+</code></pre>
+
+<p>对<code>spider</code>函数<code>Promise</code>化</p>
+
+<pre><code class="language-js">function spider(url, nesting) {
+  let filename = utilities.urlToFilename(url);
+  // 先从本地查找此URL是否已被下载
+  return readFile(filename, &#39;utf8&#39;)
+    .then(
+      // 如果已存在则直接从文件中查找其他链接
+      (body) =&gt; (spiderLinks(url, body, nesting)),
+      // 不存在则下载URL
+      (err) =&gt; {
+        if (err.code !== &#39;ENOENT&#39;) {
+          throw err;
+        }
+
+        return download(url, filename)
+          .then(body =&gt; spiderLinks(url, body, nesting));
+      }
+    );
+}
+</code></pre>
+
+<h4 id="toc_7">Sequential iteration</h4>
+
+<p>还记得串行模式的核心是控制遍历的速度, 也就是通过自制的<code>iterator</code>函数去遍历任务, 而<code>spider</code>中是由<code>spiderLinks</code>去控制多个URL下载</p>
+
+<pre><code class="language-js">function spiderLinks(currentUrl, body, nesting) {
+  // 初始化用于控制串行流的Promise
+  let promise = Promise.resolve();
+  if (nesting === 0) {
+    return promise;
+  }
+  // 获取页面内链接
+  const links = utilities.getPageLinks(currentUrl, body);
+  links.forEach(link =&gt; {
+    // 利用Promise只有在上一个Promise执行成功, 下一个Promise才会执行的特性
+    // 串行执行多个Promise实例
+    promise = promise.then(() =&gt; spider(link, nesting - 1));
+  });
+
+  return promise;
+}
+</code></pre>
+
+<p>利用链式调用<code>Promise</code>只有在上一个<code>Promise</code>完成后才会执行下一个<code>Promise</code>的特性, 串行执行</p>
+
+<p>执行结果<br/>
+<img src="media/15064131114315/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-27%20%E4%B8%8B%E5%8D%888.06.48.png" alt="屏幕快照 2017-09-27 下午8.06.48"/></p>
+
+<h4 id="toc_8">Sequential iteration – the pattern</h4>
+
+<blockquote>
+<p>串行遍历在<code>Promise</code>风格下的经典模式</p>
+</blockquote>
+
+<pre><code class="language-js">// 构造任务队列
+let tasks = [ /* ... */ ]
+// 初始化 Promise 链
+let promise = Promise.resolve();
+// 构造 Promise 任务链
+tasks.forEach(task =&gt; {
+  promise = promise.then(() =&gt; {
+    return task();
+  });
+});
+// 启动 Promise
+promise.then(() =&gt; {
+  //All tasks completed 
+});
+</code></pre>
+
+<p>而这里遍历<code>task</code>就是一个对任务队列的<strong>化约</strong>操作, 也可以用<code>reduce</code>函数代替</p>
+
+<pre><code class="language-js">// 构造任务队列
+let tasks = [ /* ... */ ]
+let promise = tasks.reduce((prev, task) =&gt; {
+  // 利用 reduce 形成 Promise 链
+  return prev.then(() =&gt; {
+    return task();
+  });
+}, Promise.resolve());
+// 启动 Promise
+promise.then(() =&gt; {
+  //All tasks completed 
+});
+</code></pre>
+
+<hr/>
+
+<h3 id="toc_9">Parallel execution</h3>
+
+<blockquote>
+<p>并行执行的<code>spider</code>网络爬虫, 以<code>Promise</code>的风格实现</p>
+</blockquote>
+
+<p>只需要修改<code>spiderLink</code>并利用<code>Promise.all</code>并行运行多个任务就可以了</p>
+
+<pre><code class="language-js">function spiderLinks(currentUrl, body, nesting) {
+  //  爬取深度
+  if (nesting === 0) {
+    return Promise.resolve();
+  }
+  // 获取页面内所有链接
+  const links = utilities.getPageLinks(currentUrl, body);
+  // 构造Promise任务列表
+  const promises = links.map(link =&gt; spider(link, nesting - 1));
+  // 并行运行多个promise
+  return Promise.all(promises);
+}
+</code></pre>
+
+<h3 id="toc_10">Limited parallel execution</h3>
+
+<p>在上一章的<strong>Limited parallel execution</strong>小节中, 构造了一个<code>TaskQueuee</code>用于限制和管理任务, 这里用<code>Promise</code>风格实现一遍</p>
+
+<p>修改<code>TaskQueue</code></p>
+
+<pre><code class="language-js"> class TaskQueue {
+  constructor(concurrency) {
+    this.concurrency = concurrency;
+    this.running = 0;
+    // 队列中存储着多个promise
+    this.queue = [];
+  }
+
+  pushTask(task) {
+    this.queue.push(task);
+    // 同样充当在任务推入队列后Notify的作用
+    this.next();
+  }
+
+  next() {
+    while (this.running &lt; this.concurrency &amp;&amp; this.queue.length) {
+      // 获取 queue 中第一个 promise
+      const task = this.queue.shift();
+      // 设置promise完成后减少running, 让出资源
+      task().then(() =&gt; {
+        this.running--;
+        this.next();
+      });
+      this.running++;
+    }
+  }
+};
+</code></pre>
+
+<p>修改<code>spiderLinks</code>, 接入<code>TaskQueue</code></p>
+
+<pre><code class="language-js">// 构造任务队列, 限制并发数为2
+let downloadQueue = new TaskQueue(2);
+
+function spiderLinks(currentUrl, body, nesting) {
+  // 达到爬取深度, 返回 Fulfilled 状态的 Promise
+  if(nesting === 0) {
+    return Promise.resolve();
+  }
+  // 获取页面内所有链接
+  const links = utilities.getPageLinks(currentUrl, body);
+  // 如果页面内没有链接, 返回一个 Fulfilled 的Promise
+  if(links.length === 0) {
+    return Promise.resolve();
+  }
+  // 返回一个Promise实例
+  return new Promise((resolve, reject) =&gt; {
+    let completed = 0;
+    let errored = false;
+    links.forEach(link =&gt; {
+      let task = () =&gt; {
+        // task 返回一个 promise 实例
+        return spider(link, nesting - 1)
+          .then(() =&gt; {
+            // 当所有链接爬取完毕时Promise置为Fulfilled状态
+            if(++completed === links.length) {
+              resolve();
+            }
+          })
+          .catch(() =&gt; {
+            // 出现异常时
+            if (!errored) {
+              errored = true;
+              reject();
+            }
+          })
+        ;
+      };
+      // 将Promise任务推入任务队列
+      downloadQueue.pushTask(task);
+    }); 
+  });
+}
+</code></pre>
+
+<h3 id="toc_11">Exposing callbacks and promises in public APIs</h3>
+
+<blockquote>
+<p>在使用优秀的第三方库的时候, 很多函数都会同时提供<code>callback</code>风格和<code>Promise</code>风格的API<br/>
+一是为了兼容旧的API接口, 又能同时提供<code>Promise</code>风格的新接口</p>
+</blockquote>
+
+<p>书中的示例</p>
+
+<pre><code class="language-js"> function asyncDivision(dividend, divisor, cb) {
+  return new Promise((resolve, reject) =&gt; { // [1]
+    // 注意到函数名是 asyncDivision, 
+    // 利用 process.nextTick 使函数异步执行
+    process.nextTick(() =&gt; {
+      const result = dividend / divisor;
+      if (isNaN(result) || !Number.isFinite(result)) {
+        const error = new Error(&#39;Invalid operands&#39;);
+        // 除了 reject Promise, 
+        // 也要将错误传递到 callback 中
+        if (cb) {
+          cb(error);
+        }
+        return reject(error);
+      }
+      // 正常调用callback
+      if (cb) {
+        cb(null, result);
+      }
+      // 同时将promise置为Fulfilled状态
+      resolve(result);
+    });
+  });
+};
+</code></pre>
+
+<p>使用的时候, 如果我们不传递<code>callback</code>形参, 那么<code>cb</code>此时为<code>undefined</code>, 表明使用者需要的是<code>Promise</code>风格的接口, 反之则是需要CPS风格的接口</p>
+
+<p>然而我个人认为这断代码存在问题, 在出现异常时不仅调用<code>cb(error)</code>传递异常, 还调用<code>reject(error)</code>将<code>Promise</code>置为<code>Reject</code>状态, 这样会导致使用者就算意图只使用<code>callback</code>风格的API时, 没对返回的<code>Promise</code>调用<code>promise.catch</code>捕抓错误的话就会引发Node告警<br/>
+例如</p>
+
+<pre><code class="language-js">asyncDivision(10, 0, (error, result) =&gt; {
+  if (error) {
+    return console.error(error);
+  }
+  console.log(result);
+});
+</code></pre>
+
+<p>发生除零错误, 而且已经在<code>callback</code>中处理了错误, 但由于没有对返回的<code>Promise</code>进行错误捕抓, Node也会进行告警<br/>
+<img src="media/15064131114315/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-30%20%E4%B8%8A%E5%8D%8811.23.19.png" alt="屏幕快照 2017-09-30 上午11.23.19"/><br/>
+    这明显不是我们所需要的结果, 所以对函数改良一下</p>
+
+<pre><code class="language-js">function asyncDivision(dividend, divisor, cb) {
+  if (cb) {
+    return process.nextTick(() =&gt; {
+      const result = dividend / divisor;
+      if (isNaN(result) || !Number.isFinite(result)) {
+        const error = new Error(&#39;Invalid operands&#39;);
+        return cb(error);
+      }
+      cb(null, result);
+    })
+  }
+  return new Promise((resolve, reject) =&gt; {
+    asyncDivision(dividend, divisor, (err, result) =&gt; {
+      if (err)
+        return reject(err)
+      return resolve(result);
+    })
+  })
+};
+</code></pre>
+
+<p>在传入了<code>callback</code>情况下无需返回一个<code>Promise</code>实例, 从而分离两种风格, 就不会导致Node对异常告警了</p>
+
+<p><img src="media/15064131114315/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-30%20%E4%B8%8A%E5%8D%8811.40.27.png" alt="屏幕快照 2017-09-30 上午11.40.27"/></p>
+
+<h2 id="toc_12">Generators</h2>
+
+<blockquote>
+<p>ES6中的生成器, 类似于Python中的生成器, 实现状态的暂存和通信</p>
+</blockquote>
+
+<p>生成器一般用于模拟协程, 或者用于无限长度的流</p>
+
+<pre><code class="language-js">// ES6 中利用 function* 标识生成器函数
+function* fruitGenerator() {
+  // yield用于挂起生成器
+  yield &#39;apple&#39;;
+  yield &#39;orange&#39;;
+  return &#39;watermelon&#39;;
+}
+</code></pre>
+
+<p>使用生成器</p>
+
+<pre><code class="language-js">// 实例化生成器
+const newFruitGenerator = fruitGenerator();
+// Generator.next用于 载入/恢复 生成器
+console.log(newFruitGenerator.next());
+console.log(newFruitGenerator.next());
+console.log(newFruitGenerator.next());
+</code></pre>
+
+<p>运行结果<br/>
+<img src="media/15064131114315/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-09-30%20%E4%B8%8B%E5%8D%8810.03.53.png" alt="屏幕快照 2017-09-30 下午10.03.53"/></p>
+
+<p>当生成器函数返回时, 状态<code>Done</code> 为真.</p>
+
+<h3 id="toc_13">Generators as iterators</h3>
+
+<blockquote>
+<p>遍历生成器</p>
+</blockquote>
+
+<p>利用<code>done</code>指示生成器遍历进度</p>
+
+<pre><code class="language-js">function* iteratorGenerator(num) {
+  for (let i = 0; i &lt;num; i++) {
+    yield i;
+  }
+}
+
+// 初始化生成器
+const iterator = iteratorGenerator(3);
+
+let currentItem = iterator.next();
+// 遍历生成器
+while (!currentItem.done) {
+  console.log(currentItem.value);
+  currentItem = iterator.next();
+}
+</code></pre>
+
+<p>运行结果<br/>
+<img src="media/15064131114315/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-01%20%E4%B8%8B%E5%8D%8812.17.14.png" alt="屏幕快照 2017-10-01 下午12.17.14"/></p>
+
+<h3 id="toc_14">Passing values back to a generator</h3>
+
+<blockquote>
+<p>生成器的数据流是双向的, 不仅可以从生成器得到数据, 还可以向生成器发送数据</p>
+</blockquote>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+function* twoWayGenerator() {
+  const what = yield null;
+  console.log(&#39;Hello &#39; + what);
+}
+
+const twoWay = twoWayGenerator();
+// 第一次 next() 返回 null
+twoWay.next();
+// 第二次 next() 将数据传递至 what, 并结束生成器
+twoWay.next(&#39;world&#39;);
+</code></pre>
+
+<p>运行结果将会打印出<code>Hello world</code></p>
+
+<h3 id="toc_15">Asynchronous control flow with generators</h3>
+
+<blockquote>
+<p>既然生成器能做到控制流的暂停和恢复, 那么用于模拟协程暂停与恢复就很容易了</p>
+</blockquote>
+
+<pre><code class="language-js">function asyncFlow(generatorFunction) {
+  // 嵌套声明的 callback 函数
+  function callback(err) {
+    if (err) { 
+      return generator.throw(err); 
+    }
+    // 通过 Functions.arguments 获取 callback 的形参
+    // 剔除掉err, 也就是 callback 的结果
+    const results = [].slice.call(arguments, 1);
+    // 恢复协程, 并将结果返回至挂起点
+    generator.next(results.length &gt; 1 ? results : results[0]); 
+  }
+  // 实例化深层器
+  const generator = generatorFunction(callback);
+  // 启动生成器
+  generator.next(); 
+}
+</code></pre>
+
+<p><code>asyncFlow</code>函数通过传入生成器函数, 并在<code>callback</code>中恢复和传递生成器的结果从而达到操作完成时恢复生成器的功能.</p>
+
+<p>用例: 复制一个文件<br/>
+<code>js<br/>
+// 创建匿名生成器函数<br/>
+asyncFlow(function* (callback) {<br/>
+  const fileName = path.basename(__filename);<br/>
+  // 替换callback<br/>
+  const myself = yield fs.readFile(fileName, &#39;utf8&#39;, callback);<br/>
+  yield fs.writeFile(`clone_of_${fileName}`, myself, callback);<br/>
+  console.log(&#39;Clone created&#39;);<br/>
+});<br/>
+</code></p>
+
+<h4 id="toc_16">JavaScript 中的 Chunk</h4>
+
+<blockquote>
+<p>JS中的Chunk其实是将典型的CPS函数<code>柯里化</code>成为只剩下<code>callback</code>参数的函数, 例如</p>
+
+<pre><code class="language-js">function readFileChunk(filename, options) {
+ return (callback) =&gt; {
+  fs.readFile(filename, options, callback)
+ }
+}
+</code></pre>
+
+<p><code>readFileChunk</code>函数将<code>fs.readFile</code>柯里化成为仅接受<code>callback</code>的函数</p>
+</blockquote>
+
+<ul>
+<li><p>Thunk的作用<br/>
+注意到上面的<code>asyncFlow</code>函数, 传入的形参是带<code>callback</code>的生成器函数, 而在使用<code>yield</code>时, 仍需要往CPS风格函数传入<code>callback</code>, 这看起来并不简约, 于是出现了新的<code>asyncFlow</code>生成器控制函数及<code>Thunk</code>技术, 解决生成器函数风格问题.</p></li>
+<li><p>基于<code>Chunk</code>的<code>asyncFlow</code></p></li>
+</ul>
+
+<pre><code class="language-js">function asyncFlowWithThunks(generatorFunction) {
+  function callback(err) {
+    if (err) {
+      return generator.throw(err);
+    }
+    const results = [].slice.call(arguments, 1);
+    const thunk = generator.next(results.length &gt; 1 ? results : results[0]).value;
+    // 检查 Thunk 并且传入 callback
+    thunk &amp;&amp; thunk(callback);
+  }
+  // 初始化生成器
+  const generator = generatorFunction();
+  // 生成器函数将会返回一个 Thunk
+  const thunk = generator.next().value;
+  // 检查 Thunk 并且传入 callback
+  thunk &amp;&amp; thunk(callback);
+}
+</code></pre>
+
+<ul>
+<li>函数<code>Thunk</code>化</li>
+</ul>
+
+<pre><code class="language-js">const readFileThunk = (filename, options) =&gt; {
+  return (cb) =&gt; {
+    fs.readFile(filename, options, cb);
+  }
+};
+
+const writeFileThunk = (filename, options) =&gt; {
+  return (cb) =&gt; {
+    fs.writeFile(filename, options, cb);
+  }
+};
+</code></pre>
+
+<p>使用示例</p>
+
+<pre><code class="language-js">asyncFlowWithThunks(function* () {
+  const fileName = path.basename(__filename);
+  const myself = yield readFileThunk(fileName, &#39;utf8&#39;);
+  yield writeFileThunk(`clone_of_${fileName}`, myself);
+  console.log(&#39;Clone created&#39;);
+});
+</code></pre>
+
+<p>如此一来, 整个生成器流控制函数就简练很多了.</p>
+
+<h4 id="toc_17">thunkify</h4>
+
+<p>就像之前的<code>promisify</code>一样, <code>thunkify</code>能方便将普通的CPS风格函数转换为<code>Thunk</code>风格函数, 方便应用到生成器中</p>
+
+<pre><code class="language-js">function thunkify(fn) {
+  assert(&#39;function&#39; == typeof fn, &#39;function required&#39;);
+
+  return function () {
+    let args = [].slice.call(arguments)
+    let ctx = this;
+    // 返回一个 Thunk 化后的函数
+    // done 代表 callback 函数
+    return function (done) {
+      let called;
+      // 在形参末尾推入 callback
+      args.push(function () {
+        if (called) return;
+        called = true;
+        done.apply(null, arguments);
+      });
+      // 调用fn
+      try {
+        fn.apply(ctx, args);
+      } catch (err) {
+        done(err);
+      }
+    }
+  }
+}
+</code></pre>
+
+<h4 id="toc_18">Generator-based control flow using co</h4>
+
+<p><code>co</code>是Node.js中一个控制异步流程的库, 支持</p>
+
+<ul>
+<li>Thunks</li>
+<li>Promises</li>
+<li>Arrays</li>
+<li>Objects</li>
+<li>Generators</li>
+<li>Generator functions</li>
+</ul>
+
+<h4 id="toc_19">Sequential execution</h4>
+
+<blockquote>
+<p>利用<code>co</code>与<code>Thunk</code>技术实现串行执行</p>
+</blockquote>
+
+<p>同样是以<code>spider</code>为例</p>
+
+<ul>
+<li>首先利用<code>thunkify</code>将普通函数转化为<code>Thunk</code>风格</li>
+</ul>
+
+<pre><code class="language-js">const co = require(&#39;co&#39;);
+const request = thunkify(require(&#39;request&#39;));
+const fs = require(&#39;fs&#39;);
+const mkdirp = thunkify(require(&#39;mkdirp&#39;));
+const readFile = thunkify(fs.readFile);
+const writeFile = thunkify(fs.writeFile);
+const nextTick = thunkify(process.nextTick);
+</code></pre>
+
+<ul>
+<li>利用生成器改造函数</li>
+</ul>
+
+<pre><code class="language-js">// 将 download 改造成生成器函数
+function* download(url, filename) {
+  console.log(&#39;Downloading &#39; + url);
+  const response = yield request(url);
+  const body = response[1];
+  // 等待 mkdirp 完成
+  yield mkdirp(path.dirname(filename));
+  // 等待 writeFile 完成
+  yield writeFile(filename, body);
+  console.log(`Downloaded and saved: ${url}`);
+  return body;
+}
+
+// 将 spider 改造成生成器函数
+function* spider(url, nesting) {
+  const filename = utilities.urlToFilename(url);
+  let body;
+  try {
+    // readFile 已被 Thunk 化, 返回文件 body
+    body = yield readFile(filename, &#39;utf8&#39;);
+  } catch (err) {
+    if (err.code !== &#39;ENOENT&#39;) {
+      throw err;
+    }
+    body = yield download(url, filename);
+  }
+  yield spiderLinks(url, body, nesting);
+}
+
+// 以及 Sequential execution 最重要的
+// 控制任务载入速度的 spiderLinks
+function* spiderLinks(currentUrl, body, nesting) {
+  if (nesting === 0) {
+    return nextTick();
+  }
+
+  const links = utilities.getPageLinks(currentUrl, body);
+  for (let i = 0; i &lt; links.length; i++) {
+    yield spider(links[i], nesting - 1);
+  }
+}
+
+</code></pre>
+
+<ul>
+<li>利用<code>co</code>库启动生成器</li>
+</ul>
+
+<pre><code class="language-js co(function*">  try {
+    yield spider(process.argv[2], 1);
+    console.log(&#39;Download complete&#39;);
+  } catch (err) {
+    console.log(err);
+  }
+});
+</code></pre>
+
+<h4 id="toc_20">Parallel execution</h4>
+
+<ul>
+<li> 利用<code>co</code>能并发载入生成器数组中元素的特性, 改造<code>spiderLinks</code>即可</li>
+</ul>
+
+<pre><code class="language-js">function* spiderLinks(currentUrl, body, nesting) {
+  if (nesting === 0) {
+    return nextTick();
+  }
+
+  const links = utilities.getPageLinks(currentUrl, body);
+  // spide 函数返回一个生成器实例
+  const tasks = links.map(link =&gt; spider(link, nesting - 1));
+  // 返回一个生成器数组
+  yield tasks;
+}
+</code></pre>
+
+<h4 id="toc_21">Limited parallel execution</h4>
+
+<ul>
+<li>以<code>生产者-消费者</code>模式, 控制并发任务数</li>
+</ul>
+
+<pre><code class="language-js">class TaskQueue {
+  constructor(concurrency) {
+    this.concurrency = concurrency;
+    this.taskQueue = [];
+    this.consumerQueue = [];
+    // 创建 worker
+    this.spawnWorkers(concurrency);
+  }
+
+  pushTask(task) {
+    if (this.consumerQueue.length !== 0) {
+      // 相当于 notify, 通知被挂起的生成器
+      this.consumerQueue.shift()(null, task);
+    } else {
+      // 说明当前已达任务上限, 推入任务队列
+      this.taskQueue.push(task);
+    }
+  }
+
+  spawnWorkers(concurrency) {
+    const self = this;
+    for (let i = 0; i &lt; concurrency; i++) {
+      co(function* () {
+        while (true) {
+          // worker获取下一个任务
+          const task = yield self.nextTask();
+          // 载入任务
+          yield task;
+        }
+      });
+    }
+  }
+
+  nextTask() {
+    // nextTask 返回一个 Thunk, 这样 co 库才能载入这个生成器
+    return callback =&gt; {
+      // co 在获得这个 Thunk 函数后
+      // 这个生成器被马上激活
+      if (this.taskQueue.length !== 0) {
+        // 如果任务队列中存在任务
+        // 那么将它返回至生成器另一端
+        return callback(null, this.taskQueue.shift());
+      }
+      // 如果任务队列为空
+      // 那么挂起这个生成器, 直到 pushTask 被调用
+      this.consumerQueue.push(callback);
+    }
+  }
+}
+</code></pre>
+
+<p>利用<code>Generator</code>模拟的任务队列设计的非常巧妙, <code>this.consumerQueue</code>保存了<code>worker</code>生成器的状态, 用于在有新的任务时触发</p>
+
+<h4 id="toc_22">Async await using Babel</h4>
+
+<blockquote>
+<p><code>async</code> 和 <code>await</code> 已经在<code>Node.js 8</code>中完全支持, 而不需要 Babel 了</p>
+</blockquote>
+
+<pre><code class="language-js">function getPageHtml(url) {
+  return new Promise((resolve, reject) =&gt; {
+    request(url, (error, response, body) =&gt; {
+      resolve(body);
+    });
+  });
+}
+
+async function main() {
+  const html = await getPageHtml(&#39;http://google.com&#39;);
+  console.log(html);
+}
+
+main();
+</code></pre>
+
+<p><code>async</code>和<code>await</code>利用了原有的<code>Promise</code>, 并将传给<code>resolve</code>的值通过<code>await</code>返回, 传递给<code>reject</code>的值将会以异常的形式抛出, 通过<code>try...catch</code>捕获.</p>
+
+			</div>
+
+		
+	  
+		<footer>
+		 <p class="meta">
+
+			
+			<span class="categories">
+			 
+			</span>
+		    </p>
+		    <p class="meta">
+		      
+		 </p>
+	    
+		<div class="sharing">
+		  
+          
+
+          
+
+		</div>
+
+	    <p class="meta">
+	    
+	        <a class="basic-alignment left" href="15078961128669.html" 
+	        title="Previous Post: Node.js设计模式 · 第五章">&laquo; Node.js设计模式 · 第五章</a>
+	    
+	    
+	        <a class="basic-alignment right" href="15061378949226.html" 
+	        title="Next Post: libco 源码阅读 · 系统调用钩子">libco 源码阅读 · 系统调用钩子 &raquo;</a>
+	    
+	    </p>
+	  </footer>
+	</article>
+</div>
+ <aside class="sidebar"> 
+
+	<section>
+	  <h1>Categories</h1>
+	  <ul id="recent_posts">
+	  
+	        
+	      </li>
+	   
+	  </ul>
+	</section>
+	<section>
+	  <h1>Recent Posts</h1>
+	  <ul id="recent_posts">
+	  
+	      
+		      <li class="post">
+		        <a href="15087314678145.html">Node.js设计模式 · 第六章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15078961128669.html">Node.js设计模式 · 第五章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15064131114315.html">Node.js设计模式 · 第四章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15061378949226.html">libco 源码阅读 · 系统调用钩子</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15058774867304.html">libco 源码阅读 · 事件循环调度器</a>
+		      </li>
+	     
+	  
+	      
+	  
+	      
+	   
+	  </ul>
+	</section>
+	
+</aside> </div></div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2017 -  -
+  <span class="credit">Powered by <a target="_blank" href="https://zerolocusta.github.io">zerolocusta</a> &nbsp;&nbsp; Theme by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+
+  
+    
+
+<script src="asset/chart/all-min.js"></script><script type="text/javascript">$(function(){    var mwebii=0;    var mwebChartEleId = 'mweb-chart-ele-';    $('pre>code').each(function(){        mwebii++;        var eleiid = mwebChartEleId+mwebii;        if($(this).hasClass('language-sequence')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = Diagram.parse($(this).text());            diagram.drawSVG(eleiid,{theme: 'simple'});        }else if($(this).hasClass('language-flow')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = flowchart.parse($(this).text());            diagram.drawSVG(eleiid);        }    });});</script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><script type="text/x-mathjax-config">MathJax.Hub.Config({TeX: { equationNumbers: { autoNumber: "AMS" } }});</script>
+
+</body>
+</html>
