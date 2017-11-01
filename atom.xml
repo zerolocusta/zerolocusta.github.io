@@ -4,7 +4,7 @@
   <title><![CDATA[zerolocust]]></title>
   <link href="zerolocusta.github.io/atom.xml" rel="self"/>
   <link href="zerolocusta.github.io/"/>
-  <updated>2017-11-01T11:26:13+08:00</updated>
+  <updated>2017-11-01T11:27:35+08:00</updated>
   <id>zerolocusta.github.io/</id>
   <author>
     <name><![CDATA[]]></name>
@@ -12,6 +12,559 @@
   </author>
   <generator uri="http://www.coderforart.com/">CoderForArt</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[JavaScript高级程序设计 · 1、2、3、20章]]></title>
+    <link href="zerolocusta.github.io/15093607735574.html"/>
+    <updated>2017-10-30T18:52:53+08:00</updated>
+    <id>zerolocusta.github.io/15093607735574.html</id>
+    <content type="html"><![CDATA[
+<h2 id="toc_0">第一章 JavaScript简介</h2>
+
+<p>JavaScript 与 ECMAScript 的关系<br/>
+<img src="media/15093607735574/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-10-30%20%E4%B8%8B%E5%8D%888.13.13.png" alt="屏幕快照 2017-10-30 下午8.13.13"/></p>
+
+<p>完整的<code>JavaScript</code>标准由一下三部分组成</p>
+
+<ul>
+<li>核心(<code>ECMAScript</code>)</li>
+<li>文档对象模型(<code>DOM</code>)</li>
+<li>浏览器对象模型(<code>BOM</code>)</li>
+</ul>
+
+<h3 id="toc_1">ECMAScript</h3>
+
+<p><code>ECMAScript</code>是一门语言, 由<code>ECMA-262</code>标准定义, ECMA-262标准规定了这门语言的以下组成部分:</p>
+
+<ul>
+<li>语法</li>
+<li>类型</li>
+<li>语句</li>
+<li>关键字</li>
+<li>保留字</li>
+<li>操作符</li>
+<li>对象</li>
+</ul>
+
+<p>而<code>JavaScript</code>实现并扩展了<code>ECMAScript</code></p>
+
+<h5 id="toc_2">ECMAScript兼容</h5>
+
+<p><code>ECMA-262</code>标准给出了<code>ECMAScript</code>兼容的定义</p>
+
+<ol>
+<li>支持<code>ECMA-262</code>描述的所有<strong>类型</strong>, <strong>值</strong>, <strong>对象</strong>, <strong>属性</strong>, <strong>函数</strong>以及<strong>程序句法</strong>和<strong>语义</strong></li>
+<li>支持<code>Unicode</code>字符标准</li>
+</ol>
+
+<h3 id="toc_3">文档对象模型(DOM)</h3>
+
+<p><code>DOM</code>是针对<code>XML</code>或<code>HTML</code>的应用程序编程接口, <code>DOM</code>把文档中各个节点映射成树形对象.</p>
+
+<h4 id="toc_4">DOM级别</h4>
+
+<h5 id="toc_5">DOM1级</h5>
+
+<ul>
+<li><code>DOM核心</code>: 规定如<strong>映射</strong>何基于<code>XML</code>的文档结构, 以便简化对文档中任意部分的访问和操作</li>
+<li><code>DOM HTML</code>: 在<code>DOM核心</code>基础上加以扩展, 添加了针对<code>HTML</code>的对象和方法</li>
+</ul>
+
+<h5 id="toc_6">DOM2级</h5>
+
+<ul>
+<li><code>DOM视图</code>: 定义了跟踪不同文档(如,应用CSS之前和之后的文档)视图的接口.</li>
+<li><code>DOM事件</code>: 定义了事件和事件处理的接口</li>
+<li><code>DOM样式</code>: 定义了基于CSS为元素应用样式的接口</li>
+<li><code>DOM遍历和范围</code>: 定义了遍历和操作文档树的接口</li>
+</ul>
+
+<h5 id="toc_7">DOM3级</h5>
+
+<ul>
+<li><code>DOM加载和保存</code>: 引入统一方式加载和保存文档的方式</li>
+<li><code>DOM验证</code>: 定义了验证文档的方法</li>
+</ul>
+
+<h3 id="toc_8">浏览器对象模型(BOM)</h3>
+
+<p>由于不存在BOM标准, 习惯上将所有针对浏览器的JavaScript扩展算作BOM的一部分</p>
+
+<ul>
+<li>弹出新浏览器窗口的功能</li>
+<li>移动、缩放和关闭浏览器窗口的功能</li>
+<li>提供浏览器详细信息的<code>navigator</code>对象</li>
+<li>提供浏览器所加载页面的详细信息的<code>location</code>对象</li>
+<li>提供用户显示器分辨率详细信息的<code>screen</code>对象</li>
+<li>对<code>cookies</code>的支持</li>
+<li>像<code>XMLHttpRequest</code>和IE的<code>ActiveXObject</code>这样的自定义对象</li>
+</ul>
+
+<h3 id="toc_9">总结</h3>
+
+<p>JavaScript由下列三个不同的部分组成</p>
+
+<ul>
+<li><code>ECMAScript</code>, 有<code>ECMA-262</code>定义, 提供核心语言功能</li>
+<li>文档对象模型(DOM), 提供访问和操作网页内容的方式和接口</li>
+<li>浏览器对象模型(BOM), 提供与浏览器交互的方法和接口</li>
+</ul>
+
+<hr/>
+
+<h2 id="toc_10">第二章 在HTML中使用JavaScript</h2>
+
+<h3 id="toc_11"><code>&lt;script&gt;</code>元素</h3>
+
+<p>向<code>HTML</code>页面插入<code>JavaScript</code>的主要方法是使用<code>&lt;script&gt;</code>元素, <code>HTML 4.01</code>规范为其定义了下列6个属性</p>
+
+<ul>
+<li><code>async</code>:可选. 表示应该立即下载脚本, 但不应在下载期间阻塞其他操作</li>
+<li><code>charset</code>:可选. 表示通过<code>src</code>属性指定的代码的字符集.</li>
+<li><code>defer</code>:可选. 表示脚本可以延迟到文档完全被解析和显示之后再执行.只对外部脚本文件有效</li>
+<li><code>src</code>: 可选. 表示包含要执行代码的外部文件</li>
+<li><code>language</code>: 已废弃.</li>
+<li><code>type</code>: 可选. 表示编写代码使用的脚本语言和内容类型.默认值为<code>type/javascript</code></li>
+</ul>
+
+<p>使用<code>&lt;script&gt;</code>的两种方式:</p>
+
+<p>1.直接在<code>&lt;script&gt;</code>元素嵌入JavaScript代码</p>
+
+<pre><code class="language-js">&lt;script&gt;
+    function sayHi() {
+        alert(&quot;Hi!&quot;);
+    }
+&lt;/script&gt;
+</code></pre>
+
+<p>2.通过<code>src</code>属性引入外部<code>JavaScript</code>文件</p>
+
+<pre><code class="language-js">&lt;script src=&quot;example.js&quot;&gt;&lt;/script&gt;
+或者
+&lt;script src=&quot;example.js&quot; /&gt;
+</code></pre>
+
+<p>需要注意的是, 带有<code>src</code>属性的<code>&lt;script&gt;</code>元素不应在其<code>&lt;script&gt;</code>he<code>&lt;/script&gt;</code>之前再嵌入额外的代码.如果包含了额外的代码, 那么只会下载执行外部文件, 嵌入的代码会被忽略.</p>
+
+<h4 id="toc_12">放置<code>&lt;script&gt;</code>标签的位置</h4>
+
+<ul>
+<li>放置于<code>&lt;head&gt;</code>元素中, 例如</li>
+</ul>
+
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+    &lt;head&gt;
+        &lt;title&gt;Example&lt;/title&gt;
+        &lt;script src=&quot;example.js&quot;&gt;&lt;/script&gt;
+    &lt;/head&gt;
+&lt;/html&gt;
+</code></pre>
+
+<p>这种做法是吧所有外部文件的引用都放在<code>&lt;head&gt;</code>元素中, 但是在<code>&lt;head&gt;</code>元素中包含所有<code>JavaScript</code>文件, 意味着必须等到全部<code>JavaScript</code>代码都被下载、解析和执行完成后, 才能开始呈现页面的内容. 从而导致可能出现明显的延迟.</p>
+
+<ul>
+<li>放置在<code>&lt;body&gt;</code>元素中</li>
+</ul>
+
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+    &lt;head&gt;
+        &lt;title&gt;Example&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;script src=&quot;example.js&quot;&gt;&lt;/script&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+<p>这样, 在解析包含的<code>JavaScript</code>代码之前, 页面内容将完全呈现在浏览器中.</p>
+
+<h4 id="toc_13">延迟脚本(<code>defer</code>属性)</h4>
+
+<p>当<code>&lt;script&gt;</code>中定义了<code>defer</code>属性后, 脚本在执行时不会影响页面的构造, 也就是说, 脚本会被延迟到整个页面都解析完毕后在运行.</p>
+
+<p>在<code>HTML5</code>规范中, 要求脚本按照它们出现的先后顺序执行, 而这些延迟执行脚本会先于<code>DOMContentLoaded</code>事件执行. 但在实际实现中, 延迟脚本不一定会完全遵从此标准, 因此最好只包含一个延迟脚本.</p>
+
+<p>并且, 延迟脚本只适用于外部脚本.</p>
+
+<h4 id="toc_14">异步脚本(<code>async</code>属性)</h4>
+
+<p><code>async</code>属性与<code>defer</code>属性类似, 旨在改变处理脚本的行为, 目的是为了不让页面脚本的下载和执行, 但<code>async</code>属性不确保多个脚本文件之间的执行顺序.</p>
+
+<h4 id="toc_15">嵌入代码与外部文件</h4>
+
+<p>在使用<code>&lt;script&gt;</code>标签时, 应该倾向于使用外部文件, 使用外部文件由如下优点</p>
+
+<ul>
+<li><strong>可维护性</strong> : 使用嵌入代码时, <code>JavaScript</code>代码分散在多个<code>HTML</code>页面中, 容易造成维护困难. 而使用外键可以将所有<code>JavaScript</code>文件都放在用一个文件夹中.</li>
+<li><strong>可缓存</strong> : 浏览器能够跟去外部脚本文件的位置, 将相同的文件缓存下来, 从而加快未来页面的加载速度.</li>
+</ul>
+
+<hr/>
+
+<h2 id="toc_16">第三章 基本概念</h2>
+
+<h3 id="toc_17">语法</h3>
+
+<ul>
+<li>区分大小写</li>
+<li>标识符
+
+<ul>
+<li>第一个字符必须是一个字母、下划线(<code>_</code>)或是美元符号(<code>$</code>)</li>
+<li>其他字符可以是字母、下划线、美元符号或数字</li>
+<li>建议使用驼峰命名法</li>
+</ul></li>
+<li>注释</li>
+</ul>
+
+<pre><code class="language-js">// 单行注释
+
+/*
+ * 这是一个多行
+ * 注释
+ */
+</code></pre>
+
+<ul>
+<li>严格模式: ES5中引入了严格模式的概念, 在该模式下, ES3中一些不确定的行为将得到处理, 尔对于某系不安全的操作也会抛出错误. 使用严格模式只需在脚本文件顶部加入<code>&quot;use strict&quot;;</code></li>
+</ul>
+
+<h3 id="toc_18">数据类型</h3>
+
+<h4 id="toc_19"><code>typeof</code>操作符</h4>
+
+<p><code>typeof</code>操作符用于检测变量的数据类型, 对一个值使用<code>typeof</code>操作符可能返回下列某个字符串</p>
+
+<ul>
+<li><code>undefined</code>, 表示这个值未定义</li>
+<li><code>boolean</code>, 表示这是个布尔值</li>
+<li><code>string</code>, 字符串</li>
+<li><code>number</code>, 数值</li>
+<li><code>object</code>, 对象或<code>null</code></li>
+<li><code>function</code>, 函数</li>
+</ul>
+
+<h4 id="toc_20">Undefined 类型</h4>
+
+<p>已声明但未对其初始化的值为<code>undefined</code></p>
+
+<pre><code class="language-js">let msg;
+console.log(msg) // undefined
+console.log(msg === undefined); // true
+</code></pre>
+
+<p>对未声明的变量使用<code>typeof</code>也会返回<code>undefined</code></p>
+
+<pre><code class="language-js">console.log(typeof age) // undefined
+</code></pre>
+
+<h4 id="toc_21">Null 类型</h4>
+
+<p><code>null</code>表示一个空对象指针, 所以对其使用<code>typeof</code>操作符时会返回<code>object</code>.<br/>
+由于<code>undefined</code>派生自<code>null</code>值, <code>ECMA-262</code>规定对他们的相等性测试要返回<code>true</code></p>
+
+<pre><code class="language-js">console.log(null == undefined); // true
+</code></pre>
+
+<h4 id="toc_22">Boolean 类型</h4>
+
+<table>
+<thead>
+<tr>
+<th>数据类型</th>
+<th>转换为<code>true</code>的值</th>
+<th>转换为<code>false</code>的值</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>Boolean</td>
+<td>true</td>
+<td>false</td>
+</tr>
+<tr>
+<td>String</td>
+<td>任何非空字符串</td>
+<td>&quot;&quot;(空字符串)</td>
+</tr>
+<tr>
+<td>Number</td>
+<td>任何非零数值</td>
+<td>0和NaN</td>
+</tr>
+<tr>
+<td>Object</td>
+<td>任何对象</td>
+<td>null</td>
+</tr>
+<tr>
+<td>Undefined</td>
+<td>/</td>
+<td>undefined</td>
+</tr>
+</tbody>
+</table>
+
+<h4 id="toc_23">Number 类型</h4>
+
+<ul>
+<li>进制表示</li>
+</ul>
+
+<pre><code class="language-js">let intNum   = 35;    十进制整数
+let octalNum = 070;   八进制整数
+let hexNum   = 0x1f;  十六进制整数
+</code></pre>
+
+<ul>
+<li>浮点数</li>
+</ul>
+
+<pre><code class="language-js">let floatNum1 = 1.1;
+let floatNum2 = .1; // 表示0.1, 但不推荐
+
+let floatNum3 = 1.; // 小数点后没有数字, 解析为整数1
+let floatNum4 = 10.0; // 整数, 解析为10
+
+Number.isInteger(1.) // true
+Number.isInteger(10.0) // true
+
+// 科学计数法
+let floatNum5 = 3.14e2 // 整数, 3.14乘以10的平方, 314
+</code></pre>
+
+<p>由于浮点数值的最高进度是17位小数, 在进行算数计算时会出现精度问题, 例如, <code>0.1 + 0.2</code>答案并不是<code>0.3</code>, 而是<code>0.30000000000000004</code>, 所以, <strong>不要对特定的浮点数值进行测试</strong></p>
+
+<ul>
+<li>数值范围</li>
+</ul>
+
+<p><code>ECMAScript</code>能表示的数值范围在<code>Number.MIN_VALUE</code>与<code>Number.MAX_VALUE</code>之间, 在Chrome中, <code>Number.MIN_VALUE = 5e-324</code>, 而<code>Number.MAX_VALUE = 1.7976931348623157e+308</code>, 超出这个范围的数值会被转化成特殊的<code>Infinity</code>值, 如果这个数是负数,则会被转换成<code>-Infinity</code>.<br/>
+要确定一个数是不是<strong>有穷</strong>的, 可以使用<code>isFinite()</code>函数</p>
+
+<pre><code class="language-js">isFinite(Number.MAX_VALUE + Number.MAX_VALUE) // false
+</code></pre>
+
+<ul>
+<li><code>NaN(Not a Number)</code></li>
+</ul>
+
+<p>用于表示要返回数值的操作数未返回数值的情况, 任何涉及<code>NaN</code>的算数操作都会返回<code>NaN</code>, 其次<code>NaN</code>与任何数值都不相等, 包括<code>NaN</code>本身</p>
+
+<pre><code class="language-js">NaN ==  NaN // false
+NaN === NaN // false
+</code></pre>
+
+<p>可以使用<code>isNaN()</code>函数判断一个参数是否&quot;不是数值&quot;</p>
+
+<pre><code class="language-js">isNaN(NaN)    // true
+isNaN(10)     // false
+isNaN(&quot;10&quot;)   // false, &quot;10&quot;可被转换成数值10
+isNaN(&quot;blue&quot;) // true, 不能被转换成数值
+isNaN(true)   // false 可被转换成数值1
+</code></pre>
+
+<ul>
+<li>数值转换</li>
+</ul>
+
+<p>将非数值转换为数值有三个函数:</p>
+
+<ul>
+<li><code>Number()</code>, 可用于任何数据类型, 转换规则如下
+
+<ul>
+<li>如果是<code>Boolean</code>值, <code>true</code>和<code>false</code>将分别被转换为<code>1</code>和<code>0</code><br/></li>
+<li>如果是数字值, 简单的传入和返回</li>
+<li>如果是<code>null</code>值, 返回0</li>
+<li>如果是<code>undefined</code>, 返回<code>NaN</code></li>
+<li>如果是字符串, 则遵循下列规则
+
+<ul>
+<li>如果字符串中只包含数字, 则直接转换为十进制数, 并忽略前导0</li>
+<li>如果字符串包含有成效的浮点格式, 则转换为对应的浮点数值</li>
+<li>如果字符串中包含有效的十六进制格式, 则将其转换为相同大小的十进制数值</li>
+<li>对于空字符串, 转换为0</li>
+<li>包含上述格式以外的字符, 转换为<code>NaN</code></li>
+</ul></li>
+<li>如果是对象, 则调用对象的<code>valueOf()</code>方法, 并将返回值按照前面的规则转换.如果转换的结果是<code>NaN</code>, 则调用对象的<code>toString()</code>方法, 然后再依照前面的规则返回转换的字符串值.</li>
+</ul></li>
+<li><code>parseInt()</code>, 将字符串转换为整数.</li>
+<li><code>parseFloat()</code> , 将字符串转换为浮点数.</li>
+</ul>
+
+<h4 id="toc_24">String 类型</h4>
+
+<ol>
+<li><code>EMCAScript</code>支持使用双引号和单引号表示字符串.</li>
+<li>字符串不可变</li>
+<li>通过调用对象的<code>toString()</code>方法获得对象的字符串表示.</li>
+<li><code>null</code>和<code>undefined</code>没有<code>toString()</code>方法</li>
+</ol>
+
+<p><code>String()</code>函数也能用于将变量转换为字符串,并遵从下列转换规则</p>
+
+<ul>
+<li>如果值有<code>toString()</code>方法, 则调用该方法并返回相应结果</li>
+<li>如果值是<code>null</code>, 则返回<code>&quot;null&quot;</code></li>
+<li>如果值是<code>undefined</code>, 则返回<code>&quot;undefined&quot;</code></li>
+</ul>
+
+<h4 id="toc_25">Object 类型</h4>
+
+<p>每个<code>Object</code>都有下列属性和方法:</p>
+
+<ul>
+<li><code>Constructor</code>, 构造函数</li>
+<li><code>hasOwnProperty(propertyName)</code>, 用于检查给定对象实例中是否存在<code>propertyName</code>的属性.</li>
+<li><code>isPrototypeOf(object)</code>, 用于检测传入的对象是否是另一个对象的原型.</li>
+<li><code>propertIsEnumerable(propertyName)</code>, 用于检查给定的属性是否能够使用<code>for-in</code>语句来枚举.</li>
+<li><code>toString()</code>, 返回对象的字符串表示.</li>
+<li><code>valueOf()</code>, 返回对象的字符串,数值,或布尔值表示.</li>
+</ul>
+
+<h3 id="toc_26">操作符</h3>
+
+<p>需要注意的几种操作符</p>
+
+<ul>
+<li><p>位操作符, <code>ECMAScript</code>中所有数值都已<code>IEEE-756 64位</code>格式存储, 但位操作符并不直接操作64位的值.而是先将<strong>64位的值转换为32位的整数, 然后执行操作, 最后将结果转换回64位的值</strong></p></li>
+<li><p>相等操作符</p>
+
+<ul>
+<li>全等操作符(<code>===</code>), 只在两个操作数在<strong>未经转换</strong>就相等的情况下返回<code>true</code></li>
+<li>不全等操作符(<code>==</code>), 会对操作数进行转换后比较.</li>
+</ul></li>
+</ul>
+
+<h3 id="toc_27">函数</h3>
+
+<ol>
+<li>参数, ES中并不在乎函数的参数个数和参数列表, 即使函数定义了两个参数, 也未必一定要传入两个参数, 因为参数在内部是用<strong>一个数组</strong>来表示的, 函数接收到的始终都是这个数组(<code>arguments</code>)</li>
+<li>重载, 由于ES中并不在意函数的参数类型和葛叔, ES中没有重载的概念, 如果同时定义了两个名字相同的函数, 则改名字只属于后定义的函数.</li>
+</ol>
+
+<hr/>
+
+<h2 id="toc_28">第二十章 JSON</h2>
+
+<p>JSON语法可以表示一下三种类型:</p>
+
+<ul>
+<li><code>简单值</code>: 适用于JavaScript相同的语法, 可以在JSON中表示字符串、数值、布尔值和<code>null</code>. 但不支持<code>undefined</code>.</li>
+<li><code>对象</code>: 一组有序的键值对, 每个键值对的值可以简单值, 也可以是复杂数据类型的值.</li>
+<li><code>数组</code>: 表示一组有序的值的列表.</li>
+</ul>
+
+<h3 id="toc_29">序列化</h3>
+
+<p>在序列化JavaScript对象时, 所有的函数及原型成员都会被忽略, 并且值为<code>undefined</code>的属性也会被跳过.</p>
+
+<h4 id="toc_30">序列化选项</h4>
+
+<ul>
+<li>过滤结果</li>
+</ul>
+
+<p>如果过滤器参数是数组, 那么 <code>JSON.stringify()</code>的结果中将只包含数组中列出的属性, 例如</p>
+
+<pre><code class="language-js">let book = {
+    title: &#39;hello world&#39;,
+    edition: 3,
+    year: 2011,
+    }
+JSON.stringify(book, [&quot;title&quot;])
+// 输出结果: &#39;{&quot;title&quot;:&quot;hello world&quot;}&#39;
+</code></pre>
+
+<p>如果过滤器参数是函数, 那么会讲对象中属性和值传入签名为<code>function (key, value)</code>的函数, 并且将函数的返回值作为相对应键的值, 例如</p>
+
+<pre><code class="language-js">let book = {
+    title: &#39;hello world&#39;,
+    edition: 3,
+    year: 2011,
+    }
+JSON.stringify(book, function(key, value) {
+    if (key === &quot;year&quot;)
+        return 5000;
+    return value;    
+})
+// 输出结果:&#39;{&quot;title&quot;:&quot;hello world&quot;,&quot;edition&quot;:3,&quot;year&quot;:5000}&#39;
+</code></pre>
+
+<ul>
+<li>字符串缩进与空白符</li>
+</ul>
+
+<p><code>JSON.stringify()</code>函数的第三个参数用于控制结果中的缩进和空白符, 例如</p>
+
+<pre><code class="language-js">console.log(JSON.stringify(book, null, 4))
+/* 打印出结果
+ * {
+ * &quot;title&quot;: &quot;hello world&quot;,
+ * &quot;edition&quot;: 3,
+ * &quot;year&quot;: 2011
+ * }
+ */
+ console.log(JSON.stringify(book, null, &quot;--&quot;))
+/* 打印出结果
+ * {
+ * --&quot;title&quot;: &quot;hello world&quot;,
+ * --&quot;edition&quot;: 3,
+ * --&quot;year&quot;: 2011
+ * }
+ */
+ 
+</code></pre>
+
+<ul>
+<li><code>toJSON()</code>方法</li>
+</ul>
+
+<p><code>JSON.stringify()</code>会调用对象上的<code>toJSON()</code>方法, 从而可以满足对某些对象的自定义序列化需求, 例如</p>
+
+<pre><code class="language-js">let book = {
+    title: &#39;hello world&#39;,
+    edition: 3,
+    year: 2011,
+    toJSON: function(){
+        return this.title
+        }
+    }
+JSON.stringify(book) // &quot;hello world&quot;
+</code></pre>
+
+<h4 id="toc_31">解析选项</h4>
+
+<p><code>JSON.parse()</code>也可以接收第二个参数, 该参数是一个函数, 将在每对键值对上调用, 与序列化时的函数过滤器类似, 例如</p>
+
+<pre><code class="language-js">let book = {
+    title: &#39;hello world&#39;,
+    edition: 3,
+    year: 2011,
+    releaseDate: new Date()
+};
+
+let bookJSON = JSON.stringify(book);
+
+console.log(JSON.parse(bookJSON));
+
+console.log(JSON.parse(bookJSON, function(key, value) {
+    if (key === &#39;releaseDate&#39;)
+        return new Date(value);
+    return value;
+}))
+</code></pre>
+
+<p>运行结果<br/>
+<img src="media/15093607735574/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-01%20%E4%B8%8B%E5%8D%886.06.06.png" alt="屏幕快照 2017-11-01 下午6.06.06"/></p>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Node.js设计模式 · 第六章]]></title>
