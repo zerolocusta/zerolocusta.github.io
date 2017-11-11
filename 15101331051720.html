@@ -1,0 +1,965 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>
+    
+  JavaScript高级程序设计 · 4、5、6 章 - zerolocust
+  
+
+  </title>
+  <meta name="author" content="">
+  <meta name="description" content="locustchen的博客">
+
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <link href="asset/css/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="atom.xml" rel="alternate" title="zerolocust" type="application/atom+xml">
+  <script src="asset/js/modernizr-2.0.js"></script>
+  <script src="asset/js/jquery.min.js"></script>
+  <script src="asset/highlightjs/highlight.pack.js"></script>
+  <link href="asset/highlightjs/styles/solarized_light.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script>hljs.initHighlightingOnLoad();</script>
+
+  <style type="text/css">
+  .cat-children-p{ padding: 6px 0px;}
+  .hljs{background: none;}
+  </style>
+  <script type="text/javascript">
+  var isAddSildbar = true;
+  </script>
+  <script src="asset/js/octopress.js" type="text/javascript"></script>
+</head>
+<script type="text/javascript">
+//链接新开窗口
+function addBlankTargetForLinks () {
+  $('a[href^="http"]').each(function(){
+      $(this).attr('target', '_blank');
+  });
+}
+$(document).ready(function(event) {
+  addBlankTargetForLinks();
+});
+</script>
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="index.html">zerolocust</a></h1>
+  
+    <h2>locustchen的博客</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zerolocusta.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+
+  <li id=""><a target="self" href="index.html">Home</a></li>
+
+  <li id=""><a target="_self" href="archives.html">Archives</a></li>
+
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content"> 
+<div>
+	<article class="hentry" role="article">
+	<header>
+			  	<h1 class="entry-title">JavaScript高级程序设计 · 4、5、6 章</h1>
+				<p class="meta"><time datetime="2017-11-08T17:25:05+08:00" pubdate data-updated="true">2017/11/8 17:25 下午</time></p>
+			 </header>
+		  	<div class="entry-content">
+			  	<h2 id="toc_0">第四章 变量、作用域和内存问题</h2>
+
+<p>本章将探讨</p>
+
+<ul>
+<li>基本类型和引用类型的值</li>
+<li>执行环境</li>
+<li>垃圾回收</li>
+</ul>
+
+<h3 id="toc_1">基本类型和引用类型的值</h3>
+
+<ul>
+<li>基本类型包括<code>Undefined</code>、<code>Null</code>、<code>Boolean</code>、<code>Number</code>和<code>String</code>. 这五种基本数据类型是按值传递.</li>
+<li>引用类型的值是保存在内存中的对象.由于JavaScript不允许直接操作内存, 在操作对象时, 实际上是在操作对象的引用.</li>
+</ul>
+
+<h4 id="toc_2">动态属性</h4>
+
+<p>可以再对象创建后给对象添加新的属性</p>
+
+<pre><code class="language-js">let person = new Object();
+person.name = &#39;locust&#39;;
+console.log(person.name) // &#39;locust&#39;
+</code></pre>
+
+<p>但无法给基础类型添加新的属性</p>
+
+<pre><code class="language-js">let name = &#39;locust&#39;;
+name.age = 21;
+console.log(name.age) // undefined
+</code></pre>
+
+<h4 id="toc_3">复制变量值</h4>
+
+<p>对于基本类型, 从一个变量复制另一个基本变量的值时, 会在变量对象上创建新的值<br/>
+<img src="media/15101331051720/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-08%20%E4%B8%8B%E5%8D%888.49.58.png" alt="屏幕快照 2017-11-08 下午8.49.58"/></p>
+
+<p>对于引用类型, 当一个变量复制另一个变量的值时, 会将引用复制一份到新的变量中, 并且指向相同的对象</p>
+
+<pre><code class="language-js let">let obj2 = obj1;
+obj2.name = &#39;locust&#39;;
+console.log(obj.name) // locust
+</code></pre>
+
+<p><img src="media/15101331051720/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-08%20%E4%B8%8B%E5%8D%889.46.10.png" alt="屏幕快照 2017-11-08 下午9.46.10"/></p>
+
+<h4 id="toc_4">传递参数</h4>
+
+<p>无论是基本类型或是引用类型, 对于函数传参都是按值传递的.</p>
+
+<p>对于基本类型很容易理解</p>
+
+<pre><code class="language-js">function addOne(num) {
+    num += 1;
+    return num;
+}
+let ten = 10;
+console.log(addOne(ten)) // 11
+console.log(ten) // 10
+</code></pre>
+
+<p>而对于引用类型, 是将<strong>引用</strong>复制到形参中, 形参和实参都同时指向内存中的对象.</p>
+
+<pre><code class="language-js">function setName(obj) {
+    obj.name = &#39;locust&#39;;
+}
+
+let person = new Object();
+setName(person);
+console.log(person.name) // locust
+</code></pre>
+
+<p>上面这段代码看似是按引用传递的, 但其实是将引用的值复制并传递<br/>
+以下代码可以验证</p>
+
+<pre><code class="language-js">function setName(obj) {
+    obj = new Object();
+    obj.name = &#39;locust&#39;;
+}
+
+let person = new Object();
+person.name = &#39;Jason&#39;;
+setName(person);
+console.log(person.name) // Jason
+</code></pre>
+
+<h4 id="toc_5">检测类型</h4>
+
+<ul>
+<li><code>typeof</code>操作符: 对于基本类型, 能给出详细的类型信息, 但对于引用类型, 只能给出<code>object</code></li>
+<li><code>instanceof</code> 用于检测一个变量中的值是否是某个类的实例</li>
+</ul>
+
+<h4 id="toc_6">执行环境和作用域</h4>
+
+<ul>
+<li><code>执行环境(execution context)</code>, 定义了变量或函数有权访问的其他数据.每个执行环境都有一个与之关联的<code>变量对象(variable object)</code>, 环境中定义的所有变量和函数都保存在这个对象中.</li>
+<li><code>作用域链</code>, 当代码在一个环境中执行时, 会创建<code>变量对象(variable object)</code>的作用域链.</li>
+<li><strong>标识符的搜索是沿着作用域链一级一级往上搜索</strong>.</li>
+</ul>
+
+<pre><code class="language-js">let color = &#39;blue&#39;;
+  
+function changeColor() {
+    let anotherColor = &#39;red&#39;;
+    
+    function swapColors() {
+        let tempColor = anotherColor;
+        anotherColor = color;
+        color = tempColor;
+    }
+    
+    swapColors();
+}
+changeColor();
+
+// 作用域链示例
+window
+├── color
+└── changeColor()
+    ├── anotherColor
+    └── swapColor()
+        └── tempColor
+</code></pre>
+
+<h4 id="toc_7">块级作用域</h4>
+
+<ul>
+<li><code>var</code>会导致<strong>提升(hoisting)</strong></li>
+<li>ES6后建议使用<code>let</code>与<code>const</code></li>
+</ul>
+
+<h3 id="toc_8">垃圾收集</h3>
+
+<p>JavaScript具有自动垃圾回收机制, 无需手动申请及释放内存空间.</p>
+
+<h4 id="toc_9">标记请除(mark-and-sweep)</h4>
+
+<p>当变量进入环境时,就将这个变量标记为<code>进入环境</code>, 不允许释放进入环境的变量.<br/>
+当变量离开环境时,将其标记为<code>离开环境</code>.<br/>
+垃圾收集器会根据标记找出无法再访问的变量并清除.</p>
+
+<h4 id="toc_10">引用计数</h4>
+
+<p>当引用类型被赋予某个变量时, 那么引用的对象引用计数将会加1. 当引用计数变成0时, 表示没有办法再次访问该对象, 将会被垃圾收集器清除.</p>
+
+<h5 id="toc_11">循环引用</h5>
+
+<p>两个对象互相包含对方的引用将会导致循环引用问题, 此时引用计数永远不会为0, 无法被回收.</p>
+
+<pre><code class="language-js">let objA = new Object();
+let objB = new Object();
+ 
+objA.foo = objB;
+objB.bar = objA;
+</code></pre>
+
+<p>想要解决循环引用问题, 需要手动<code>解除引用(dereferencing)</code></p>
+
+<pre><code class="language-js">objA.foo = null;
+objB.bar = null;
+</code></pre>
+
+<h2 id="toc_12">第五章 引用类型</h2>
+
+<h3 id="toc_13"><code>Object</code>类型</h3>
+
+<p>对象类型的行为与字典相似, 它的键全部都会被转换成字符串</p>
+
+<pre><code class="language-js">let person = {
+    hello : &#39;world&#39;,
+    42: true
+}
+console.log(person.hello) // wrold
+console.log(person[&#39;hello&#39;]) // wrold
+console.log(person[&#39;42&#39;]) // true;
+</code></pre>
+
+<h3 id="toc_14"><code>Array</code>类型</h3>
+
+<ul>
+<li>创建数组的两种方法.</li>
+</ul>
+
+<pre><code class="language-js">// 通过构造函数
+let foo = new Array();
+// 通过数组字面量
+let bar = [];
+</code></pre>
+
+<ul>
+<li><p><code>length</code>属性</p>
+
+<ul>
+<li><code>length</code>属性用于指示数组长度, 并且它不是只读的.增加<code>length</code>属性会增加数组长度, 多出的部分为<code>undefined</code></li>
+<li>当将一个值放在超出数组长度的位置上, <code>length</code>将会被重新计算, 为最后一个元素的索引位置加一.</li>
+</ul></li>
+<li><p>检测数组的方法: <code>Array.isArray()</code></p></li>
+<li><p>栈方法: 支持<code>pop</code>和<code>push</code>方法</p></li>
+<li><p>队列方法: 支持<code>shifg</code>和<code>push</code>方法</p></li>
+<li><p>重排序方法: <code>sort</code>对数组排序, <code>reverse</code>翻转数组项.</p></li>
+<li><p>迭代方法</p>
+
+<ul>
+<li><code>every()</code>:对数组每一项运行一个函数, 若该函数对所有项返回<code>true</code>, 则返回<code>true</code></li>
+<li><code>some()</code>:对数组每一项运行一个函数, 若该函数对其中一项返回<code>true</code>, 则返回<code>true</code></li>
+<li><code>filter()</code>:对数组每一项运行一个函数, 返回该函数返回true的项组成的数组.</li>
+<li><code>map()</code>:对数组每一项运行一个函数, 返回每次函数调用结果组成的数组.</li>
+<li><code>forEach()</code>:对数组每一项运行一个函数, 没有返回值.</li>
+</ul></li>
+</ul>
+
+<h3 id="toc_15"><code>Date</code>类型</h3>
+
+<pre><code class="language-js">let now = new Date();
+</code></pre>
+
+<h3 id="toc_16"><code>RegExp</code>类型</h3>
+
+<p>正则表达式类型, 形如</p>
+
+<pre><code class="language-js">let expression = / pattern / flag;
+</code></pre>
+
+<p>其中<code>pattern</code>是正则表达式, <code>flag</code>有下列三个标志</p>
+
+<ul>
+<li><code>g</code>: 表示全局模式, 即将模式应用于全部字符串,而非遇到第一个匹配项时即停止</li>
+<li><code>i</code>: 忽略大小写</li>
+<li><code>m</code>: 表示多行模式.</li>
+</ul>
+
+<h4 id="toc_17"><code>RegExp</code>的实例属性</h4>
+
+<ul>
+<li><code>global</code>: 布尔值, 表示是否设置了全局标志</li>
+<li><code>ignoreCase</code>: 布尔值, 表示是否设置了忽略大小写标志.</li>
+<li><code>multiline</code>: 布尔值, 表示是否开启了多行模式</li>
+<li><code>lastIndex</code>: 整数, 表示开始搜索下一个匹配项的字符位置</li>
+<li><code>source</code>: 正则表达式的字面量</li>
+</ul>
+
+<h4 id="toc_18"><code>RegExp</code>的实例方法</h4>
+
+<ul>
+<li><code>exec()</code>: 主要方法, 接收参数为需要应用模式的字符串, 返回包含第一个匹配项的数组, 匹配失败返回<code>null</code></li>
+</ul>
+
+<h3 id="toc_19"><code>Function</code>类型</h3>
+
+<p>ECMAScript中的函数实际上是<code>Function</code>类型的实例. 函数名实际上是指向函数对象的引用</p>
+
+<pre><code class="language-js">let sum = function(num1, num2) {
+    return num1 + num2;
+}
+// 等价于
+
+function sum(num1, num2) {
+    return num1 + num2;
+}
+</code></pre>
+
+<h4 id="toc_20">为何没有重载</h4>
+
+<p>由于函数名实际上是指向函数对象的引用, 所以当尝试重载函数时, 是修改了变量上引用的值, 覆盖了之前声明的函数.</p>
+
+<h4 id="toc_21">函数内部属性</h4>
+
+<p>函数内部两个属性</p>
+
+<ul>
+<li><code>arguments</code>: 数组, 保存了函数的参数.</li>
+<li><code>this</code>: 引用当前函数内部的执行环境.</li>
+</ul>
+
+<h4 id="toc_22">函数的属性和方法</h4>
+
+<p>两个属性:</p>
+
+<ul>
+<li><p><code>length</code>: 表示函数希望接收形参的数量.</p></li>
+<li><p><code>prototype</code>: 每个引用类型都拥有<code>prototype</code>属性,在第六章中将会深入分析.</p></li>
+</ul>
+
+<p>三个方法:</p>
+
+<ul>
+<li><code>apply</code>: 接收一个作用域引用和参数数组.</li>
+</ul>
+
+<pre><code class="language-js">function sum(num1, num2) {
+    return num1 + num2;
+}
+
+function applySum(num1, num2) {
+    return sum.apply(this, [num1, num2]);
+}
+</code></pre>
+
+<ul>
+<li><code>call</code>: 接收一个作用域引用和多个参数.</li>
+</ul>
+
+<pre><code class="language-js">function sum(num1, num2) {
+    return num1 + num2;
+}
+
+function callSum(num1, num2) {
+    return sum.call(this, num1, num2);
+}
+</code></pre>
+
+<ul>
+<li><code>bind</code>方法: 改变函数运行的环境</li>
+</ul>
+
+<pre><code class="language-js">let o = {
+    color: &#39;blue&#39;
+}
+
+function printColor() {
+    console.log(this.color);
+}
+
+let foo = printColor.bind(o);
+foo() // &#39;blue&#39;
+</code></pre>
+
+<h4 id="toc_23">基本包装类型</h4>
+
+<p>基本包装类型有三个: <code>String</code>, <code>Number</code>, <code>Boolean</code>, 用于方便开发者以对象的方式创建和操作基本类型.但要注意的是, 基本类型与基本类型对象是不一样的.<br/>
+在使用时, 解释器会自动读取和写入对象的值</p>
+
+<h5 id="toc_24"><code>Boolean</code>对象(<strong>不建议使用</strong>)</h5>
+
+<pre><code class="language-js">// 利用 Boolean 对象创建布尔值
+let falseObject = new Boolean(false)
+// 与布尔值进行布尔操作
+console.log(falseObject &amp;&amp; true) // true
+</code></pre>
+
+<p>由于所有对象在布尔表达式中都是<code>true</code>, 所以布尔对象当然也为<code>true</code></p>
+
+<h5 id="toc_25"><code>Number</code>对象</h5>
+
+<p><code>Number</code>对象时数字值对应的引用类型,创建其实例</p>
+
+<pre><code class="language-js">let num = new Number(19);
+</code></pre>
+
+<p><code>Number</code>有几个值得注意的实例方法</p>
+
+<ul>
+<li><code>toFixed()</code>: 按照指定的小数位<strong>四舍五入</strong>返回数值的字符串表示.</li>
+<li><code>toExponential()</code>: 按照指定的小数位<strong>四舍五入</strong>返回数值的字符串的科学计数法表示</li>
+</ul>
+
+<p>以及<code>Number</code>对象与<code>Number</code>基本类型在<code>typeof</code>操作符上的不同表象</p>
+
+<pre><code class="language-js">let num1 = new Number(19);
+alert(typeof num1) // &#39;object&#39;
+let num2 = 19;
+alert(typeof num2) // &#39;number&#39;
+</code></pre>
+
+<h5 id="toc_26"><code>String</code>对象</h5>
+
+<p><code>String</code>类型是字符串类型的对象包装类型.<br/>
+<code>String</code>的某些属性与实例方法:</p>
+
+<ul>
+<li><code>charAt()</code>: 接收一个参数, 返回字符串对应位置的字符(也可以通过<code>[]</code>操作符完成).</li>
+<li><code>concat()</code>: 接收任意多个字符串参数, 返回拼接后的字符串.</li>
+<li><code>slice()</code>: 对字符串进行切片</li>
+<li><code>indexOf()</code>: 接收一个字符串参数, 返回该字符串在被搜索串中的第一次出现的索引, 不存在返回-1.</li>
+<li><code>trim()</code>方法, 创建一个字符串副本, 删除前置及后缀的空格, 并返回结果.</li>
+<li><code>replace()</code>: 用于根据正则表达式替换字符串</li>
+</ul>
+
+<h4 id="toc_27">单体内置对象</h4>
+
+<p><code>单体内置对象</code>指由<code>ECMAScript</code>实现提供的, 不依赖宿主环境的. 这些对象在<code>ECMAScript</code>执行前就已经存在.</p>
+
+<h5 id="toc_28"><code>Global</code>对象</h5>
+
+<p><code>Global</code>对象处于所有作用域链的顶端, 在<code>ECMAScript</code>执行点就已经载入, 除了拥有之前提到的诸如<code>isNaN()</code>, <code>isFinite()</code>,<code>parseInt()</code>等都是<code>Global</code>对象的方法.<br/>
+除此之外, 它还包含一些其他方法.</p>
+
+<ul>
+<li><p><code>URL编解码方法</code></p>
+
+<ul>
+<li><code>encodeURIComponent()</code>: 是对统一资源标识符（URI）的组成部分进行编码的方法。它使用一到四个转义序列来表示字符串中的每个字符的UTF-8编码.</li>
+<li><code>encodeURI()</code>: 会替换所有的字符，但不包括以下字符<img src="media/15101331051720/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-09%20%E4%B8%8B%E5%8D%888.56.13.png" alt="屏幕快照 2017-11-09 下午8.56.13"/></li>
+<li><code>decodeURIComponent()</code>: 将已编码 URI 中所有能识别的转义序列转换成原字符</li>
+<li><code>decodeURI()</code>: 将已编码 URI 中所有能识别的转义序列转换成原字符，但不能解码那些不会被 <code>encodeURI()</code>编码的内容</li>
+</ul></li>
+<li><p><code>eval()</code>方法: 将会解析传入的<code>JavaScript</code>脚本字符串并执行.</p></li>
+<li><p><code>Global</code>对象的属性<img src="media/15101331051720/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-09%20%E4%B8%8B%E5%8D%889.00.56.png" alt="屏幕快照 2017-11-09 下午9.00.56"/></p></li>
+<li><p><code>window</code>对象: 在浏览器中, <code>window</code>对象扩展了<code>Global</code>对象, 并成为新的全局对象.</p></li>
+</ul>
+
+<hr/>
+
+<h2 id="toc_29">第六章 面向对象的程序设计</h2>
+
+<h3 id="toc_30">原始时期创建对象的方法</h3>
+
+<pre><code class="language-js">let person = new Object();
+person.name = &#39;locust&#39;;
+person.sayName = function() {
+    alert(this.name);
+}
+</code></pre>
+
+<p>这个对象中添加了<code>name</code>属性和<code>sayName()</code>方法.</p>
+
+<h3 id="toc_31">属性类型</h3>
+
+<p>在<code>ES5</code>中定义了两种属性: 数据属性和访问器属性. 为了表示属性是内部值, 该规范将它们放在两对方括号中, 例如<code>[[Enumerable]]</code>.</p>
+
+<h4 id="toc_32">数据属性</h4>
+
+<ul>
+<li><code>[[Configuralbe]]</code>: 表示能否通过<code>delete</code>删除属性从而重新定义属性, 能否修改属性的特性, 或者能否将属性修改为访问器属性.</li>
+<li><code>[[Enumerable]]</code>: 表示能否通过<code>for-in</code>遍历.</li>
+<li><code>[[Value]]</code>: 表示这个属性的值, 当修改当前属性时, 需要从这个位置修改.</li>
+<li><code>[[Writable]]</code>: 表示该属性是否可写.</li>
+</ul>
+
+<p>例如:</p>
+
+<pre><code class="language-js">let person = {
+    name: &#39;locust&#39;
+};
+</code></pre>
+
+<p>对于<code>person</code>对象中的<code>name</code>属性, <code>[[Value]]</code>被设置为<code>locust</code></p>
+
+<h5 id="toc_33">修改属性默认特性的方法</h5>
+
+<p><code>ES5</code>提供了修改默认属性特性的方法<code>Object.defineProperty(obj, prop, descriptor)</code>, 其中</p>
+
+<ul>
+<li><code>obj</code>: 表示属性所在的对象.</li>
+<li><code>prop</code>: 表示属性的名字.</li>
+<li><code>descriptor</code>: 用于描述属性对象特性的对象.</li>
+</ul>
+
+<p>例如</p>
+
+<pre><code class="language-js">let person = new Object();
+Object.defineProperty(person, &#39;name&#39;, {
+    writalbe: false,
+    value: &#39;locust&#39;
+}
+alert(person.name); // locust
+// (在严格模式下, 向不可写属性复制会抛出异常)
+person.name = &#39;jason&#39;;
+alert(person.name); // locust
+</code></pre>
+
+<h4 id="toc_34">访问器属性</h4>
+
+<ul>
+<li><code>[[Configuralbe]]</code>: 表示能否通过<code>delete</code>删除属性从而重新定义属性, 能否修改属性的特性, 或者能否将属性修改为访问器属性.</li>
+<li><code>[[Enumerable]]</code>: 表示能否通过<code>for-in</code>遍历.</li>
+<li><code>[[Get]]</code>: 在读取属性时调用的函数, 默认值为<code>undefined</code></li>
+<li><code>[[Set]]</code>: 在写入属性时调用的函数, 默认值为<code>undefined</code></li>
+</ul>
+
+<p>同样可以通过<code>Object.defineProperty(obj, prop, descriptor)</code>修改访问器属性.</p>
+
+<p>例如</p>
+
+<pre><code class="language-js">let person = {
+  _age: 21
+}
+Object.defineProperty(person, &#39;age&#39;, {
+  set: function (newValue) {
+    if (newValue &lt; 0) {
+      this._age = 0;
+      return;
+    }
+    this._age = newValue;
+  }
+});
+</code></pre>
+
+<h3 id="toc_35">创建对象</h3>
+
+<h4 id="toc_36">工厂模式</h4>
+
+<pre><code class="language-js">function createPerson(name, age, job) {
+    let o = new Object();
+    o.name = name;
+    o.age  = age;
+    o.job  = job;
+    o.sayName = function() {
+        alert(this.name);
+    }
+    return o;   
+}
+</code></pre>
+
+<p>工厂模式可以解决创建对象的代码冗余问题, 但是仍然无法解决对象识别问题(<code>instanceof</code>)</p>
+
+<h4 id="toc_37">构造函数模式</h4>
+
+<pre><code class="language-js">function Person(name, age, job) {
+    this.name = name;
+    this.age  = age;
+    this.job  = job;
+    this.sayName = function() {
+        alert(this.name);
+    }
+}
+
+let person = new Person(&#39;locust&#39;, 21, &#39;Doctor&#39;);
+</code></pre>
+
+<p>这里使用了<code>new</code>操作符, 通过<code>new</code>调用构造函数会经历以下步骤:</p>
+
+<ol>
+<li>创建一个新的对象</li>
+<li>将构造函数的作用域赋给新的对象(也就是<code>this</code>指向了新的对象)</li>
+<li>执行构造函数中的代码(给新对象添加属性和方法)</li>
+<li>返回新对象</li>
+</ol>
+
+<p>通过<code>new</code>操作符生成的实例还会拥有<code>constructor</code>属性, 该属性指向<code>Person</code>构造函数</p>
+
+<pre><code class="language-js">alert(person.constructor === Person) // true
+</code></pre>
+
+<p>同时也可以使用<code>instanceof</code>操作符去识别对象</p>
+
+<pre><code class="language-js">alert(person instanceof Object)  // true
+alert(person instanceof Person); // true
+</code></pre>
+
+<h5 id="toc_38">构造函数的问题</h5>
+
+<p>在通过构造函数实例化对象时, 其中的属性会创建新的副本, 然而多个相同方法的副本(<code>Function对象</code>)是没有必要的(例如<code>Person</code>中的<code>sayName()</code>), 如此一来就会造成内存浪费.</p>
+
+<p>其中一个不太好的解决方法</p>
+
+<pre><code class="language-js">function Person(name, age, job) {
+    this.name = name;
+    this.age  = age;
+    this.job  = job;
+    this.sayName = sayName;
+}
+
+function sayName() {
+    alert(this.name);
+}
+</code></pre>
+
+<h4 id="toc_39">原型模式</h4>
+
+<p> 每一个函数都有一个名为<code>prototype(原型)</code>属性, 这个属性指向<strong>一个对象</strong>, <strong>而这个对象是包含由特定类型的所有实例共享的属性和方法</strong></p>
+
+<pre><code class="language-js">function Person() {}
+
+Person.prototype.name = &#39;locust&#39;;
+Person.prototype.age  = 21;
+Person.prototype.job  = &#39;Doctor&#39;;
+Person.prototype.sayName = function() {
+    alert(this.name);
+}
+
+let person = new Person();
+</code></pre>
+
+<h5 id="toc_40">理解原型对象</h5>
+
+<p>每创建一个新函数,都会为该函数创建一个<code>prototype</code>属性,并且指向函数的原型对象.</p>
+
+<p>默认情况下, 所有原型对象都会获得<code>constructor</code>属性, 其指向<code>prototype</code>属性所在的函数.</p>
+
+<p>在通过构造函数实例化对象后, 该对象会包含一个内部属性<code>[[Prototype]]</code>, 该属性指向构造函数的原型对象.在某些实现中, 可以通过<code>__proto__</code>访问它</p>
+
+<p>以<code>Person</code>为例<br/>
+<img src="media/15101331051720/person.png" alt="person"/></p>
+
+<h5 id="toc_41">对象中属性的搜索顺序</h5>
+
+<p>每当代码读取对象中的属性时, 都会执行一次搜索, 首先从对象实例开始.如果找到了改名字对应的属性, 则返回该属性的值. 如果未找到, 则搜索实例的原型对象.</p>
+
+<p>所以当我们的实例需要给属性赋予自己的值时</p>
+
+<pre><code class="language-js">function Person() {}
+
+Person.prototype.name = &#39;locust&#39;;
+Person.prototype.age  = 21;
+Person.prototype.job  = &#39;Doctor&#39;;
+Person.prototype.sayName = function() {
+    alert(this.name);
+}
+
+let person = new Person();
+person.name = &#39;jason&#39;;
+</code></pre>
+
+<p>此时对象内部图示<br/>
+<img src="media/15101331051720/pp.png" alt="pp"/></p>
+
+<p>当我们需要判断某个实例的属性是来自原型对象, 还是来自对象自身, 可以使用<code>hasOwnProperty()</code>判断</p>
+
+<pre><code class="language-js">let person = new Person();
+alert(person.hasOwnProperty(&#39;name&#39;)); // false
+
+person.name = &#39;jason&#39;;
+alert(person.hasOwnProperty(&#39;name&#39;)); // true
+
+delete person.name;
+alert(person.hasOwnProperty(&#39;name&#39;)); // false
+</code></pre>
+
+<p>当我们需要判断某个实例的属性是否存在于原型对象中时, 可以使用<code>in</code>操作符</p>
+
+<pre><code class="language-js">let person = new Person();
+alert(&#39;name&#39; in person); // true
+</code></pre>
+
+<h5 id="toc_42">原型对象的问题</h5>
+
+<ol>
+<li>原型对象没有构造函数.</li>
+<li>由于原型对象中的属性由所有实例共享, 当我们对原型对象中的引用类型实例进行操作时, 会影响到其他的实例.</li>
+</ol>
+
+<h4 id="toc_43">组合使用构造函数与原型对象</h4>
+
+<p>对于面向对象编程来说, 多个实例中方法可以共享, 但属性应该是每个实例独有的. 由此我们可以利用构造函数的<code>this</code>引用存储属性, 利用<code>prototype</code>存放方法.</p>
+
+<pre><code class="language-js">function Person(name, age, job) {
+    this.name = name;
+    this.age  = age;
+    this.job  = job;
+}
+
+Person.prototype.sayName = function() {
+    alert(this.name);
+}
+</code></pre>
+
+<p>完美~</p>
+
+<h3 id="toc_44">继承</h3>
+
+<h4 id="toc_45">原型链</h4>
+
+<p>利用原型让一个引用类型继承另一个引用类型的属性和方法.</p>
+
+<p>根据<code>对象中属性的搜索顺序</code>, 只需要令子类的原型对象执行父类的实例, 就可以完成继承了</p>
+
+<pre><code class="language-js">function SuperType() { 
+    this.property = true;
+}
+
+SuperType.prototype.getSuperValue = function()   {
+    return this.property;
+};
+
+function SubType() {
+    this.subProperty = false;
+}
+// 继承 SuperType
+SubType.property = new SuperType();
+
+SubType.property.getSubValue = function() {
+    return this.subProperty;
+};
+
+let subInstance = new SubType();
+alert(subInstance.getSuberValue()); // true
+</code></pre>
+
+<p><img src="media/15101331051720/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-10%20%E4%B8%8B%E5%8D%8810.35.48.png" alt="屏幕快照 2017-11-10 下午10.35.48"/></p>
+
+<h5 id="toc_46">原型链的顶端</h5>
+
+<p>所有引用类型默认都继承了<code>Object</code>, 所以所有引用类型的原型链顶端均是<code>Object.prototype</code><br/>
+<img src="media/15101331051720/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-10%20%E4%B8%8B%E5%8D%8810.36.36.png" alt="屏幕快照 2017-11-10 下午10.36.36"/></p>
+
+<h5 id="toc_47">原型链继承的问题</h5>
+
+<ol>
+<li>父类的实例属性变成了子类的原型, 所有的子类实例都共享了父类的实力属性.</li>
+<li>无法向父类构造函数传递参数.</li>
+</ol>
+
+<h4 id="toc_48">借用构造函数</h4>
+
+<p>通过调用父类构造函数, 将父类的属性赋予到子类中,</p>
+
+<pre><code class="language-js">function SuperType(name) {
+    this.name = name;
+}
+
+function SubType(age) {
+    // 调用父类构造函数, 将父类属性赋予子类
+    SuperType.call(this, &#39;locust&#39;);
+    this.age = age;
+}
+
+let subInstance = new SubType(21)
+alert(subInstance.name); // locust
+alert(subInstance.age); // 21
+</code></pre>
+
+<h5 id="toc_49">借用构造函数的问题</h5>
+
+<p>只继承了父类的属性, 并未继承父类的方法</p>
+
+<h4 id="toc_50">组合继承</h4>
+
+<p>组合继承融合了原型链继承和借用构造函数继承的方法, <code>原型链继承</code>用于继承父类<strong>方法</strong>, <code>借用构造函数继承</code>用于继承父类<strong>属性</strong>.</p>
+
+<pre><code class="language-js">function SuperType(name) {
+    this.name = name;
+}
+
+SuperType.prototype.sayName = function() {
+    alert(this.name);
+};
+
+function SubType(name, age) {
+    // 继承父类属性
+    SuperType.call(this, name);
+    this.age = age;
+}
+// 继承父类方法
+SubType.prototype = new SuperType();
+
+SubType.prototype.sayAge = function() {
+    alert(this.age);
+}
+</code></pre>
+
+<h4 id="toc_51">ES5中的<code>Object.create</code>继承</h4>
+
+<p><code>Object.create(proto[, propertiesObject])</code>方法以<code>proto</code>和<code>propertiesObject</code>创建新的对象;</p>
+
+<p>继承实例</p>
+
+<pre><code class="language-js">function SuperType(name) {
+    this.name = name;
+}
+
+SuperType.prototype.sayName = function() {
+    alert(this.name);
+};
+
+function SubType(name, age) {
+    // 继承父类属性
+    SuperType.call(this, name);
+    this.age = age;
+}
+
+// 继承父类方法
+SubType.prototype = Object.create(SuperType.prototype);
+
+// 重定向构造函数
+SubType.prototype.constructor = SubType
+</code></pre>
+
+			</div>
+
+		
+	  
+		<footer>
+		 <p class="meta">
+
+			
+			<span class="categories">
+			 
+			</span>
+		    </p>
+		    <p class="meta">
+		      
+		 </p>
+	    
+		<div class="sharing">
+		  
+          
+
+          
+
+		</div>
+
+	    <p class="meta">
+	    
+	    
+	        <a class="basic-alignment right" href="15096777193883.html" 
+	        title="Next Post: Node.js设计模式 · 第七章">Node.js设计模式 · 第七章 &raquo;</a>
+	    
+	    </p>
+	  </footer>
+	</article>
+</div>
+ <aside class="sidebar"> 
+
+	<section>
+	  <h1>Categories</h1>
+	  <ul id="recent_posts">
+	  
+	        
+	      </li>
+	   
+	  </ul>
+	</section>
+	<section>
+	  <h1>Recent Posts</h1>
+	  <ul id="recent_posts">
+	  
+	      
+		      <li class="post">
+		        <a href="15101331051720.html">JavaScript高级程序设计 · 4、5、6 章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15096777193883.html">Node.js设计模式 · 第七章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15093607735574.html">JavaScript高级程序设计 · 1、2、3、20章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15087314678145.html">Node.js设计模式 · 第六章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15078961128669.html">Node.js设计模式 · 第五章</a>
+		      </li>
+	     
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	   
+	  </ul>
+	</section>
+	
+</aside> </div></div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2017 -  -
+  <span class="credit">Powered by <a target="_blank" href="https://zerolocusta.github.io">zerolocusta</a> &nbsp;&nbsp; Theme by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+
+  
+    
+
+<script src="asset/chart/all-min.js"></script><script type="text/javascript">$(function(){    var mwebii=0;    var mwebChartEleId = 'mweb-chart-ele-';    $('pre>code').each(function(){        mwebii++;        var eleiid = mwebChartEleId+mwebii;        if($(this).hasClass('language-sequence')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = Diagram.parse($(this).text());            diagram.drawSVG(eleiid,{theme: 'simple'});        }else if($(this).hasClass('language-flow')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = flowchart.parse($(this).text());            diagram.drawSVG(eleiid);        }    });});</script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><script type="text/x-mathjax-config">MathJax.Hub.Config({TeX: { equationNumbers: { autoNumber: "AMS" } }});</script>
+
+</body>
+</html>
