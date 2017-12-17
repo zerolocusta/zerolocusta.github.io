@@ -1,0 +1,1041 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>
+    
+  JavaScript高级程序设计 · 7、22 章 - zerolocust
+  
+
+  </title>
+  <meta name="author" content="">
+  <meta name="description" content="locustchen的博客">
+
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <link href="asset/css/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="atom.xml" rel="alternate" title="zerolocust" type="application/atom+xml">
+  <script src="asset/js/modernizr-2.0.js"></script>
+  <script src="asset/js/jquery.min.js"></script>
+  <script src="asset/highlightjs/highlight.pack.js"></script>
+  <link href="asset/highlightjs/styles/solarized_light.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script>hljs.initHighlightingOnLoad();</script>
+
+  <style type="text/css">
+  .cat-children-p{ padding: 6px 0px;}
+  .hljs{background: none;}
+  </style>
+  <script type="text/javascript">
+  var isAddSildbar = true;
+  </script>
+  <script src="asset/js/octopress.js" type="text/javascript"></script>
+</head>
+<script type="text/javascript">
+//链接新开窗口
+function addBlankTargetForLinks () {
+  $('a[href^="http"]').each(function(){
+      $(this).attr('target', '_blank');
+  });
+}
+$(document).ready(function(event) {
+  addBlankTargetForLinks();
+});
+</script>
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="index.html">zerolocust</a></h1>
+  
+    <h2>locustchen的博客</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zerolocusta.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+
+  <li id=""><a target="self" href="index.html">Home</a></li>
+
+  <li id=""><a target="_self" href="archives.html">Archives</a></li>
+
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content"> 
+<div>
+	<article class="hentry" role="article">
+	<header>
+			  	<h1 class="entry-title">JavaScript高级程序设计 · 7、22 章</h1>
+				<p class="meta"><time datetime="2017-11-23T16:44:08+08:00" pubdate data-updated="true">2017/11/23 16:44 下午</time></p>
+			 </header>
+		  	<div class="entry-content">
+			  	<h2 id="toc_0">第七章 函数表达式</h2>
+
+<h4 id="toc_1">摘要</h4>
+
+<ol>
+<li>什么函数表达式</li>
+<li>使用函数实现递归</li>
+<li>使用闭包定义私有变量</li>
+</ol>
+
+<h3 id="toc_2">函数声明与函数表达式</h3>
+
+<ul>
+<li>函数声明:</li>
+</ul>
+
+<pre><code class="language-js">function foo(arg0, arg1, arg2) {
+    console.log(&#39;hello wrold&#39;);
+}
+</code></pre>
+
+<ul>
+<li>函数表达式:</li>
+</ul>
+
+<pre><code class="language-js">let foo = function(arg0, arg1, arg2) {
+    console.log(&#39;hello world&#39;);
+}
+</code></pre>
+
+<p>而<code>函数声明</code>和<code>函数表达式</code>的区别在于, <code>函数声明</code>在解析的时候会进行<strong>函数声明提升</strong>, 这意味着函数在声明之前就可以使用, 不依赖函数的声明顺序(例如在<code>c语言</code>中,函数在使用前必须先声明, 否则找不到<code>Symbol</code>.)</p>
+
+<p>而<code>函数表达式</code>则按照变量的解析规则进行解析.</p>
+
+<p>基于这一特性, 以下的代码极有可能出现问题</p>
+
+<pre><code class="language-js">if (condition) {
+    function sayHello() {
+        console.log(&#39;Hello&#39;);
+    };
+} else {
+    function sayHello() {
+        console.log(&#39;Yoooo&#39;);
+    };
+}
+</code></pre>
+
+<p>实际上这是在<code>ECMAScript</code>中属于无效语法, 大部分<code>JavaScript</code>引擎都会尝试修正错误, 但问题在于修正问题的方式不一致, 也就说这是一个UB.</p>
+
+<p>正确的使用方式应该是</p>
+
+<pre><code class="language-js">let sayHello = null;
+
+if (condition) {
+    sayHello = function() {
+        console.log(&#39;hello&#39;);
+    };
+} else {
+    sayHello = function() {
+        console.log(&#39;Yoooo&#39;);
+    };
+}
+</code></pre>
+
+<h4 id="toc_3">递归</h4>
+
+<p>常规递归代码</p>
+
+<pre><code class="language-js">function fac(num) {
+    if (num &lt;= 1)
+        return 1;
+    return num * fac(num - 1);
+}
+</code></pre>
+
+<p>然而由于<code>JavaScript</code>中, 常规函数在声明后仍然可以修改他的值,  例如</p>
+
+<pre><code class="language-js">let anotherFac = fac;
+fac = null;
+anotherFac(10);
+</code></pre>
+
+<p><code>fac</code>在被置为<code>null</code>之后, 原有的<code>fac</code>函数内部在通过<code>fac</code>函数进行调用已经失效, 从而造成函数调用失败.<br/>
+(在<code>Chrome</code>中运行的结果)<br/>
+<img src="media/15114266480360/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-23%20%E4%B8%8B%E5%8D%889.31.13.png" alt="屏幕快照 2017-11-23 下午9.31.13"/></p>
+
+<p>书中给出的解决方式是利用<code>arguments.callee</code>去代替通过函数名递归</p>
+
+<pre><code class="language-js">function fac(num) {
+    if (num &lt;= 1)
+        return num;
+    return num * arguments.callee(num - 1);
+}
+</code></pre>
+
+<p>不过<code>arguments.callee</code>在严格模式下并不允许使用并且抛出<code>TypeError</code>, 根据<code>JavaScript MDN</code>的解释</p>
+
+<blockquote>
+<p>不再支持 arguments.callee。正常模式下，arguments.callee 指向当前正在执行的函数。这个作用很小：直接给执行函数命名就可以了！此外，arguments.callee 十分不利于优化，例如内联函数，因为arguments.callee 会依赖对非内联函数的引用。</p>
+</blockquote>
+
+<p>更好的方法是将具名函数赋予变量, 成为函数表达式</p>
+
+<pre><code class="language-js">let fac = function f(num) {
+    if (num &lt;= 1)
+        return num;
+    return num * f(num - 1);
+}
+</code></pre>
+
+<h4 id="toc_4">闭包</h4>
+
+<p>闭包是指有权访问另一个函数作用域中的变量的函数, 更通俗的将, 是能通过引用或值捕获函数外部的变量, 从而延长变量的生命周期.</p>
+
+<pre><code class="language-js">function createClosure() {
+    let num = 1;
+     
+    return function() {
+        console.log(num);
+    }
+}
+</code></pre>
+
+<p>在<code>createClosure</code>函数中创建变量<code>num</code>, 返回一个匿名函数, 而匿名函数内部仍然能访问<code>num</code>.</p>
+
+<h5 id="toc_5"><code>ECMAScript</code>中的闭包原理</h5>
+
+<p>当某个函数首次被调用时, 会创建一个<strong>执行环境</strong>以及相应的<strong>作用域链</strong>,并且吧作用域链赋予特殊的内部属性<code>[[Scope]]</code>, 然后使用<code>this</code>, <code>arguments</code>来初始化函数活动对象.</p>
+
+<p>而在作用域链中, 外部函数的活动对象处于第二位, 外部函数的外部函数活动对象处于第三位, 以此类推, 直到作用域链的终点: 全局执行环境.</p>
+
+<p>例如,在全局环境中声明与执行函数</p>
+
+<pre><code class="language-js">function compare(value1, value2) {
+    if (value1 &lt; value2)
+        return -1;
+    if (value1 &gt; value2)
+        return 1;
+    return 0
+}
+
+let result = compare(5, 10);
+</code></pre>
+
+<p>以上代码首先定义了<code>compare</code>函数, 随后调用<code>compare</code>, 在第一次调用<code>compare</code>函数前, 会先创建一个包含<code>this</code>, <code>arguments</code>, <code>value1</code>和<code>value2</code>的活动对象(<code>activation object</code>). 全局执行环境的变量对象<code>(variable object)</code>在<code>compare</code>函数的作用域链中则处于第二位.<br/>
+<img src="media/15114266480360/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-26%20%E4%B8%8A%E5%8D%889.47.06.png" alt="屏幕快照 2017-11-26 上午9.47.06"/></p>
+
+<blockquote>
+<p>上图中出现了四种对象</p>
+
+<ul>
+<li>(compare execution context) : compare函数的执行环境</li>
+<li>(Scope Chain) : compare函数的作用域链</li>
+<li>(Global variable object): 全局执行环境的变量对象(variable Object)</li>
+<li>(compare() activation object): compare函数的活动对象(activation object)</li>
+</ul>
+</blockquote>
+
+<p>每个执行环境都有一个<code>variable object</code>. 全局环境的<code>variable object</code>始终存在.而像<code>compare</code>函数的<code>variable object</code>只有在函数执行过程中存在, 函数执行完毕就会被销毁.</p>
+
+<p>在创建和调用函数式, 各种内部对象的创建顺序:</p>
+
+<ol>
+<li>创建函数时, 会<strong>预先</strong>创建一个包含全局变量对象(<code>Global variable object</code>)的作用域链(<code>Scope chain</code>), 这个作用域链被保存在<code>[[Scope]]</code>中.</li>
+<li>当执行函数时, 会为函数创建一个<code>execution context</code>, 然后通过<strong>复制</strong>函数的<code>[[Scope]]</code>属性中的对象构建起<code>execution context</code>中的<code>scope chain</code>.</li>
+<li>创建一个该函数的活动对象(这个对象被当作该函数的<code>变量对象</code>), 随后被推入作用域链中.</li>
+</ol>
+
+<p>作用域链的本质是一个变量对象的指针链表, 它只引用而不包含实际的变量对象.</p>
+
+<p>一般来说, 当函数执行完毕后, 它的局部活动对象就会被销毁, 内存中紧保存全局环境的活动对象.<br/>
+但是, 闭包的情况又不一样.</p>
+
+<h5 id="toc_6">闭包时的  函数局部活动对象 生命周期</h5>
+
+<p>考虑一下闭包函数</p>
+
+<pre><code class="language-js">function createComparisonFunction(propertyName) {
+    
+    return function(object1, object2) {
+        let value1 = object1[propertyName];
+        let value2 = object2[propertyName];
+        
+        if (value1 &lt; value2)
+            return -1;
+        if (value 1 &gt; value2)
+            return 1;
+        return 0
+    };
+}
+
+let compareName = createComparisonFunction(&#39;name&#39;);
+
+let result = compareName({ name: &#39;locust&#39; }, { name: &#39;chen&#39; });
+</code></pre>
+
+<p>由于<code>createComparisonFunction</code>返回了一个闭包函数, 而该函数内部引用了<code>createComparisonFunction</code>的形参<code>propertyName</code>, 这个<code>propertyName</code>存在于<code>createComparisonFunction</code>的<code>active object(活动对象)</code>中, 即使<code>createComparisonFunction</code>执行完毕, 但由于匿名函数的<code>作用域链</code>仍然引用这它的活动对象, 即使它执行完毕后仍然不会被销毁. 而是直到匿名函数也执行完毕后才会被销毁.<br/>
+<img src="media/15114266480360/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-26%20%E4%B8%8A%E5%8D%8811.42.25.png" alt="屏幕快照 2017-11-26 上午11.42.25"/></p>
+
+<h5 id="toc_7">闭包与变量</h5>
+
+<p>从上一节可以看出, 闭包保存下的是整个活动对象, 而不是仅仅某个特殊的变量. 也就是说, 当我们创建闭包后, 改变被保存的变量的值时, 也会引起闭包中那个变量值得改变.</p>
+
+<pre><code class="language-js">function createFunctions() {
+    let result = [];
+    for(var i = 0; i &lt; 10; i++) {
+        result.push(function () {
+            console.log(i);
+        });
+    }
+    return result;
+}
+</code></pre>
+
+<p>一种方法是创建另一个匿名函数强制让闭包的行为符合预期</p>
+
+<pre><code class="language-js">function createFunctions() {
+    let result = [];
+    for(var i = 0; i &lt; 10; i++) {
+        // 通过形参 num 捕抓循环不变量 i
+        result.push( function(num) {
+            return function() {
+                // 闭包捕获 num
+                console.log(num);
+            }
+        }(i));
+    }
+    return result;
+}
+</code></pre>
+
+<p>另外一种方式是使用<code>let</code>或<code>const</code>来自动为变量创建不用的作用域</p>
+
+<pre><code class="language-js">function createFunctions() {
+    let result = [];
+    for(let i = 0; i &lt; 10; i++) {
+        result.push(function () {
+            console.log(i);
+        });
+    }
+    return result;
+}
+</code></pre>
+
+<h5 id="toc_8">内存泄漏</h5>
+
+<p>由于Js引擎大多采用引用计数作为垃圾回收的策略, 在某些实现中, 闭包会导致内存泄漏的问题, 例如在IE中运行下列代码</p>
+
+<pre><code class="language-js">function assignHandler() {
+    let element = document.getElementById(&quot;someElement&quot;);
+    
+    element.onclick = function() {
+        alert(element.id);
+    }
+}
+</code></pre>
+
+<p>上述这段代码在匿名函数中保存了<code>assignHandler()</code>函数的活动对象, 只要匿名函数仍然存在, <code>element</code>的引用计数至少为1, 从而无法它的回收内存</p>
+
+<p>正确的方法是将<code>element</code>置为null以解除它的引用计数.</p>
+
+<pre><code class="language-js">function assignHandler() {
+    let element = document.getElementById(&quot;someElement&quot;);
+    let id = element.id;
+    element.onclick = function() {
+        alert(id);
+    }
+    element = null;
+}
+</code></pre>
+
+<h4 id="toc_9">模仿块级作用域</h4>
+
+<blockquote>
+<p>在<code>ES6</code>之前, 变量生命的关键字只有<code>var</code>, <code>var</code>会导致提升, 所以在那时候<code>JavaScript</code>没有块级作用域概念</p>
+</blockquote>
+
+<pre><code class="language-js">function outputNumbers() {
+    for(var i = 0; i &lt; 10; i++) {
+        alert(i);
+    }
+    // 由于变量提升, 在作用域外仍能访问i
+    alert(i);
+}
+</code></pre>
+
+<p>但是, <strong>变量提升的终点是函数</strong>, 利用嵌套函数去限制变量提升的范围, 就能达到模拟块级作用域的效果了.</p>
+
+<pre><code class="language-js">function outputNumbers() {
+    
+    (function () {
+        for(var i = 0; i &lt; 10; i++) {
+            alert(i);
+        }
+    })();
+    
+    alert(i);   // 抛出错误
+}
+</code></pre>
+
+<p>当然在<code>ES6</code>后, 使用<code>let</code>和<code>const</code>就不会出现这样的问题了.</p>
+
+<pre><code class="language-js">function outputNumbers() {
+    for(let i = 0; i &lt; 10; i++) {
+        alert(i);
+    }
+
+    alert(i);   // 抛出错误
+}
+</code></pre>
+
+<h4 id="toc_10">私有变量</h4>
+
+<p>利用闭包捕获私有变量, 从而使得只有闭包函数内部才能访问私有变量, 而无法从外部访问这个变量.</p>
+
+<p>在<code>面向对象编程</code>中已经阐述过利用函数去模拟对象.</p>
+
+<pre><code class="language-js">function MyObject() {
+    // 创建私有变量
+    let privateVariable = 10;
+    
+    // 创建私有方法
+    function privateFunction() {
+        return false;
+    }
+    
+    // 创建公有方法
+    this.publicFunction = function() {
+        // 闭包捕获 privateVariable 与 privateFunction
+        privateVariable++;
+        return privateFunction();
+    }
+}
+
+let myObject = new MyObject();
+myObject.publicFunction();
+</code></pre>
+
+<h5 id="toc_11">静态私有变量</h5>
+
+<p>当我们希望创建静态私有变量时, 同样可以使用上一节的方法, 但是<code>静态私有变量</code>特性一般是多个实例共享. 这样一来, 利用上一节的方法创建静态私有变量的方法就会造成不必要的内存浪费(每个实例都有一个静态私有变量的副本).</p>
+
+<p>利用闭包解决这个问题.</p>
+
+<pre><code class="language-js">let Person;
+(function () {
+    let name = &quot;locust&quot;;
+    
+    Person = function() {}
+    
+    Person.prototype.printName = function() { 
+        // 多个实例共用的静态私有变量
+        console.log(name);
+    };  
+})();
+
+let p = new Person();
+</code></pre>
+
+<h5 id="toc_12">模块模式</h5>
+
+<p><code>JavaScript</code>中没有模块的概念, 但我们可以利用函数去模拟模块的行为</p>
+
+<pre><code class="language-js">let application = function() {
+    
+    // 私有变量和私有方法
+    let components = [];
+    
+    // 初始化
+    components.push(new components());
+    
+    // 返回公共函数
+    return {
+    
+        getComponentCount: function() {
+            return components.length;
+        }
+        
+        registerComponent: function(component) {
+            components.push(component);
+        }
+        
+    }
+}
+</code></pre>
+
+<h2 id="toc_13">第二十二章 高级技巧</h2>
+
+<p><code>JavaScript</code>是一门及其灵活的语言, 也由于它是动态语言的属性, 为了更好、更安全地编写<code>JavaScript</code>代码, 我们还需要利用<code>ECMAScript</code>的特点编写更多的复杂和有趣的模式.</p>
+
+<h3 id="toc_14">高级函数</h3>
+
+<h4 id="toc_15">安全的类型检测</h4>
+
+<p>JavaScript内置的类型检测机制并不靠谱, 例如<code>typeof</code>操作符在<code>safari</code>中对正则表达式使用会返回<code>function</code>, 又比如<code>instanceof</code>操作符, 对于某些对象来说, 必须是在同一全局作用域中生成的对象才能返回<code>true</code>.</p>
+
+<p>由此, 我们需要更完善的类型检测机制: <code>Object.prototype.toString.call()</code>, 在任何值上调用这个方法, 都会返回类似于<code>[object NativeContructorName]</code>. 而每个类内部都会有一个特殊属性<code>[[Class]]</code>, 这个属性指定了<code>[object NativeContructorName]</code>中的<code>NativeContructorName</code>.</p>
+
+<pre><code class="language-js">console.log(Object.prototype.toString.call([])) // 打印出&quot;[object Array]&quot;
+</code></pre>
+
+<p>由此可以实现一些根据构造函数判断变量类型的方法</p>
+
+<pre><code class="language-js">isRegExp(value) {
+    return Object.prototype.toString.call(value) === &#39;[object RegExp]&#39;;
+}
+</code></pre>
+
+<h4 id="toc_16">作用域安全的构造函数</h4>
+
+<p>JavaScript中的, 对构造函数使用<code>new</code>的时候, 会经历以下步骤</p>
+
+<ol>
+<li>创建一个新的对象</li>
+<li>将构造函数的作用域赋给新的对象(也就是<code>this</code>指向了新的对象)</li>
+<li>执行构造函数中的代码(给新对象添加属性和方法)</li>
+<li>返回新对象</li>
+</ol>
+
+<p>正常情况下不会出现什么奇怪的问题</p>
+
+<pre><code class="language-js">function Person(name, age, job) {
+    this.name = name;
+    this.age  = age;
+    this.job  = job;
+}
+
+let person = new Person(&#39;locust&#39;, 22, &#39;coder&#39;);
+</code></pre>
+
+<p>然而, 当我们错误地编写代码, 漏掉了<code>new</code>操作符的话</p>
+
+<pre><code class="language-js">let person = Person(&#39;locust&#39;, 22, &#39;coder&#39;);
+
+console.log(window.name) // &#39;locust&#39;
+console.log(window.age)  // 22 
+console.log(window.job) // &#39;coder&#39;
+</code></pre>
+
+<p>不小心污染了<strong>全局作用域!</strong>, 而此时<code>person</code>对象也能正常读取, 在出现这种问题后会非常难以debug.</p>
+
+<p>但是我们可以使用一种技巧构建<strong>作用域安全的构造函数</strong>, 判断当前环境是否为<code>构造函数所在环境</code></p>
+
+<pre><code class="language-js">function Person(name, age, job) {
+    if (this instanceof Person) {
+        this.name = name;
+        this.age  = age;
+        this.job  = job;    
+    } else {
+        return new Person(name, age, job);
+    }
+}
+</code></pre>
+
+<h4 id="toc_17">惰性载入函数</h4>
+
+<p>考虑以下情况的代码</p>
+
+<pre><code class="language-js">window.name = &#39;firefox&#39;;
+ 
+function foo() {
+    if (window.name === &#39;firefox&#39;) {
+        console.log(&#39;hello&#39;);
+    } else if (window.name === &#39;chrome&#39;)
+        console.log(&#39;world&#39;);
+}
+
+foo();
+</code></pre>
+
+<p><code>foo</code>函数在根据<code>window.name</code>属性打印出不同的字符. 假设我们的<code>window.name</code>属性一直都不变, 而每次执行<code>foo</code>函数式都要检测一边<code>window.name</code>就很浪费了.</p>
+
+<p>我们可以利用<strong>惰性载入函数</strong>技巧, 只在第一次调用函数是判断条件, 并改变函数的内部语句.</p>
+
+<pre><code class="language-js">let window = {};
+window.name = &#39;firefox&#39;;
+ 
+function foo() {
+    if (window.name === &#39;firefox&#39;) {
+        // 改变foo函数的值
+        foo = function() {
+            console.log(&#39;hello&#39;);
+        }
+    } else if (window.name === &#39;chrome&#39;){
+        foo = function() {
+            console.log(&#39;world&#39;);
+        }
+    }
+    return foo();
+}
+
+foo(); // 打印出hello 
+</code></pre>
+
+<p>而这种方法在函数第一次被调用时仍然会有一次的性能损失, 更好的方法是, 利用函数表达式在声明函数式就指定适当的函数</p>
+
+<pre><code class="language-js">let window = {};
+window.name = &#39;firefox&#39;;
+
+let foo = (function (){
+    if (window.name === &#39;firefox&#39;) {
+        return function() {
+            console.log(&#39;hello&#39;);
+        }
+    } else if (window.name === &#39;chrome&#39;) {
+        return function() {
+            console.log(&#39;world&#39;);
+        }
+    }   
+})();
+
+foo(); // 打印出hello
+</code></pre>
+
+<h4 id="toc_18">函数绑定</h4>
+
+<p>这一节展示的是ES5中<code>bind()</code>出现前是如何利用函数模拟函数绑定的.</p>
+
+<pre><code class="language-js">let handler = {
+    message: &#39;Event Handler&#39;,
+    
+    handleClick: function(event) {
+        console.log(this.message);
+    }
+};
+</code></pre>
+
+<p>上面这段代码中的<code>handleClick</code>函数中输出<code>this.message</code>依赖于其所在的环境, 例如</p>
+
+<pre><code class="language-js">let btn = document.getElementById(&#39;my-btn&#39;);
+EventUtil.addHandler(btn, &#39;click&#39;, handler.handleClick);
+</code></pre>
+
+<p>上面这段代码的目的是在<code>my-btn</code>中添加点击事件监听器, 当<code>my-btn</code>被点击时触发<code>handler.handleClick</code>, 输出<code>Event Handler</code>这个信息. 然而实际输出的是<code>undefined</code>,原因是由于<code>handler.handleClick</code>所在的环境并不是<code>handler</code>, 此时他的<code>this</code>并不指向<code>handler</code>.</p>
+
+<p>可以尝试用闭包去解决这个问题</p>
+
+<pre><code class="language-js">let btn = document.getElementById(&#39;my-btn&#39;);
+EventUtil.addHandler(btn, &#39;click&#39;, function(event) { 
+    // 闭包捕获 handler 的作用域
+    handler.handleClick(event);
+});
+</code></pre>
+
+<p>也可以利用<code>Function.prototype.apply</code>这个函数去讲环境应用在函数上</p>
+
+<pre><code class="language-js">function bind(fn, context) {
+    return function() {
+        return fn.apply(context, arguments);
+    };
+}
+
+let btn = document.getElementById(&#39;my-btn&#39;);
+EventUtil.addHandler(btn, &#39;click&#39;, bind(handler.handleClick, handler));
+</code></pre>
+
+<p>在<code>ES5</code>中增加的<code>Function.prototype.bind</code>方法也可以达到相同的效果</p>
+
+<pre><code class="language-js">let btn = document.getElementById(&#39;my-btn&#39;);
+EventUtil.addHandler(btn, &#39;click&#39;, handler.handleClick.bind(handler)));
+</code></pre>
+
+<h4 id="toc_19">函数柯里化</h4>
+
+<p>函数柯里化技术是将原有函数的部分形参固定下来, 形成新的形参数量减少的函数.</p>
+
+<pre><code class="language-js">function add(num1, num2) {
+    return num1 + num2;
+}
+
+function curriedAdd(num) {
+    return add(5, num);
+}
+</code></pre>
+
+<p><code>curriedAdd</code>将<code>add</code>函数的形参1<code>num1</code>固定为5. 虽然<code>curriedAdd</code>并不是真正意义上的柯里化(它并没有返回一个新的函数), 但是这很好地阐述柯里化的概念.</p>
+
+<p>创建一个用于柯里化函数的方法<code>curry</code></p>
+
+<pre><code class="language-js">function curry(fn) {
+    // 将 fn 以外的 形参列表保存在 args 中 
+    let args = Array.prototype.slice.call(arguments, 1);
+    return function() {
+        // 获取内部匿名函数的形参列表
+        let innerArgs = Array.prototype.slice.call(arguments);
+        // 将余下的参数与之前保存的参数 args 结合起来
+        let finalArgs = args.concat(innerArgs);
+        return fn.apply(null, finalArgs);
+    };
+}
+
+function add(num1, num2) {
+    return num1 + num2;
+}
+
+let curriedAdd = curry(add, 5);
+</code></pre>
+
+<p>也可以利用ES5中的<code>bind</code>函数实现柯里化, 根据<code>JavaScript MDN</code>的说法:</p>
+
+<blockquote>
+<ul>
+<li><code>Function.prototype.bind(thisArg, [, arg1[, arg2[, ...]]])</code>:
+
+<ul>
+<li><code>thisArg</code>: The value to be passed as the this parameter to the target function when the bound function is called. The value is ignored if the bound function is constructed using the new operator.</li>
+<li><code>arg1, arg2, ...</code>: Arguments to <strong>prepend(前置于)</strong> to arguments provided to the bound function when invoking the target function.</li>
+</ul></li>
+</ul>
+</blockquote>
+
+<p><code>bind</code>的柯里化用法:</p>
+
+<pre><code class="language-js">function add(num1, num2) {
+    return num1 + num2;
+}
+
+let curriedAdd = add.bind(null, 5);
+
+curriedAdd(1) // 6
+</code></pre>
+
+<h3 id="toc_20">防篡改对象</h3>
+
+<p>JavaScript中对于对象的封装性并没有原生保留字的支持(<code>final</code>, <code>private</code>)之类. 但是<code>EcmaScript</code>也定义了多个方法去封装我们的对象, 以实现<code>防篡改对象</code>.</p>
+
+<h4 id="toc_21">不可扩展对象</h4>
+
+<p>默认的对象都是可扩展的, 即是在对象定义好之后, 再去给他动态的添加属性, 例如</p>
+
+<pre><code class="language-js">let person = { name: &#39;locust&#39; };
+person.age = 21;
+alert(person.age) // 21
+</code></pre>
+
+<p>有的时候并不希望对象是可以被扩展的, 这时可以使用<code>Ojbect.preventExtensions()</code>方法去将一个对象修改为不可扩展;</p>
+
+<pre><code class="language-js">let person = { name: &#39;locust&#39; };
+Ojbect.preventExtensions(person);
+
+person.age = 21;
+alert(person.age); // undefined
+</code></pre>
+
+<p>在非严格模式下, 给不可扩展添加属性会<strong>静默失败</strong>, 而在严格模式下则会抛出异常.<br/>
+(要注意虽然对象是不可扩展的, 但是仍然可以对已有的属性进行修改和删除)</p>
+
+<h4 id="toc_22">密封的对象</h4>
+
+<p>密封对象通过<code>Object.seal()</code>将对象变为密封对象, <strong>密封对象</strong>比<strong>不可扩展对象</strong>有着更高的防篡改级别, 它并不允许删除属性.</p>
+
+<pre><code class="language-js">let p = { name: &#39;locust&#39; };
+Object.seal(p);
+
+p.age = 1;
+alert(p.age) // undefined
+
+delete p.name;
+alert(p.name); // &#39;locust&#39;
+</code></pre>
+
+<p>同样的, 在严格模式下会抛出异常.</p>
+
+<h4 id="toc_23">冻结的对象</h4>
+
+<p><code>frozen object</code>是最严格的防纂改级别, 完全不允许任何对对象(包括内部属性)的修改.</p>
+
+<pre><code class="language-js">let p = { name: &#39;locust&#39; };
+
+Object.freeze(p);
+
+p.age = 21;
+alert(p.age); // undefined
+
+p.name = &#39;nico&#39;;
+alert(p.name); // locust
+</code></pre>
+
+<h3 id="toc_24">高级定时器</h3>
+
+<p><code>JavaScript</code>代码的解释与执行都是单线程的, 而其中定时器的执行也不例外, 它只是将代码延缓特定的时间后再执行, 并不是在另外的线程中执行它, 并且执行的时机也只能保证在定时到期后执行.</p>
+
+<h4 id="toc_25">定时器特性</h4>
+
+<pre><code class="language-js">let btn = document.getElementById(&quot;my-btn&quot;);
+btn.onclick = function() {
+    setTimeout(function() { alert(&#39;hello&#39;); }, 250);
+}
+</code></pre>
+
+<p>上面的这段代码<code>my-btn</code>点击的时候往队列中添加一个250ms的定时器, 但要注意的是定时器不一定在250ms后运行, 而是至少在250ms后才运行.</p>
+
+<p>假如<code>onclick</code>事件运行的300ms, 那么定时器代码也至少在300ms后才会被执行<img src="media/15114266480360/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-12-03%20%E4%B8%8A%E5%8D%8811.28.00.png" alt="屏幕快照 2017-12-03 上午11.28.00"/></p>
+
+<h4 id="toc_26">重复的定时器</h4>
+
+<p><code>setInterval</code>用于以指定的时间为间隔循环执行代码, 然而由于<code>JavaScript</code>中的定时器执行时机并不严格, 有可能由于之前添加的定时器仍未执行, 此时再添加新的定时器, 最后导致定时器重复执行好几次.</p>
+
+<p>幸运的是<code>JavaScript</code>引擎在添加循环执行的定时器之前, 会检查定时器队列中是否仍然存在该定时器的其他代码实例, 不存在时才会将定时器添加进队列中.</p>
+
+<p>这种策略也是存在两点问题: </p>
+
+<ul>
+<li>某些时间间隔可能会被跳过</li>
+<li>多个定时器的时间间隔可能会比预期要小</li>
+</ul>
+
+<p>要解决这些问题, 使用嵌套的<code>setTimeout</code>就可以了</p>
+
+<pre><code class="language-js">setTimeout(function onTimeout() {
+    alert(&#39;timeout&#39;);
+    setTimeout(onTimeout, 250);
+    }, 250);
+</code></pre>
+
+<h4 id="toc_27">Yielding Processes</h4>
+
+<p>在浏览器中<code>JavaScript</code>能获得的运算资源是有限的, 如果<code>JavaScript</code>在进行了长时间运算, 那么用户就会无法与浏览器进行交互, 在编写长时间运行的代码时, 先思考两个问题</p>
+
+<ul>
+<li>该处理是否需要同步完成?</li>
+<li>数据是否必须按顺序处理?</li>
+</ul>
+
+<p>如果以上两个答案都是否, 那么可以尝试一种<code>数据分块</code>技术, 将数据分为多个块, 并利用定时器将其各个块在不同的事件内处理.</p>
+
+<p>分块处理基本模式</p>
+
+<pre><code class="language-js">setTimeout(function handler(){
+    // pop出任务队列元素
+    let item = array.shift();
+    process(item);
+    
+    // 如果仍然有元素
+    if (array.length !== 0)
+        setTimeout(handler, 300);
+}, 300);
+</code></pre>
+
+<h4 id="toc_28">函数节流</h4>
+
+<p>浏览器中的某些计算要比其他计算耗时多很多, 例如<code>DOM</code>操作比起非<code>DOM</code>操作交互需要更多的CPU时间和内存. 在连续的进行过多的<code>DOM</code>相关操作可能会导致浏览器挂起甚至崩溃.</p>
+
+<p>为了避免这种情况, 可以使用<code>函数节流</code>技术. 其基本思想是指: 某些代码不可以在没有间断的情况下重复执行.</p>
+
+<pre><code class="language-js">let processer = {
+    // 存储超时事件Id
+    timeoutId: null;
+    
+    // 实际任务处理函数
+    performProcessing: function() {
+        ...
+    }
+    
+    // 触发任务的函数
+    process: function() {
+        // 运行前先通过timeoutId, 清除上一个任务
+        clearTimeout(this.timeoutId);
+        // 存储定时器Id
+        this.timeoutId = setTimeout(() =&gt; {
+            // 100ms后执行performProcessing()
+            this.performProcessing()
+        }, 100);
+    }
+};
+</code></pre>
+
+<h4 id="toc_29">自定义事件</h4>
+
+<p>这一节利用<code>JavaScript</code>实现观察者模式, 相当于<code>Node.js</code>中的<code>EventEmitter</code></p>
+
+<pre><code class="language-js">let EventTarget = function(){
+    this.handlers = {};
+};
+
+EventTarget.prototype = {
+    // 指定构造函数
+    contructor: EventTarget,
+    
+    // 添加事件监听函数
+    addHandler: function(type, handler) {
+        
+        if (typeof this.handlers[type] === undefined)
+            this.handlers[type] = [];
+        
+        this.handlers[type].push(handler);
+    }
+    
+    
+    // 生产者触发事件
+    fire: function(event) {
+        if (!event.target)
+            event.target = this;
+            
+        if (Array.isArray(this.handlers[event.type])) { 
+            const handlers = this.handlers[event.type];
+            // 遍历订阅了该事件的处理函数
+            for(let handler of handlers) {
+                handler(event);
+            }
+        }
+    }
+    
+    // 移除事件监听器
+    removeHandler: function(type, handler) {
+        if (Array.isArray(this.handlers[type]) &amp;&amp; this.handlers[type].length !== 0) {
+            const handlers = this.handlers[type]
+            let i = 0;
+            // 查找出handler所在索引
+            for(; i &lt; handlers.length; i++) {
+                if (handler === handlers[i])
+                    break;
+            }
+            
+            // 利用splite函数删除对应索引上的元素
+            handlers.splite(i, 1);
+        }
+    }
+}
+</code></pre>
+
+<h4 id="toc_30">小结</h4>
+
+<ul>
+<li>可以使惰性载入函数, 将对于<strong>不变量</strong>的任何代码分支推迟到第一次函数调用时.</li>
+<li>利用<code>bind</code>可以指定函数运行环境中的<code>this</code>, 也可以用于柯里化</li>
+<li>不可扩展对象: 不允许给对象添加新的属性和方法</li>
+<li>密封的对象: 也是不可扩展对象, 并且不允许删除对象的方法和属性</li>
+<li>冻结的对象: 也是密封的对象, 并且完全不允许改变对象.</li>
+<li>定时器的执行并没有严格的执行时机</li>
+<li>遇到需要长时间计算的任务时, 可以考虑使用<code>数据分块</code>技术处理</li>
+</ul>
+
+			</div>
+
+		
+	  
+		<footer>
+		 <p class="meta">
+
+			
+			<span class="categories">
+			 
+			</span>
+		    </p>
+		    <p class="meta">
+		      
+		 </p>
+	    
+		<div class="sharing">
+		  
+          
+
+          
+
+		</div>
+
+	    <p class="meta">
+	    
+	        <a class="basic-alignment left" href="15116831975159.html" 
+	        title="Previous Post: 从 Node.js C++ Addon 观察 Js 在 v8 中的表示方式">&laquo; 从 Node.js C++ Addon 观察 Js 在 v8 中的表示方式</a>
+	    
+	    
+	        <a class="basic-alignment right" href="15107096826964.html" 
+	        title="Next Post: Node.js设计模式 · 第八章">Node.js设计模式 · 第八章 &raquo;</a>
+	    
+	    </p>
+	  </footer>
+	</article>
+</div>
+ <aside class="sidebar"> 
+
+	<section>
+	  <h1>Categories</h1>
+	  <ul id="recent_posts">
+	  
+	        
+	      </li>
+	   
+	  </ul>
+	</section>
+	<section>
+	  <h1>Recent Posts</h1>
+	  <ul id="recent_posts">
+	  
+	      
+		      <li class="post">
+		        <a href="15127920862405.html">Node.js设计模式 · 第九章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15124581127035.html">SQL必知必会 1 - 7 章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15116831975159.html">从 Node.js C++ Addon 观察 Js 在 v8 中的表示方式</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15114266480360.html">JavaScript高级程序设计 · 7、22 章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15107096826964.html">Node.js设计模式 · 第八章</a>
+		      </li>
+	     
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	   
+	  </ul>
+	</section>
+	
+</aside> </div></div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2017 -  -
+  <span class="credit">Powered by <a target="_blank" href="https://zerolocusta.github.io">zerolocusta</a> &nbsp;&nbsp; Theme by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+
+  
+    
+
+<script src="asset/chart/all-min.js"></script><script type="text/javascript">$(function(){    var mwebii=0;    var mwebChartEleId = 'mweb-chart-ele-';    $('pre>code').each(function(){        mwebii++;        var eleiid = mwebChartEleId+mwebii;        if($(this).hasClass('language-sequence')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = Diagram.parse($(this).text());            diagram.drawSVG(eleiid,{theme: 'simple'});        }else if($(this).hasClass('language-flow')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = flowchart.parse($(this).text());            diagram.drawSVG(eleiid);        }    });});</script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><script type="text/x-mathjax-config">MathJax.Hub.Config({TeX: { equationNumbers: { autoNumber: "AMS" } }});</script>
+
+</body>
+</html>

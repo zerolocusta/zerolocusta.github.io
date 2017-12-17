@@ -1,0 +1,597 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>
+    
+  从 Node.js C++ Addon 观察 Js 在 v8 中的表示方式 - zerolocust
+  
+
+  </title>
+  <meta name="author" content="">
+  <meta name="description" content="locustchen的博客">
+
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <link href="asset/css/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="atom.xml" rel="alternate" title="zerolocust" type="application/atom+xml">
+  <script src="asset/js/modernizr-2.0.js"></script>
+  <script src="asset/js/jquery.min.js"></script>
+  <script src="asset/highlightjs/highlight.pack.js"></script>
+  <link href="asset/highlightjs/styles/solarized_light.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script>hljs.initHighlightingOnLoad();</script>
+
+  <style type="text/css">
+  .cat-children-p{ padding: 6px 0px;}
+  .hljs{background: none;}
+  </style>
+  <script type="text/javascript">
+  var isAddSildbar = true;
+  </script>
+  <script src="asset/js/octopress.js" type="text/javascript"></script>
+</head>
+<script type="text/javascript">
+//链接新开窗口
+function addBlankTargetForLinks () {
+  $('a[href^="http"]').each(function(){
+      $(this).attr('target', '_blank');
+  });
+}
+$(document).ready(function(event) {
+  addBlankTargetForLinks();
+});
+</script>
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="index.html">zerolocust</a></h1>
+  
+    <h2>locustchen的博客</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zerolocusta.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+
+  <li id=""><a target="self" href="index.html">Home</a></li>
+
+  <li id=""><a target="_self" href="archives.html">Archives</a></li>
+
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content"> 
+<div>
+	<article class="hentry" role="article">
+	<header>
+			  	<h1 class="entry-title">从 Node.js C++ Addon 观察 Js 在 v8 中的表示方式</h1>
+				<p class="meta"><time datetime="2017-11-26T15:59:57+08:00" pubdate data-updated="true">2017/11/26 15:59 下午</time></p>
+			 </header>
+		  	<div class="entry-content">
+			  	<h2 id="toc_0"><a href="https://github.com/nodejs/nan">Native Abstractions for Node.js</a> (nan)</h2>
+
+<blockquote>
+<p>A header file filled with macro and utility goodness for making add-on development for Node.js easier</p>
+</blockquote>
+
+<p>Nan 是一个具有更丰富的功能封装以方便开发 Node.js C++ 插件的头文件. 跟随 Nan 的 README 文件, 从 v8 引擎开始, 同时结合 libuv , 再到 Node.js 中了解 C++ 插件, 最后观察<code>nan</code>究竟做了哪些封装.</p>
+
+<h3 id="toc_1"><a href="https://github.com/v8/v8/wiki/Getting%20Started%20with%20Embedding">The V8 Getting Started * Guide</a></h3>
+
+<h6 id="toc_2"><code>v8</code>本来是为<code>Chrome</code>设计的<code>JavaScript</code>解析引擎, 看的时候多从浏览器的角度去考虑.</h6>
+
+<h4 id="toc_3">Hello World</h4>
+
+<p>接下来会给出一个<code>Hello Example</code>, 演示如何使用<code>v8</code>打印出<code>Hello World</code>. 在给出代码之前, 首先简述几个概念:</p>
+
+<ul>
+<li><code>Isolate</code>: 表示一个<code>v8</code>虚拟机实例.</li>
+<li><code>Local Handle</code>: 指向<code>v8</code>对象的引用对象, 由于<code>v8</code>引擎的垃圾回收机制的工作方式, 所有的<code>v8</code>对象都需要通过<code>handle</code>访问.</li>
+<li><code>Handle Scope</code>: 一个或多个<code>Handle</code>的集合. 当我们使用完多个<code>Handle</code>后, 无需通过逐个析构的方式去删除它们, 而是通过析构<code>Handle Scope</code>就可以了.</li>
+<li><code>Context</code>: 为<code>JavaScript</code>在同一个<code>v8</code>虚拟机实例中提供<strong>隔离的</strong>执行环境.</li>
+</ul>
+
+<p>更详细的解释将会在<a href="https://github.com/v8/v8/wiki/Embedder%27s-Guide">Embedder&#39;s Guide</a>中进行讨论.</p>
+
+<p>将<code>hello-world.cc</code>拆开来看</p>
+
+<p>①  启动<code>v8</code>部分.</p>
+
+<pre><code class="language-c++">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &quot;include/libplatform/libplatform.h&quot;
+#include &quot;include/v8.h&quot;
+int main(int argc, char* argv[]) {
+--// Initialize V8.
+--
+--// 初始化International Components for Unicode
+--// 用于处理Unicode编码
+--// 从本地的icudtl.dat读取编解码数据
+--v8::V8::InitializeICUDefaultLocation(argv[0]);
+--// natives_blob.bin 和 snapshot_blob.bin
+--// 用于加速启动V8引擎
+--v8::V8::InitializeExternalStartupData(argv[0]);
+--// 初始化v8平台
+--std::unique_ptr&lt;v8::Platform&gt; platform = v8::platform::NewDefaultPlatform();
+--// 初始化v8管理平台
+--v8::V8::InitializePlatform(platform.get());
+--v8::V8::Initialize();
+</code></pre>
+
+<ul>
+<li><code>v8::V8::InitializeICUDefaultLocation</code>: <code>v8</code>的<code>Unicode</code>字符处理依赖于<code>icu</code>库, 同时使用该函数从外部的<code>icudtl.dat</code>文件加载<code>Unicode</code>的编解码数据.</li>
+<li><code>v8::V8::InitializeExternalStartupData</code>: <code>v8</code>在启动的时候需要预先加载一些<code>JavaScript build-in</code>函数, 例如<code>math</code>、<code>full-featured regular expression engine</code>, 这个启动过程相当缓慢. 而自从<code>4.3</code>版本开始, <code>v8</code>引入了<code>snapshotting</code>快照加载功能用于加速这个过程, 目前依赖两种快照<code>natives_blob.bin</code>和<code>snapshot_blob.bin</code>.
+
+<ul>
+<li><code>natives_blob.bin</code>: 存储了<code>JavaScript build-in</code>函数解析执行后的内存布局快照(<code>JavaScript build-in</code>可以在<code>v8/src/objects.h</code>中的<code>FUNCTIONS_WITH_ID_LIST</code>宏中查看.</li>
+<li><code>snapshot_blob.bin</code>: 存储了<code>v8</code>启动后的内存布局快照.</li>
+</ul></li>
+<li><code>v8::platform</code>: 管理<code>v8</code>引擎实例<code>isolate</code>的接口, 保存多个<code>isolate</code>的执行状态和所在线程.</li>
+</ul>
+
+<hr/>
+
+<p>②  创建<code>v8</code>引擎实例 </p>
+
+<pre><code class="language-c++">--// Create a new Isolate and make it the current one.
+--v8::Isolate::CreateParams create_params;
+--create_params.array_buffer_allocator =
+--    v8::ArrayBuffer::Allocator::NewDefaultAllocator();
+--v8::Isolate* isolate = v8::Isolate::New(create_params);
+</code></pre>
+
+<ul>
+<li><code>create_params</code>: 存储<code>v8</code>引擎的初始化参数</li>
+<li><code>v8::Isolate::New</code>: 实例化<code>v8</code>引擎</li>
+</ul>
+
+<hr/>
+
+<p>③  创建<code>JavaScript</code>代码的执行环境</p>
+
+<pre><code class="language-js">// 创建临时作用域用于自动析构 HandleScope
+--{
+----v8::Isolate::Scope isolate_scope(isolate);
+----// Create a stack-allocated handle scope.
+----// HandleScope, 之前的概念简要中提到的利用RAII创建和析构Handle
+----// HandleScope作用于isolate(v8实例)
+----// 表示从此开始在isolate中创建的handle在作用域结束时回收
+----v8::HandleScope handle_scope(isolate);
+----// Create a new context.
+----// 创建隔离的`JavaScript`代码执行环境
+----v8::Local&lt;v8::Context&gt; context = v8::Context::New(isolate);
+----// Enter the context for compiling and running the hello world script.
+----// Context::Scope 作用于 context
+----// 表示从此开始在context中创建的实例在离开作用域时回收
+----v8::Context::Scope context_scope(context);
+----// Create a string containing the JavaScript source code.
+----// 将`JavaScript`代码实例化表示为 v8::String
+----// 此处的JavaScript代码为 &#39;Hello&#39; + &#39;, World&#39;
+----v8::Local&lt;v8::String&gt; source =
+----    v8::String::NewFromUtf8(isolate, &quot;&#39;Hello&#39; + &#39;, World!&#39;&quot;,
+----                            v8::NewStringType::kNormal)
+----        .ToLocalChecked();
+----// Compile the source code.
+----// 解析JavaScript代码
+----v8::Local&lt;v8::Script&gt; script =
+----    v8::Script::Compile(context, source).ToLocalChecked();
+----// Run the script to get the result.
+----// 执行编译后的`JavaScript`代码, 并且在context中执行
+----v8::Local&lt;v8::Value&gt; result = script-&gt;Run(context).ToLocalChecked();
+----// Convert the result to an UTF8 string and print it.
+----// 从v8::Value中提取执行结果, 转换为utf-8字符串
+----v8::String::Utf8Value utf8(isolate, result);
+----printf(&quot;%s\n&quot;, *utf8);
+--}
+//↑ 临时作用域结束, 自动析构临时作用域内创建的HandleScope
+</code></pre>
+
+<ul>
+<li><code>v8::Isolate::Scope</code>: 作用于<code>isolate</code>实例, 利用<code>RAII</code>自动管理此作用域内所有的操作, 在离开作用域时回收.</li>
+<li><code>v8::Local&lt;T&gt;</code>: 相当于只能指针, 表示被引用对象, 由<code>HandleScope</code>管理, 离开作用域时析构该引用.</li>
+<li><code>v8::Script</code>: 编译后的<code>JavaScript</code>代码的<code>AST</code>抽象表示根节点, 必须在实例化是绑定到<code>v8::Context</code>.</li>
+</ul>
+
+<hr/>
+
+<p>④  析构<code>v8</code>实例</p>
+
+<pre><code class="language-c++">--// Dispose the isolate and tear down V8.
+--isolate-&gt;Dispose();
+--v8::V8::Dispose();
+--v8::V8::ShutdownPlatform();
+--delete create_params.array_buffer_allocator;
+--return 0;
+}
+</code></pre>
+
+<h4 id="toc_4"><code>Hello World</code>启示</h4>
+
+<ol>
+<li><code>v8</code>依赖引用计数进行垃圾回收, 并且在<code>v8</code>提供的<code>API</code>接口中利用<code>Handle</code>进行引用计数.</li>
+<li><code>Handle</code>仅仅是对<code>v8</code>引擎实例中<code>v8数据结构</code>的引用, 在解构后仅仅是将其引用计数－1, 何时进行内存回收由<code>垃圾回收实例</code>决定.</li>
+<li><code>v8</code>中可以有多个<code>v8</code>引擎实例, 但每个实例中的<code>v8</code>数据结构都是与<code>v8</code>引擎强关联的, 无法跨引擎传递使用.</li>
+</ol>
+
+<h3 id="toc_5"><a href="https://github.com/v8/v8/wiki/Embedder%27s-Guide">Embedder&#39;s Guide</a></h3>
+
+<p>解释<code>v8</code>提供的<code>C++ API</code>中的核心概念: </p>
+
+<ul>
+<li><code>Handle</code></li>
+<li><code>Contexts</code></li>
+<li><code>Templates</code></li>
+<li><code>Accessors</code></li>
+<li><code>Interceptors</code></li>
+<li><code>Security Model</code></li>
+<li><code>Exceptions</code></li>
+<li><code>Inheritance</code></li>
+</ul>
+
+<hr/>
+
+<h4 id="toc_6">Handles and Garbage Collection</h4>
+
+<p><code>Handle</code>是<code>v8</code>引擎堆中<code>JavaScript</code>对象的引用. <code>v8</code>垃圾回收器会将<strong>无法访问</strong>的<code>JavaScript</code>对象进行回收. 而在垃圾回收过程中, <code>JavaScript</code>对象在内存中的位置会经常移动, 当一个对象移动完成后, 所有在此对象上的<code>Handle</code>引用也会更新, 重新指向对象的新地址.</p>
+
+<p><code>Handle</code>有几种类型:</p>
+
+<ul>
+<li><p><code>Local Handle</code>: <code>Local</code>中对<code>JavaScript</code>对象的引用是基于<code>Handle Stack</code>的. 必须配合<code>HandleScope</code>一起使用. <code>HandleScope</code>在构造时, 会营造出<code>Handle Stack</code>, 在此之后构造的所有<code>Local Handle</code>都由这个<code>HandleScope</code>管理, 并在<code>HandleScope</code>析构后<strong>Clear</strong>, 释放<code>Local Handle</code>对<code>JavaScript</code>对象的引用.</p>
+
+<ul>
+<li><code>Local</code>中对<code>JavaScript</code>对象的引用是基于<code>Handle Stack</code>的, 由<code>HandleScope</code>管理.</li>
+<li><code>Handle Stack</code>要与<code>C++ Stack</code>区分开, <code>HandleScope</code>是基于<code>C++ Stack</code>的, 在离开作用域时析构, 而<code>Local</code>是基于<code>Handle Stack</code>的, 在<code>Handle Stack</code>删除时解开对<code>JavaScript</code>对象的引用并析构.</li>
+<li><code>Local</code>必须执行在<code>HandleScope</code>中, 否则会造成内存泄漏, 还有可能引起<code>v8</code>崩溃.</li>
+<li>由于<code>HandleScope</code>是基于<code>C++ Stack</code>的, 如果<code>Local</code>被复制(或别引用)离开了当前作用域(也同时离开了当前<code>HandleScope</code>), 需要使用<code>EscapableHandleScope</code>或者<strong>利用</strong>其中的对象指针生成<code>Persistent</code></li>
+<li> <code>Handle</code> is an alias for <code>Local</code> for historical reasons.</li>
+</ul></li>
+<li><p><code>Persistent Handle</code>: <code>Persistent</code>同样是对于<code>v8</code>引擎中<code>JavaScript</code>对象的引用, 与<code>Local</code>不同的是<code>Persistent</code>并不由<code>HandleScope</code>管理, 而是需要调用<code>Persistent Handle::Reset()</code>进行其对<code>JavaScript</code>对象的解引用.</p></li>
+</ul>
+
+<p><img src="media/15116831975159/local_persist_handles_review.png" alt="local_persist_handles_revie"/></p>
+
+<hr/>
+
+<h4 id="toc_7">Contexts</h4>
+
+<p><code>Context</code>是在<code>v8</code>引擎实例<code>Isolate</code>内部的一个独立地<code>JavaScript</code>执行环境. 在执行<code>JavaScript</code>代码时, 必须指定其<code>Context</code>.</p>
+
+<p><code>Context</code>的存在是由于<code>JavaScript</code>的内置函数与对象(<code>build-in functions and objects</code>), 全局运行环境(<code>global</code>)都是可以被用户代码改变的. 如果两份不相关的代码在没有<code>Context</code>的情况下运行, 那么其中一份代码改变了全局相关属性后, 另一份<code>JavaScript</code>代码也会受到影响.</p>
+
+<h5 id="toc_8">Contexts Extensive Caching</h5>
+
+<p><code>Context</code>中有独立的<code>build-in functions and objects</code>、<code>global</code>, 而<code>build-in</code>里有不少是由<code>JavaScript</code>低等级代码(<code>低级胶水JavaScript</code>, <code>JavaScript</code>中通过<code>%</code>调用<code>C++</code>函数), 这意味着每次新建<code>Context</code>的时候都需要解析并生成一份<code>build-in</code>.</p>
+
+<p>不过<code>v8</code>提供了对<code>build-in</code>的缓存, 在第一份<code>Context</code>初始化完成后, 后续生成的<code>Context</code>只需沿用已经初始化完成的<code>build-in</code>就可以了.</p>
+
+<p>而且<code>v8</code>提供快照功能, 在<code>v8</code>进程初始化的时候可以通过编译时提前准备好的<code>snapshot_blob.bin</code>快照, 初始化第一个<code>Context</code>堆内存空间并将<code>build-in</code>缓存起来.</p>
+
+<p><img src="media/15116831975159/intro_contexts.png" alt="intro_contexts"/></p>
+
+<p><strong>即使是使用了缓存技术, 每个<code>Context</code>仍然是独立的, 只是他们的对全局对象和<code>build-in</code>的修改记录在自己的内存空间里, 而不会影响缓存数据.</strong></p>
+
+<hr/>
+
+<h4 id="toc_9">Templates</h4>
+
+<p><code>v8</code>语义下的<code>template</code>指的是<code>JavaScript</code>函数和对象在<code>C++</code>与之对应的抽象. 通过<code>template</code>可以在<code>JavaScript</code>中访问被<code>template</code><strong>封装后</strong>的<code>C++</code>函数和对象.</p>
+
+<p>在<code>JavaScript</code>语义下, <code>Function</code>和<code>Object</code>具有很多相似的地方, 但是在<code>C++</code>语义下, 这两种是完全不一样的东西. 为了将<code>C++</code>语义下的<code>Function</code>与<code>Object</code>映射到<code>v8</code>引擎中, <code>v8</code>提供了两种<code>Template</code></p>
+
+<ul>
+<li><p><code>Function Template</code>: 提供了<code>C++</code>中对<code>JavaScript</code>函数的抽象, 可以在<code>C++</code>中创建<code>JavaScript</code>函数. 也可以包裹单个<code>C++</code>函数, 并抽象成<code>JavaScript</code>函数.</p></li>
+<li><p><code>Object Template</code>: 提供了<code>C++</code>中对<code>JavaScript</code>中对象<strong>实例</strong>的抽象.</p></li>
+</ul>
+
+<p>重申一下, <code>Function Template</code>是用于在<code>C++</code>中(描述)创建<code>JavaScript</code>中的函数的, 而<code>Object Template</code>是用于在<code>C++</code>中(描述)创建并返回<code>JavaScript</code><strong>对象实例</strong>的. </p>
+
+<p>在<code>C++</code>中<strong>可以</strong>通过<code>Function Template</code>来模拟<code>JavaScript</code>中的类, 而<code>Object Template</code>用于创建<code>JavaScript</code>对象<strong>实例</strong>.</p>
+
+<pre><code class="language-c++">// Create a template for the global object and set the
+// built-in global functions.
+Local&lt;ObjectTemplate&gt; global = ObjectTemplate::New(isolate);
+global-&gt;Set(String::NewFromUtf8(isolate, &quot;log&quot;), FunctionTemplate::New(isolate, LogCallback));
+
+// Each processor gets its own context so different processors
+// do not affect each other.
+Persistent&lt;Context&gt; context = Context::New(isolate, NULL, global);
+</code></pre>
+
+<hr/>
+
+<h4 id="toc_10">Accessors</h4>
+
+<p><code>v8</code>中提供的<code>Accessors</code>与<code>JavaScript</code>中的访问器概念一样, 提供控制<strong>对象</strong>中属性的访问行为.</p>
+
+<p>通过对象中的<code>SetAccessor</code>方法可以对<strong>对象</strong>添加访问器属性, 并且通过<code>AccessorGetterCallback</code>、<code>AccessorSetterCallback</code>添加<strong>对象</strong>的<code>[Getter|Setter]</code>, 以及<code>AccessControl</code>控制访问器权限.</p>
+
+<pre><code class="language-c++">enum AccessControl {
+  DEFAULT = 0,
+  ALL_CAN_READ = 1,
+  ALL_CAN_WRITE = 1 &lt;&lt; 1,
+  PROHIBITS_OVERWRITING = 1 &lt;&lt; 2
+};
+
+typedef void (*AccessorGetterCallback)(Local&lt;String&gt; property,
+                                       const PropertyCallbackInfo&lt;Value&gt;&amp; info);
+                                       
+typedef void (*AccessorSetterCallback)(Local&lt;String&gt; property,
+                                       Local&lt;Value&gt; value,
+                                       const PropertyCallbackInfo&lt;void&gt;&amp; info);
+</code></pre>
+
+<hr/>
+
+<h4 id="toc_11">Interceptors</h4>
+
+<blockquote>
+<p>访问对象前插一脚</p>
+</blockquote>
+
+<p><code>Interceptors</code>提供了<strong>访问对象前</strong>调用自定义函数的机会. <code>Interceptors</code>分为两种</p>
+
+<ul>
+<li><code>named property interceptors</code>: 在通过字符串名字(<code>string name</code>)访问对象前调用的, 例如<code>document.theFormName.elementName</code>.</li>
+<li><code>indexed property interceptors</code>: 通过索引访问对象前调用. 例如<code>document.forms.elements[0]</code>.</li>
+</ul>
+
+<p>在目前的<code>[Embedder&#39;s Guide](https://github.com/v8/v8/wiki/Embedder%27s-Guide)</code>中, 使用的分别是</p>
+
+<pre><code class="language-c++">void ObjectTemplate::SetNamedPropertyHandler(
+    IndexedPropertyGetterCallback getter,
+    IndexedPropertySetterCallback setter = 0,
+    IndexedPropertyQueryCallback query = 0,
+    IndexedPropertyDeleterCallback deleter = 0,
+    IndexedPropertyEnumeratorCallback enumerator = 0,
+    Local&lt;Value&gt; data = Local&lt;Value&gt;());
+
+void ObjectTemplate::SetIndexedPropertyHandler(
+    NamedPropertyGetterCallback getter,
+    NamedPropertySetterCallback setter = 0,
+    NamedPropertyQueryCallback query = 0,
+    NamedPropertyDeleterCallback deleter = 0,
+    NamedPropertyEnumeratorCallback enumerator = 0,
+    Local&lt;Value&gt; data = Local&lt;Value&gt;());
+</code></pre>
+
+<p>但是以上两个函数都已经在最新的<code>v8</code>源码中被标记为<code>deprecate</code>, 取而代之的是</p>
+
+<pre><code class="language-c++">void SetHandler(const NamedPropertyHandlerConfiguration&amp; configuration);
+
+void SetHandler(const IndexedPropertyHandlerConfiguration&amp; configuration);
+</code></pre>
+
+<h5 id="toc_12">Different between Interceptors And Accessor</h5>
+
+<p><code>Interceptors</code>会影响对象所有属性的访问行为, 而<code>Accessor</code>只会针对单个属性.</p>
+
+<h4 id="toc_13">Exceptions</h4>
+
+<p><code>v8</code>在运行时发生错误会抛出异常, 而在<code>C++</code>中可以利用<code>TryCatch</code>类作用域<code>Isolate</code>, 捕获<code>v8</code>运行过程中抛出的异常.</p>
+
+<pre><code class="language-js">TryCatch trycatch(isolate);
+Local&lt;Value&gt; v = script-&gt;Run();
+// 当发生异常时, `v8`会返回一个空的`Value`实例
+if (v.IsEmpty()) {
+  Local&lt;Value&gt; exception = trycatch.Exception();
+  String::Utf8Value exception_str(exception);
+  printf(&quot;Exception: %s\n&quot;, *exception_str);
+  // ...
+}
+</code></pre>
+
+<h4 id="toc_14">Inheritance</h4>
+
+<blockquote>
+<p>  在<code>C++</code>中利用<code>Function Template</code>模拟<code>JavaScript</code>中的类.</p>
+</blockquote>
+
+<p><code>JavaScript</code>本来是没有类的, 但是可以利用<code>function</code>去模拟类的行为.</p>
+
+<pre><code class="language-js">// Create an object &quot;bicycle&quot; 
+function bicycle(){ 
+} 
+// Create an instance of bicycle called roadbike
+var roadbike = new bicycle()
+// Define a custom property, wheels, on roadbike 
+roadbike.wheels = 2
+</code></pre>
+
+<p>以及利用<code>prototype</code>去模拟类的实例方法和属性</p>
+
+<pre><code class="language-js">// First, create the &quot;bicycle&quot; object
+function bicycle(){ 
+}
+// Assign the wheels property to the object&#39;s prototype
+bicycle.prototype.wheels = 2
+</code></pre>
+
+<p>而<code>v8 C++ API</code>也提供了设置<code>Function prototype</code>的方法.</p>
+
+<pre><code class="language-c++">// function biketemplate() { }
+Local&lt;FunctionTemplate&gt; biketemplate = FunctionTemplate::New(isolate);
+// biketemplate.prototype.wheels = MyWheelsMethodCallback;
+biketemplate-&gt;PrototypeTemplate().Set(
+    String::NewFromUtf8(isolate, &quot;wheels&quot;),
+    FunctionTemplate::New(isolate, MyWheelsMethodCallback)-&gt;GetFunction();
+)
+</code></pre>
+
+<p>同时也提供了<code>inherit</code>方法</p>
+
+<pre><code class="language-c++">void Inherit(Local&lt;FunctionTemplate&gt; parent);
+</code></pre>
+
+<hr/>
+
+<h3 id="toc_15">v8中的<code>Maybe type</code></h3>
+
+<blockquote>
+<p><code>Maybe type</code>参考了具有强类型系统的严格函数式语言<code>Haskell</code>.</p>
+</blockquote>
+
+<h5 id="toc_16">From Haskell</h5>
+
+<p>It allows the programmer to specify something may not be there.</p>
+
+<pre><code class="language-haskell">data Maybe a = Just a | Nothing
+</code></pre>
+
+<h5 id="toc_17">To v8</h5>
+
+<p><code>v8</code>中提供<code>Maybe&lt;T&gt;</code>和<code>MaybeLocal&lt;T&gt;</code>用于在获取对象中实际的值时, 先检查所获得的值是否为空. 如果为空则抛出异常, 不为空则返回<code>&lt;T&gt;</code>或<code>Local&lt;T&gt;</code>.</p>
+
+<p>例如<code>MaybeLocal</code>中</p>
+
+<pre><code class="language-c++">template &lt;class T&gt;
+Local&lt;T&gt; MaybeLocal&lt;T&gt;::ToLocalChecked() {
+  if (V8_UNLIKELY(val_ == nullptr)) V8::ToLocalEmpty();
+  return Local&lt;T&gt;(val_);
+}
+</code></pre>
+
+<pre><code class="language-c++">void V8::ToLocalEmpty() {
+  Utils::ApiCheck(false, &quot;v8::ToLocalChecked&quot;, &quot;Empty MaybeLocal.&quot;);
+}
+</code></pre>
+
+			</div>
+
+		
+	  
+		<footer>
+		 <p class="meta">
+
+			
+			<span class="categories">
+			 
+			</span>
+		    </p>
+		    <p class="meta">
+		      
+		 </p>
+	    
+		<div class="sharing">
+		  
+          
+
+          
+
+		</div>
+
+	    <p class="meta">
+	    
+	        <a class="basic-alignment left" href="15124581127035.html" 
+	        title="Previous Post: SQL必知必会 1 - 7 章">&laquo; SQL必知必会 1 - 7 章</a>
+	    
+	    
+	        <a class="basic-alignment right" href="15114266480360.html" 
+	        title="Next Post: JavaScript高级程序设计 · 7、22 章">JavaScript高级程序设计 · 7、22 章 &raquo;</a>
+	    
+	    </p>
+	  </footer>
+	</article>
+</div>
+ <aside class="sidebar"> 
+
+	<section>
+	  <h1>Categories</h1>
+	  <ul id="recent_posts">
+	  
+	        
+	      </li>
+	   
+	  </ul>
+	</section>
+	<section>
+	  <h1>Recent Posts</h1>
+	  <ul id="recent_posts">
+	  
+	      
+		      <li class="post">
+		        <a href="15127920862405.html">Node.js设计模式 · 第九章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15124581127035.html">SQL必知必会 1 - 7 章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15116831975159.html">从 Node.js C++ Addon 观察 Js 在 v8 中的表示方式</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15114266480360.html">JavaScript高级程序设计 · 7、22 章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15107096826964.html">Node.js设计模式 · 第八章</a>
+		      </li>
+	     
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	   
+	  </ul>
+	</section>
+	
+</aside> </div></div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2017 -  -
+  <span class="credit">Powered by <a target="_blank" href="https://zerolocusta.github.io">zerolocusta</a> &nbsp;&nbsp; Theme by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+
+  
+    
+
+<script src="asset/chart/all-min.js"></script><script type="text/javascript">$(function(){    var mwebii=0;    var mwebChartEleId = 'mweb-chart-ele-';    $('pre>code').each(function(){        mwebii++;        var eleiid = mwebChartEleId+mwebii;        if($(this).hasClass('language-sequence')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = Diagram.parse($(this).text());            diagram.drawSVG(eleiid,{theme: 'simple'});        }else if($(this).hasClass('language-flow')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = flowchart.parse($(this).text());            diagram.drawSVG(eleiid);        }    });});</script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><script type="text/x-mathjax-config">MathJax.Hub.Config({TeX: { equationNumbers: { autoNumber: "AMS" } }});</script>
+
+</body>
+</html>

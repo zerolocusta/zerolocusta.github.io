@@ -1,0 +1,1172 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>
+    
+  Node.js设计模式 · 第八章 - zerolocust
+  
+
+  </title>
+  <meta name="author" content="">
+  <meta name="description" content="locustchen的博客">
+
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <link href="asset/css/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="atom.xml" rel="alternate" title="zerolocust" type="application/atom+xml">
+  <script src="asset/js/modernizr-2.0.js"></script>
+  <script src="asset/js/jquery.min.js"></script>
+  <script src="asset/highlightjs/highlight.pack.js"></script>
+  <link href="asset/highlightjs/styles/solarized_light.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script>hljs.initHighlightingOnLoad();</script>
+
+  <style type="text/css">
+  .cat-children-p{ padding: 6px 0px;}
+  .hljs{background: none;}
+  </style>
+  <script type="text/javascript">
+  var isAddSildbar = true;
+  </script>
+  <script src="asset/js/octopress.js" type="text/javascript"></script>
+</head>
+<script type="text/javascript">
+//链接新开窗口
+function addBlankTargetForLinks () {
+  $('a[href^="http"]').each(function(){
+      $(this).attr('target', '_blank');
+  });
+}
+$(document).ready(function(event) {
+  addBlankTargetForLinks();
+});
+</script>
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="index.html">zerolocust</a></h1>
+  
+    <h2>locustchen的博客</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zerolocusta.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+
+  <li id=""><a target="self" href="index.html">Home</a></li>
+
+  <li id=""><a target="_self" href="archives.html">Archives</a></li>
+
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content"> 
+<div>
+	<article class="hentry" role="article">
+	<header>
+			  	<h1 class="entry-title">Node.js设计模式 · 第八章</h1>
+				<p class="meta"><time datetime="2017-11-15T09:34:42+08:00" pubdate data-updated="true">2017/11/15 9:34 上午</time></p>
+			 </header>
+		  	<div class="entry-content">
+			  	<h2 id="toc_0">Universal JavaScript for Web Applications</h2>
+
+<p>这一章主要讲述了如何在前后端同时使用JavaScript进行编程.</p>
+
+<h3 id="toc_1">Sharing code with the browser</h3>
+
+<p>由于Node.js与Chrome都是利用V8引擎进行JavaScript的代码解析与执行, 由此可以想象或许能在Node.js与浏览器之间共享同一份代码.</p>
+
+<p>然而实际中并不可行, Node.js中在JavaScript的基础上针对服务器开发做了非常多的扩展, 例如<code>require</code>模块系统, <code>HTTP</code>、<code>fs</code>模块等, 而浏览器上也在JavaScript上增加了对<code>DOM</code>、<code>BOM</code>等操作</p>
+
+<p>幸运的是, 越来越多的库同时支持了<code>Node.js</code>环境与浏览器环境.</p>
+
+<h4 id="toc_2">Sharing modules</h4>
+
+<p>首先要解决的是前后端中的模块系统问题, 浏览器环境中没有<code>require()</code>函数与文件系统的操作, 对于在<code>Node.js</code>中开发的代码来说, 首先需要对模块系统进行抽象, 然后才能让其正常运行在浏览器环境中.</p>
+
+<h4 id="toc_3">Universal Module Definition</h4>
+
+<p>对于浏览器环境, 可能会遇到下列情况:</p>
+
+<ul>
+<li>完全没有使用模块系统, 意味着只使用<code>script</code>标签引入, 并且将所有函数都加载在globle环境中.</li>
+<li>使用了某种异步模块定义及加载系统(<code>Asynchronous Module Definition</code>), 例如<code>RequireJS</code></li>
+<li>已经有了基于<code>Commonjs</code>的模块系统(也就是Node.js的模块系统)抽象</li>
+</ul>
+
+<p>由此引出统一模块定义<code>Universal Module Definition (UMD)</code>, 使用这种技巧在编写模块时去抽象统一多种状况中的模块系统问题.</p>
+
+<h4 id="toc_4">Creating an UMD module</h4>
+
+<p><code>UMD</code>模块将会检测当前运行环境, 并选择合适的函数去执行功能.</p>
+
+<pre><code class="language-js">// umdModule.js
+
+&quot;use strict&quot;;
+
+(function (root, factory) {
+  // 检查环境中是否存在 名为define的函数
+  // define 函数是 AMD(Asynchronous Module Definition)标准
+  // 中的API
+  if (typeof define === &#39;function&#39; &amp;&amp; define.amd) {
+    // 如果当前环境中使用了 AMD, 则利用define系统网factory函数中注入
+    // mustache模块
+    define([&#39;mustache&#39;], factory);
+  } else if (typeof module === &#39;object&#39; &amp;&amp; // 检测当前环境是否为CommonJS标准
+    typeof module.exports === &#39;object&#39;) {
+    // 利用require函数引入 mustache 模块
+    var mustache = require(&#39;mustache&#39;);
+    module.exports = factory(mustache);
+  } else {
+    // 以上都不是, 在全局对象中导出模块
+    root.UmdModule = factory(root.Mustache);
+  }
+}(this, function (mustache) {
+  var template = &#39;&lt;h1&gt;Hello &lt;i&gt;{{name}}&lt;/i&gt;&lt;/h1&gt;&#39;;
+  mustache.parse(template);
+
+  return {
+    sayHello: function (toWhom) {
+      return mustache.render(template, {
+        name: toWhom
+      });
+    }
+  };
+}));
+</code></pre>
+
+<p>在<code>Node.js</code>中的运行<code>umdModule.js</code></p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const umdModule = require(&#39;./umdModule&#39;);
+
+console.log(umdModule.sayHello(&#39;Server!&#39;));
+</code></pre>
+
+<p>运行结果<br/>
+![](<img src="media/15107096826964/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-17%20%E4%B8%8B%E5%8D%885.24.39.png" alt="屏幕快照 2017-11-17 下午5.24.39"/></p>
+
+<p>在浏览器中</p>
+
+<pre><code class="language-html">&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot;&gt;
+    &lt;script src=&quot;node_modules/mustache/mustache.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;umdModule.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div id=&quot;main&quot;&gt;&lt;/div&gt;
+    &lt;script&gt;
+        document.getElementById(&#39;main&#39;).innerHTML = UmdModule.sayHello(&#39;Browser!&#39;);
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+<p>运行结果</p>
+
+<p><img src="media/15107096826964/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-17%20%E4%B8%8B%E5%8D%885.26.20.png" alt="屏幕快照 2017-11-17 下午5.26.20"/></p>
+
+<p>在AMD模型中运行</p>
+
+<pre><code class="language-html">&lt;html&gt;
+
+&lt;head&gt;
+  &lt;title&gt;Load UMD module from AMD&lt;/title&gt;
+  &lt;script src=&quot;node_modules/requirejs/require.js&quot;&gt;&lt;/script&gt;
+  &lt;script&gt;
+    window.addEventListener(&#39;load&#39;, function () {
+      requirejs.config({
+        baseUrl: &#39;node_modules&#39;,
+        paths: {
+          // 设置需要用到的库的路径
+          mustache: &#39;./mustache/mustache&#39;,
+          umdModule: &#39;../umdModule&#39;
+        }
+      });
+      // 当`umdModule`加载完毕, 调用function
+      require([&#39;umdModule&#39;], function (umdModule) {
+        var hello = umdModule.sayHello(&#39;Browser!&#39;);
+        var body = document.getElementsByTagName(&quot;body&quot;)[0];
+        body.innerHTML = hello;
+      });
+    });
+  &lt;/script&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+&lt;/body&gt;
+
+&lt;/html&gt;
+</code></pre>
+
+<p>运行结果</p>
+
+<p><img src="media/15107096826964/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-18%20%E4%B8%8A%E5%8D%889.33.05.png" alt="屏幕快照 2017-11-18 上午9.33.05"/></p>
+
+<h4 id="toc_5">Considerations on the UMD pattern</h4>
+
+<p>利用<code>UMD</code>模式去屏蔽各环境中模块差异非常简单且有效, 但是却造成难以测试, 并且对于各个环境中不同的异常处理也没解决, 而且JavaScript中也不知这三种模块管理系统, 如果需要手动匹配所有有可能出现的模块管理系统是非常麻烦的.</p>
+
+<h3 id="toc_6">Introducing Webpack</h3>
+
+<p>比起在代码中手动编写多种模块加载机制, 更好的方法是保持<code>Node.js</code>代码风格, 并利用第三方工具将代码编译至其他模块系统能识别的代码.</p>
+
+<p><code>webpack</code>将所有应用需要用到的模块打包成单个JavaScript文件, 这样在浏览器中引用的时候只需将其引入即可.</p>
+
+<h4 id="toc_7">Exploring the magic of Webpack</h4>
+
+<blockquote>
+<p>Webpack实战</p>
+</blockquote>
+
+<p>将上一节中的<code>umdModule.js</code>中的<code>UMD</code>模块适配部分去掉, 并将文件改名为<code>sayHello.js</code></p>
+
+<pre><code class="language-js">// sayHello.js
+&quot;use strict&quot;;
+
+let mustache = require(&#39;mustache&#39;);
+let template = &#39;&lt;h1&gt;Hello &lt;i&gt;{{name}}&lt;/i&gt;&lt;/h1&gt;&#39;;
+mustache.parse(template);
+module.exports.sayHello = function(toWhom) {
+  return mustache.render(template, {name: toWhom});
+};
+</code></pre>
+
+<p>在<code>main.js</code>中使用<code>sayHello</code>模块</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+window.addEventListener(&#39;load&#39;, function() {
+  // 利用`Node.js`的模块机制
+  var sayHello = require(&#39;./sayHello&#39;).sayHello;
+  var hello = sayHello(&#39;Browser!&#39;);
+  var body = document.getElementsByTagName(&quot;body&quot;)[0];
+  body.innerHTML = hello;
+});
+</code></pre>
+
+<p>然后运行<code>webpsck main.js bundle.js</code>, 将<code>main.js</code>中的代码及依赖生成到<code>bundle.js</code>中, 最后在<code>HTML</code>代码中引入<code>bundle.js</code>即可.</p>
+
+<p>(webpsck 生成的<code>bundle.js</code>将分析所有用到的函数, 并组合到单个文件中, 代码较庞大)</p>
+
+<pre><code class="language-html">&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;Webpack magic&lt;/title&gt;
+    &lt;script src=&quot;bundle.js&quot;&gt;&lt;/script&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+<p>运行结果</p>
+
+<p><img src="media/15107096826964/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-18%20%E4%B8%8A%E5%8D%889.33.05.png" alt="屏幕快照 2017-11-18 上午9.33.05"/></p>
+
+<h4 id="toc_8">The advantages of using Webpack</h4>
+
+<ul>
+<li><code>webpack</code>提供了许多<code>Nodejs</code>中的核心模块(<code>fs</code>、<code>http</code>等)能运行在浏览器中的版本, 可以无所顾虑地使用.</li>
+<li>对于某些无法被转换至浏览器环境中使用的代码, <code>webpack</code>支持使用其他模块去替换掉.</li>
+<li>可以为不同模块生成不同的<code>bundle</code></li>
+<li>可以使用不同的模块加载系统</li>
+<li>可以通过配置, 处理<code>JavaScript</code>以外的代码, 例如css, html等</li>
+<li>除了通过<code>webpack</code>生成单个文件, 也可以将app生成多个不同的文件.</li>
+</ul>
+
+<h3 id="toc_9">Fundamentals of cross-platform development</h3>
+
+<blockquote>
+<p>跨平台开发的基本技巧</p>
+</blockquote>
+
+<h4 id="toc_10">Runtime code branching</h4>
+
+<blockquote>
+<p>运行时代码分支切换</p>
+</blockquote>
+
+<p>通过检测特性环境中的特性对象及方法, 例如浏览器中的<code>window</code>与<code>window.document</code>对象.</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+// 检测当前环境中的 window 对象
+// 选择不同的分支
+if (typeof window !== &quot;undefined&quot; &amp;&amp; window.document) {
+  console.log(&#39;Hey browser!&#39;);
+} else {
+  console.log(&#39;Hey Node.js!&#39;);
+}
+</code></pre>
+
+<p>不难看出这是一种非常简陋的处理方式, 实际中非常不建议这样做.</p>
+
+<h4 id="toc_11">Build-time code branching</h4>
+
+<blockquote>
+<p>编译时代码分支切换</p>
+</blockquote>
+
+<p>这一节同样是使用<code>webpack</code>, 但通过配置文件和<code>webpack</code>模块提供的方法, 改变<code>webpack</code>在编译时的行为.</p>
+
+<p>通过配置<code>webpack.config.js</code>进行对<code>webpack</code>编译行为的修改</p>
+
+<p><code>webpack</code>提供了几个插件用于修改编译行为, 其中</p>
+
+<ul>
+<li><code>DefinePlugin</code>: 用于定义预编译变量, 也可以修改源文件中的某个值, 与宏定义相似</li>
+<li><code>UglifyJsPlugin</code>: 指定如何压缩编译后的源码, 例如移除不可达的代码</li>
+</ul>
+
+<pre><code class="language-js">// webpack.config.js
+&quot;use strict&quot;;
+
+const path = require(&#39;path&#39;);
+const webpack = require(&#39;webpack&#39;);
+
+const definePlugin = new webpack.DefinePlugin({
+  // 定义预编译变量 __BROWSER__
+  &quot;__BROWSER__&quot;: &quot;true&quot;
+});
+
+const uglify = new webpack.optimize.UglifyJsPlugin({
+  // 设置美化输出
+  beautify: true,
+  // 移除不可达代码
+  dead_code: true
+});
+
+module.exports = {
+  entry:  path.join(__dirname, &quot;src&quot;, &quot;main.js&quot;),
+  output: {
+    path: path.join(__dirname, &quot;dist&quot;),
+    filename: &quot;bundle.js&quot;
+  },
+  plugins: [definePlugin, uglify]
+};
+</code></pre>
+
+<p><code>main.js</code></p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+if (typeof __BROWSER__ !== &quot;undefined&quot;) {
+  console.log(&#39;Hey browser!&#39;);
+} else {
+  console.log(&#39;Hey Node.js!&#39;);
+}
+</code></pre>
+
+<p>最后生成的代码</p>
+
+<pre><code class="language-js">!function(r) {
+    function e(t) {
+        if (o[t]) return o[t].exports;
+        var n = o[t] = {
+            exports: {},
+            id: t,
+            loaded: !1
+        };
+        return r[t].call(n.exports, n, n.exports, e), n.loaded = !0, n.exports;
+    }
+    var o = {};
+    return e.m = r, e.c = o, e.p = &quot;&quot;, e(0);
+}([ function(r, e, o) {
+    &quot;use strict&quot;;
+    console.log(&quot;Hey browser!&quot;);
+} ]);
+</code></pre>
+
+<p>由于<code>__BROWSER__</code>条件为<code>true</code>, <code>main.js</code>中的<code>if...else</code>语句直接被简化了.</p>
+
+<h4 id="toc_12">Module swapping</h4>
+
+<p>利用<code>webpack</code>实现两种模块替换技术:</p>
+
+<ul>
+<li>引用模块时通过变量名而不是<code>require</code>, 利用<code>DefinePlugin</code>根据不同环境定义该变量的值.</li>
+</ul>
+
+<pre><code class="language-js">// main.js
+&quot;use strict&quot;;
+// 这段代码无法在使用webpack编译前无法正常运行
+const now = __NOW__;
+const platform = __PLATFORM__;
+const host = __HOST__;
+
+console.log(`Bundle compiled on &quot;${now}&quot; on &quot;${platform}&quot; by &quot;${host}&quot;`);
+</code></pre>
+
+<p>配置<code>webpack.config.js</code></p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const path = require(&#39;path&#39;);
+const webpack = require(&#39;webpack&#39;);
+const os = require(&#39;os&#39;);
+
+let definePlugin = new webpack.DefinePlugin({
+  &quot;__NOW__&quot;: JSON.stringify((new Date()).toString()),
+  &quot;__PLATFORM__&quot;: JSON.stringify(os.platform()),
+  &quot;__HOST__&quot;: JSON.stringify(os.hostname())
+});
+
+module.exports = {
+  entry:  path.join(__dirname, &quot;src&quot;, &quot;main.js&quot;),
+  output: {
+    path: path.join(__dirname, &quot;dist&quot;),
+    filename: &quot;bundle.js&quot;
+  },
+  plugins: [definePlugin]
+};
+</code></pre>
+
+<p>编译后运行结果:</p>
+
+<p><img src="media/15107096826964/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-18%20%E4%B8%8B%E5%8D%889.32.29.png" alt="屏幕快照 2017-11-18 下午9.32.29"/></p>
+
+<ul>
+<li>通过搜索替换<code>require</code>函数中引入的模块名</li>
+</ul>
+
+<p><code>webpack</code>提供了<code>NormalModuleReplacementPlugin</code>的插件, 用于搜索特定模块名并替换</p>
+
+<pre><code class="language-js">// alertServer.js
+&quot;use strict&quot;;
+
+module.exports = console.log;
+</code></pre>
+
+<pre><code class="language-js">// alertBrowser.js
+&quot;use strict&quot;;
+
+module.exports = alert;
+</code></pre>
+
+<pre><code class="language-js">// main.js
+&quot;use strict&quot;;
+
+const alert = require(&#39;./alertServer&#39;);
+alert(&#39;Morning comes whether you set the alarm or not!&#39;);
+</code></pre>
+
+<p>通过<code>NormalModuleReplacementPlugin</code>搜索<code>alertServer.js</code>模块名, 并替换为<code>alertBrowser.js</code></p>
+
+<pre><code class="language-js">// webpack.config.js
+&quot;use strict&quot;;
+
+const path = require(&#39;path&#39;);
+const webpack = require(&#39;webpack&#39;);
+
+let moduleReplacementPlugin =
+  // 搜索 alertServer.js 替换为 alertBrowser.js
+  new webpack.NormalModuleReplacementPlugin(/alertServer.js$/, &#39;./alertBrowser.js&#39;);
+
+module.exports = {
+  entry:  path.join(__dirname, &quot;src&quot;, &quot;main.js&quot;),
+  output: {
+    path: path.join(__dirname, &quot;dist&quot;),
+    filename: &quot;bundle.js&quot;
+  },
+  // 引入插件
+  plugins: [moduleReplacementPlugin]
+};
+</code></pre>
+
+<p>编译后文件的主要部分</p>
+
+<pre><code class="language-js">([
+    (function (module, exports, __webpack_require__) {
+        &quot;use strict&quot;;
+        const alert = __webpack_require__(1);
+        alert(&#39;Morning comes whether you set the alarm or not!&#39;);
+    }), 
+    
+    (function (module, exports) {
+        &quot;use strict&quot;;
+        // 模块已经从 console.log 转换为 alert
+        module.exports = alert;
+    })
+]);
+</code></pre>
+
+<h4 id="toc_13">Design patterns for cross-platform development</h4>
+
+<blockquote>
+<p>利用设计模式进行跨平台开发</p>
+</blockquote>
+
+<ul>
+<li>策略模式: 根据不同的运行环境使用不同的策略, 与根据<code>window</code>对象选择不同执行代码类似</li>
+<li>模板模式: 无论是<code>node.js</code>平台或是浏览器环境, 分别针对两个环境做出不同的实现, 同时对外提供相同的接口.</li>
+<li>适配器模式: 对于浏览器环境不支持的模块, 例如<code>fs</code>, <code>timer</code>等, 可以利用适配器模式创建新的同名模块并模拟他们的行为</li>
+<li>代理模式: 对于浏览器不支持的环境, 可以利用<code>Proxy</code>通过<code>Ajax</code>或<code>websocket</code>与服务器进行通讯, 模拟远程模块的行为.</li>
+<li>观察者模式: 生产者与消费者之间天然是解耦的, 在编写消费者时要注意尽量不适用平台Nodejs特有代码, 而只需在编写生产者时准备两种运行环境的代码即可</li>
+<li>依赖注入模式: 对于不同运行环境注入不同的模块</li>
+</ul>
+
+<h3 id="toc_14">Introducing React</h3>
+
+<p><code>React</code>支持使用<code>Node.js</code>风格进行前端开发, 利用模块化, <code>npm</code>进行项目管理和开发</p>
+
+<h4 id="toc_15">First React component</h4>
+
+<blockquote>
+<p>创建一个用于显示书籍列表的前端页面</p>
+</blockquote>
+
+<pre><code class="language-js">// joyceBooks.js
+&quot;use strict&quot;;
+
+const React = require(&#39;react&#39;);
+
+const books = [
+  &#39;Dubliners&#39;,
+  &#39;A Portrait of the Artist as a Young Man&#39;,
+  &#39;Exiles and poetry&#39;,
+  &#39;Ulysses&#39;,
+  &#39;Finnegans Wake&#39;
+];
+
+class JoyceBooks extends React.Component {
+  render() {
+    return (
+      // JSX 代码, 在HTML中嵌入JS-like代码
+      &lt;div&gt;
+        &lt;h2&gt;James Joyce&#39;s major works&lt;/h2&gt;
+        &lt;ul className=&quot;books&quot;&gt;{
+          books.map( (book, key) =&gt;
+              &lt;li key={key} className=&quot;book&quot;&gt;{book}&lt;/li&gt;
+          )
+        }&lt;/ul&gt;
+      &lt;/div&gt;
+    );
+  }
+}
+
+module.exports = JoyceBooks;
+</code></pre>
+
+<p>JSX代码并不能在浏览器或<code>Nodejs</code>平台中正常解析, 同样需要通过<code>webpack</code>进行编译</p>
+
+<p>编译后的代码类似于</p>
+
+<pre><code class="language-js function">  return React.createElement(
+    &#39;div&#39;,
+    null,
+    React.createElement(&#39;h2&#39;, null, &#39;James Joyce\&#39;s major works&#39;),
+    React.createElement(&#39;ul&#39;, {
+      className: &#39;books&#39;
+    }, books.map(function (book) {
+      return React.createElement(&#39;li&#39;, {
+        className: &#39;book&#39;
+      }, book);
+    })));
+}
+</code></pre>
+
+<p>上面的代码创建了一个用于显示<code>JoyceBooks</code>的组件, 但还未创建将它显示在浏览器中的代码</p>
+
+<pre><code class="language-js">// main.js
+&quot;use strict&quot;;
+
+const React = require(&#39;react&#39;);
+const ReactDOM = require(&#39;react-dom&#39;);
+const JoyceBooks = require(&#39;./joyceBooks&#39;);
+
+window.onload = () =&gt; {
+  // 当前页面加载完成时, 将 JoyceBooks DOM显示值id为 main 的元素中
+  ReactDOM.render(&lt;JoyceBooks/&gt;, document.getElementById(&#39;main&#39;))
+};
+</code></pre>
+
+<p>使用<code>webpack</code>进行编译, 最后在浏览器输出的结果</p>
+
+<p><img src="media/15107096826964/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-19%20%E4%B8%8A%E5%8D%8810.43.05.png" alt="屏幕快照 2017-11-19 上午10.43.05"/></p>
+
+<pre><code class="language-html">&lt;ul class=&quot;books&quot;&gt;
+    &lt;li class=&quot;book&quot;&gt;Dubliners&lt;/li&gt;
+    &lt;li class=&quot;book&quot;&gt;A Portrait of the Artist as a Young Man&lt;/li&gt;
+    &lt;li class=&quot;book&quot;&gt;Exiles and poetry&lt;/li&gt;
+    &lt;li class=&quot;book&quot;&gt;Ulysses&lt;/li&gt;
+    &lt;li class=&quot;book&quot;&gt;Finnegans Wake&lt;/li&gt;
+&lt;/ul&gt;
+</code></pre>
+
+<h3 id="toc_16">Creating a Universal JavaScript app</h3>
+
+<blockquote>
+<p>编写一个前后端都为JS栈的app</p>
+</blockquote>
+
+<p>编写一个前端显示书本列表并从后台拉取数据的Js应用</p>
+
+<h4 id="toc_17">Creating reusable components</h4>
+
+<p>首先利用虚拟数据模拟后端返回的数据</p>
+
+<pre><code class="language-js">// authors.js
+&quot;use strict&quot;;
+
+module.exports = {
+
+  &#39;joyce&#39;: {
+    &#39;name&#39;: &#39;James Joyce&#39;,
+    &#39;books&#39;: [
+      &#39;Dubliners&#39;,
+      &#39;A Portrait of the Artist as a Young Man&#39;,
+      &#39;Exiles and poetry&#39;,
+      &#39;Ulysses&#39;,
+      &#39;Finnegans Wake&#39;
+    ]
+  },
+
+  &#39;h-g-wells&#39;: {
+    &#39;name&#39;: &#39;Herbert George Wells&#39;,
+    &#39;books&#39;: [
+      &#39;The Time Machine&#39;,
+      &#39;The War of the Worlds&#39;,
+      &#39;The First Men in the Moon&#39;,
+      &#39;The Invisible Man&#39;
+    ]
+  }
+};
+</code></pre>
+
+<ul>
+<li>编写用于显示书本列表的<code>React</code>组件</li>
+</ul>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const React = require(&#39;react&#39;);
+const Link = require(&#39;react-router&#39;).Link;
+// 从 authors 模块获取所有作者及其著作信息
+const AUTHORS = require(&#39;../authors&#39;);
+
+class AuthorPage extends React.Component {
+  render() {
+    // 根据id获取
+    const author = AUTHORS[this.props.params.id];
+    return (
+      &lt;div&gt;
+        // 显示作者名称
+        &lt;h2&gt;{author.name}&#39;s major works&lt;/h2&gt;
+        &lt;ul className=&quot;books&quot;&gt;{
+          // 遍历生成著作列表
+          author.books.map( (book, key) =&gt;
+            &lt;li key={key} className=&quot;book&quot;&gt;{book}&lt;/li&gt;
+          )
+        }&lt;/ul&gt;
+        // 提供跳转回index的链接
+        &lt;Link to=&quot;/&quot;&gt;Go back to index&lt;/Link&gt;
+      &lt;/div&gt;
+    );
+  }
+}
+
+module.exports = AuthorPage;
+</code></pre>
+
+<ul>
+<li>作者列表组件</li>
+</ul>
+
+<pre><code class="language-js">// authorsIndex.js
+&quot;use strict&quot;;
+
+const React = require(&#39;react&#39;);
+const Link = require(&#39;react-router&#39;).Link;
+const AUTHORS = require(&#39;../authors&#39;);
+
+class AuthorsIndex extends React.Component {
+  render() {
+    return (
+      &lt;div&gt;
+        &lt;h1&gt;List of authors&lt;/h1&gt;
+        &lt;ul&gt;{
+          // 遍历作者名称, 生成列表
+          Object.keys(AUTHORS).map(id =&gt;
+            &lt;li key={id}&gt;&lt;Link to={`/author/${id}`}&gt;{AUTHORS[id].name}&lt;/Link&gt;&lt;/li&gt;
+          )
+        }&lt;/ul&gt;
+      &lt;/div&gt;
+    )
+  }
+}
+
+module.exports = AuthorsIndex;
+</code></pre>
+
+<p>由于这是一个SPA, 还需要模拟路由的组件</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const React = require(&#39;react&#39;);
+const ReactRouter = require(&#39;react-router&#39;);
+const Router = ReactRouter.Router;
+const hashHistory = ReactRouter.hashHistory;
+const AuthorsIndex = require(&#39;./components/authorsIndex&#39;);
+const AuthorPage = require(&#39;./components/authorPage&#39;);
+const NotFound = require(&#39;./components/notFound&#39;);
+
+const routesConfig = [
+  // &#39;/&#39; 根目录重定向为 AuthorsIndex
+  {path: &#39;/&#39;, component: AuthorsIndex},
+  // &#39;/author/:id&#39; 路径重定向为 AuthorsIndex
+  {path: &#39;/author/:id&#39;, component: AuthorPage},
+  // &#39;*&#39; 其他路径重定向到NotFound
+  {path: &#39;*&#39;, component: NotFound}
+];
+
+class Routes extends React.Component {
+  render() {
+    return &lt;Router history={hashHistory} routes={routesConfig}/&gt;;
+  }
+}
+
+module.exports = Routes;
+</code></pre>
+
+<p>利用<code>webpack</code>编译后的运行结果</p>
+
+<p><img src="media/15107096826964/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-19%20%E4%B8%8A%E5%8D%8811.30.45.png" alt="屏幕快照 2017-11-19 上午11.30.45"/><br/>
+<img src="media/15107096826964/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-19%20%E4%B8%8A%E5%8D%8811.30.51.png" alt="屏幕快照 2017-11-19 上午11.30.51"/></p>
+
+<h4 id="toc_18">Server-side rendering</h4>
+
+<p>这一节使用的是采用MVC模式, 从后台利用<code>Express</code>与<code>ejs</code>模板引擎发送<code>HTML</code>代码.</p>
+
+<ul>
+<li><code>view/index.ejs</code></li>
+</ul>
+
+<pre><code class="language-js">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot; /&gt;
+    &lt;title&gt;React Example - Authors archive&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div id=&quot;main&quot;&gt;
+        // markup 标记
+        // 利用ejs进行替换
+        &lt;%- markup -%&gt;
+    &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+<ul>
+<li><code>server.js</code></li>
+</ul>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const http = require(&#39;http&#39;);
+const Express = require(&#39;express&#39;);
+const React = require(&#39;react&#39;);
+const ReactDom = require(&#39;react-dom/server&#39;);
+const Router = require(&#39;react-router&#39;);
+const routesConfig = require(&#39;./src/routesConfig&#39;);
+
+const app = new Express();
+const server = new http.Server(app);
+
+app.set(&#39;view engine&#39;, &#39;ejs&#39;);
+
+app.get(&#39;*&#39;, (req, res) =&gt; {
+  Router.match(
+    // 传入 路由设置 与 请求url
+    {routes: routesConfig, location: req.url},
+    (error, redirectLocation, renderProps) =&gt; {
+      if (error) {
+        res.status(500).send(error.message)
+      } else if (redirectLocation) {
+        // 检测是否需要重定向
+        res.redirect(302, redirectLocation.pathname + redirectLocation.search)
+      } else if (renderProps) {
+        // 根据路径生成对应HTML文本
+        let markup = ReactDom.renderToString(&lt;Router.RouterContext {...renderProps} /&gt;);
+        // 将文本发送至浏览器
+        res.render(&#39;index&#39;, {markup});
+      } else {
+        res.status(404).send(&#39;Not found&#39;)
+      }
+    });
+});
+
+server.listen(3000, (err) =&gt; {
+  if (err) {
+    return console.error(err);
+  }
+  console.info(&#39;Server running on http://localhost:3000&#39;);
+});&quot;use strict&quot;;
+
+const http = require(&#39;http&#39;);
+const Express = require(&#39;express&#39;);
+const React = require(&#39;react&#39;);
+const ReactDom = require(&#39;react-dom/server&#39;);
+const Router = require(&#39;react-router&#39;);
+const routesConfig = require(&#39;./src/routesConfig&#39;);
+
+const app = new Express();
+const server = new http.Server(app);
+
+app.set(&#39;view engine&#39;, &#39;ejs&#39;);
+
+// 将所有GET请求路由到该函数
+app.get(&#39;*&#39;, (req, res) =&gt; {
+  Router.match(
+    // 传入 路由设置 与 请求url
+    {routes: routesConfig, location: req.url},
+    (error, redirectLocation, renderProps) =&gt; {
+      if (error) {
+        res.status(500).send(error.message)
+      } else if (redirectLocation) {
+        // 检测是否需要重定向
+        res.redirect(302, redirectLocation.pathname + redirectLocation.search)
+      } else if (renderProps) {
+        // 根据路径生成对应HTML文本
+        let markup = ReactDom.renderToString(&lt;Router.RouterContext {...renderProps} /&gt;);
+        // 将文本发送至浏览器
+        res.render(&#39;index&#39;, {markup});
+      } else {
+        res.status(404).send(&#39;Not found&#39;)
+      }
+    });
+});
+
+server.listen(3000, (err) =&gt; {
+  if (err) {
+    return console.error(err);
+  }
+  console.info(&#39;Server running on http://localhost:3000&#39;);
+});
+</code></pre>
+
+<p>由此一来, 这个APP从 SPA 转换成了普通的 Server-Base APP</p>
+
+<p><img src="media/15107096826964/spa.png" alt="spa"/></p>
+
+<p>转变为</p>
+
+<p><img src="media/15107096826964/server-side.png" alt="server-side"/></p>
+
+<h3 id="toc_19">Universal data retrieval</h3>
+
+<p>根据<code>SPA</code>风格的APP可以看出, 前端需要的只是作者及其著作的数据<br/>
+因此完全可以转换为 前端通过<code>AJAX</code>获取数据并改变<code>DOM</code>, 后端通过<code>API</code>接口返回数据即可</p>
+
+<h4 id="toc_20">The API server</h4>
+
+<p>后台通过提供HTTP API的形式返回作者数据.</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const http = require(&#39;http&#39;);
+const Express = require(&#39;express&#39;);
+
+const app = new Express();
+const server = new http.Server(app);
+// authors数据源
+const AUTHORS = require(&#39;./src/authors&#39;);
+// logger组件
+app.use((req, res, next) =&gt; {
+  console.log(`Received request: ${req.method} ${req.url} from ${req.headers[&#39;user-agent&#39;]}`);
+  next();
+});
+// 
+app.get(&#39;/authors&#39;, (req, res, next) =&gt; {
+  const data = Object.keys(AUTHORS).map(id =&gt; {
+    // 以JSON的形式返回id与作者名称
+    return {
+      &#39;id&#39;: id,
+      &#39;name&#39;: AUTHORS[id].name
+    };
+  });
+  res.json(data);
+});
+
+app.get(&#39;/authors/:id&#39;, (req, res, next) =&gt; {
+  if (!AUTHORS.hasOwnProperty(req.params.id)) {
+    // id不存在即返回
+    return next();
+  }
+  // 根据id获取作者详细
+  const data = AUTHORS[req.params.id];
+  res.json(data);
+});
+
+server.listen(3001, (err) =&gt; {
+  if (err) {
+    return console.error(err);
+  }
+  console.info(&#39;API Server running on http://localhost:3001&#39;);
+});
+</code></pre>
+
+<h4 id="toc_21">Asynchronous React components</h4>
+
+<p>前端改为异步从后台拉取数据, 并将数据渲染至HTML中</p>
+
+<p>这里用到了<code>axios</code>的库, <code>axios</code>用于对Ajax进行抽象并返回一个<code>promise</code></p>
+
+<ul>
+<li>作者信息索引 <code>authorIndex.js</code></li>
+</ul>
+
+<pre><code class="language-js">// authorIndex.js
+
+const Axios = require(&#39;axios&#39;);
+
+const React = require(&#39;react&#39;);
+const Link = require(&#39;react-router&#39;).Link;
+const xhrClient = Axios.create({ &#39;http://localhost:3001&#39; });
+
+class AuthorsIndex extends React.Component {
+  // 组件载入时通过ajax获取后台信息
+  static loadProps(context, cb) {
+    xhrClient.get(&#39;authors&#39;)
+      .then(response =&gt; {
+        const authors = response.data;
+        cb(null, {authors});
+      })
+      .catch(error =&gt; cb(error))
+    ;
+  }
+
+  render() {
+    return (
+      &lt;div&gt;
+        &lt;h1&gt;List of authors&lt;/h1&gt;
+        &lt;ul&gt;{
+          // this.props.authors在页面加载前就已经通过 loadProps 从服务器获取了
+          this.props.authors.map(author =&gt;
+            &lt;li key={author.id}&gt;
+              &lt;Link to={`/author/${author.id}`}&gt;{author.name}&lt;/Link&gt;
+            &lt;/li&gt;
+          )
+        }&lt;/ul&gt;
+      &lt;/div&gt;
+    )
+  }
+}
+
+module.exports = AuthorsIndex;
+</code></pre>
+
+<ul>
+<li>作者详细著作信息 <code>authorPage.js</code></li>
+</ul>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const Axios = require(&#39;axios&#39;);
+
+const React = require(&#39;react&#39;);
+const Link = require(&#39;react-router&#39;).Link;
+const xhrClient = Axios.create({ &#39;http://localhost:3001&#39; });
+
+class AuthorPage extends React.Component {
+  static loadProps(context, cb) {
+    xhrClient.get(`authors/${context.params.id}`)
+      .then(response =&gt; {
+        const author = response.data;
+        cb(null, {author});
+      })
+      .catch(error =&gt; cb(error))
+    ;
+  }
+
+  render() {
+    return (
+      &lt;div&gt;
+        &lt;h2&gt;{this.props.author.name}&#39;s major works&lt;/h2&gt;
+        &lt;ul className=&quot;books&quot;&gt;{
+          this.props.author.books.map( (book, key) =&gt;
+            &lt;li key={key} className=&quot;book&quot;&gt;{book}&lt;/li&gt;
+          )
+        }&lt;/ul&gt;
+        &lt;Link to=&quot;/&quot;&gt;Go back to index&lt;/Link&gt;
+      &lt;/div&gt;
+    );
+  }
+}
+
+module.exports = AuthorPage;
+</code></pre>
+
+<ul>
+<li>最后是前端路由<code>route.js</code>, 已完成SPA特性</li>
+</ul>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const React = require(&#39;react&#39;);
+const AsyncProps = require(&#39;async-props&#39;).default;
+const ReactRouter = require(&#39;react-router&#39;);
+const Router = ReactRouter.Router;
+const browserHistory = ReactRouter.browserHistory;
+const routesConfig = require(&#39;./routesConfig&#39;);
+
+class Routes extends React.Component {
+  render() {
+    return &lt;Router
+      history={browserHistory}
+      routes={routesConfig}
+      render={(props) =&gt; &lt;AsyncProps {...props}/&gt;}
+    /&gt;;
+  }
+}
+
+module.exports = Routes;
+</code></pre>
+
+<p>最后模型转变为<br/>
+<img src="media/15107096826964/123.png" alt="123"/></p>
+
+<h3 id="toc_22">总结</h3>
+
+<p>浏览器和<code>Node.js</code>的<code>JavaScript</code>运行环境在标准库, 编写风格和函数行为上的表现都大不相同.即使如此, 利用<code>Node.js</code>的模块管理与<code>npm</code>包管理系统编写前端代码, 然后利用<code>webpack</code>之类的编译工具编译到符合浏览器标准的代码, 构成了完整的<code>JavaScript</code>生态, 前后端web开发减少了思维切换的难度, 非常不错.</p>
+
+			</div>
+
+		
+	  
+		<footer>
+		 <p class="meta">
+
+			
+			<span class="categories">
+			 
+			</span>
+		    </p>
+		    <p class="meta">
+		      
+		 </p>
+	    
+		<div class="sharing">
+		  
+          
+
+          
+
+		</div>
+
+	    <p class="meta">
+	    
+	        <a class="basic-alignment left" href="15114266480360.html" 
+	        title="Previous Post: JavaScript高级程序设计 · 7、22 章">&laquo; JavaScript高级程序设计 · 7、22 章</a>
+	    
+	    
+	        <a class="basic-alignment right" href="15101331051720.html" 
+	        title="Next Post: JavaScript高级程序设计 · 4、5、6 章">JavaScript高级程序设计 · 4、5、6 章 &raquo;</a>
+	    
+	    </p>
+	  </footer>
+	</article>
+</div>
+ <aside class="sidebar"> 
+
+	<section>
+	  <h1>Categories</h1>
+	  <ul id="recent_posts">
+	  
+	        
+	      </li>
+	   
+	  </ul>
+	</section>
+	<section>
+	  <h1>Recent Posts</h1>
+	  <ul id="recent_posts">
+	  
+	      
+		      <li class="post">
+		        <a href="15127920862405.html">Node.js设计模式 · 第九章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15124581127035.html">SQL必知必会 1 - 7 章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15116831975159.html">从 Node.js C++ Addon 观察 Js 在 v8 中的表示方式</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15114266480360.html">JavaScript高级程序设计 · 7、22 章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15107096826964.html">Node.js设计模式 · 第八章</a>
+		      </li>
+	     
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	   
+	  </ul>
+	</section>
+	
+</aside> </div></div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2017 -  -
+  <span class="credit">Powered by <a target="_blank" href="https://zerolocusta.github.io">zerolocusta</a> &nbsp;&nbsp; Theme by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+
+  
+    
+
+<script src="asset/chart/all-min.js"></script><script type="text/javascript">$(function(){    var mwebii=0;    var mwebChartEleId = 'mweb-chart-ele-';    $('pre>code').each(function(){        mwebii++;        var eleiid = mwebChartEleId+mwebii;        if($(this).hasClass('language-sequence')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = Diagram.parse($(this).text());            diagram.drawSVG(eleiid,{theme: 'simple'});        }else if($(this).hasClass('language-flow')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = flowchart.parse($(this).text());            diagram.drawSVG(eleiid);        }    });});</script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><script type="text/x-mathjax-config">MathJax.Hub.Config({TeX: { equationNumbers: { autoNumber: "AMS" } }});</script>
+
+</body>
+</html>

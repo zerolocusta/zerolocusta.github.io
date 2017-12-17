@@ -1,0 +1,810 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>
+    
+  Node.js设计模式 · 第九章 - zerolocust
+  
+
+  </title>
+  <meta name="author" content="">
+  <meta name="description" content="locustchen的博客">
+
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <link href="asset/css/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="atom.xml" rel="alternate" title="zerolocust" type="application/atom+xml">
+  <script src="asset/js/modernizr-2.0.js"></script>
+  <script src="asset/js/jquery.min.js"></script>
+  <script src="asset/highlightjs/highlight.pack.js"></script>
+  <link href="asset/highlightjs/styles/solarized_light.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script>hljs.initHighlightingOnLoad();</script>
+
+  <style type="text/css">
+  .cat-children-p{ padding: 6px 0px;}
+  .hljs{background: none;}
+  </style>
+  <script type="text/javascript">
+  var isAddSildbar = true;
+  </script>
+  <script src="asset/js/octopress.js" type="text/javascript"></script>
+</head>
+<script type="text/javascript">
+//链接新开窗口
+function addBlankTargetForLinks () {
+  $('a[href^="http"]').each(function(){
+      $(this).attr('target', '_blank');
+  });
+}
+$(document).ready(function(event) {
+  addBlankTargetForLinks();
+});
+</script>
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="index.html">zerolocust</a></h1>
+  
+    <h2>locustchen的博客</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zerolocusta.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+
+  <li id=""><a target="self" href="index.html">Home</a></li>
+
+  <li id=""><a target="_self" href="archives.html">Archives</a></li>
+
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content"> 
+<div>
+	<article class="hentry" role="article">
+	<header>
+			  	<h1 class="entry-title">Node.js设计模式 · 第九章</h1>
+				<p class="meta"><time datetime="2017-12-09T12:01:26+08:00" pubdate data-updated="true">2017/12/9 12:1 下午</time></p>
+			 </header>
+		  	<div class="entry-content">
+			  	<h2 id="toc_0">Advanced Asynchronous Recipes</h2>
+
+<p>如何利用一些高级的异步概念去改善我们饿 NodeJS 程序，这一章会介绍例如</p>
+
+<ul>
+<li>如何处理需要异步初始化的模块</li>
+<li>如何利用少量的代价引入批量异步操作与缓存异步操作，从而获得性能提升</li>
+<li>如何处理计算密集型的操作</li>
+</ul>
+
+<h3 id="toc_1">Requiring asynchronously initialized modules</h3>
+
+<p>实际开发中存在不少需要异步初始化的模块，例如数据库客户端模块就是一个。只有在数据库连接完成后才可以进行操作。<br/>
+  然而 NodeJS 的模块系统是同步的，在引入的一刻就可以被其他代码所使用了，这也就造成了模块初始化完成之前极有可能被其他代码使用，从而引起UB。</p>
+
+<h4 id="toc_2">Canonical solutions</h4>
+
+<p>为了说明这个问题以及它的解决方案，这里引入一个 db 模块例子，这个模块需要在连接上远程的数据库之后才能开始处理请求。</p>
+
+<h5 id="toc_3">利用 EventEmitter 实现异步初始化模块调用</h5>
+
+<p>以下代码假设 aDb 是需要异步初始化的模块</p>
+
+<pre><code class="language-js">const db = require(&#39;aDb&#39;) // aDb是需要异步初始化的模块
+
+function runFind(type, callback) {
+    db.find(type, callback);
+}
+
+module.exports = function findAll(type, callback) {
+
+  if (db.connected) {    // 检测db是否已经初始化完成
+    runFind(type, callback); // 初始化完毕则直接调用查询函数
+  } else {
+    // 未初始化完毕则柯里化参数并订阅 connected 事件
+    db.once(&#39;connected&#39;, runFind.bind(this, type, callback));
+  }
+
+}
+</code></pre>
+
+<p>上面这段代码利用了 EventEmitter 实现在数据库未初始化完毕的时候，模块函数被调用时，使用 once 函数订阅事件，而在模块初始化完毕后的调用则直接查询数据库。</p>
+
+<h5 id="toc_4">利用 DI 实现异步初始化模块调用</h5>
+
+<p>依赖注入利用反向注入已初始化的数据库模块至数据库API，从而实现初始化后才接受请求</p>
+
+<pre><code class="language-js">// 在 findAll.js 中
+module.exports = function(db) { // 依赖外部注入已经初始化完成的db
+    return function findAll(type, callback) [
+        db.findAll(type, callback);
+    }
+}
+</code></pre>
+
+<pre><code class="language-js">// 在 app.js 中
+const db = require(&#39;aDb&#39;) //异步初始化的数据库模块
+const findAllFactory = require(&#39;findAll&#39;);
+
+db.on(&#39;connected&#39;, function() {
+    // 订阅 connected 事件，在 db 初始化完成时注入
+    const findAll = findAllFactory(db);
+});
+</code></pre>
+
+<p>然而 DI 解决异步模块初始化的方法看起来很别扭（根本原因在于 NodeJS 并不能很好地应用这种风格），并且 DI 在日益增长的代码项目会慢慢变得庞大且难以维护。</p>
+
+<h4 id="toc_5">Preinitialization queues</h4>
+
+<p>总的来说，以上两种方法都不是很好。这里引入一种 Preinitialization queues 技巧，核心思想是利用<strong>队列</strong>，将模块初始化完成前的操作缓存起来，然后在模块初始化完成时按顺序执行队列中的操作。</p>
+
+<p>在引入 Preinitialization queues 之前，先说明一个 asyncModule，以便之后针对这个异步初始化模块应用 Preinitialization queues 技术。</p>
+
+<pre><code class="language-js">// asyncModule.js
+&quot;use strict&quot;;
+
+const asyncModule = {};
+
+asyncModule.initialized = false;
+asyncModule.initialize = callback =&gt; {
+  setTimeout(() =&gt; {
+    // 设置10秒后初始化状态为true
+    asyncModule.initialized = true;
+    callback();
+  }, 10000);
+};
+
+asyncModule.tellMeSomething = callback =&gt; {
+  process.nextTick(() =&gt; {
+    if(!asyncModule.initialized) {
+      // 检查模块初始化状态
+      return callback(
+        // 未初始化则返回Error
+        new Error(&#39;I don\&#39;t have anything to say right now&#39;)
+      );
+    }
+    // 初始化完成则返回 &#39;Current time is: &#39; + new Date() 字符串
+    callback(null, &#39;Current time is: &#39; + new Date());
+  });
+};
+
+module.exports = asyncModule;
+</code></pre>
+
+<p>然后使用  Preinitialization queues  技术，利用 asyncModuleWrap 封装 asyncModule</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const asyncModule = require(&#39;./asyncModule&#39;);
+
+//The wrapper
+const asyncModuleWrapper = {}
+// 设置 模块的初始化状态为 false
+asyncModuleWrapper.initialized = false;
+// asyncModule.initialize 的钩子
+asyncModuleWrapper.initialize = function() {
+  // 在目前的状态中调用 initialize
+  activeState.initialize.apply(activeState, arguments);
+};
+// asyncModule.tellMeSomething 的钩子
+asyncModuleWrapper.tellMeSomething = function() {
+  // 在目前的状态中调用 tellMeSomething
+  activeState.tellMeSomething.apply(activeState, arguments);
+};
+// pending 队列用于存放在模块未初始化完成时的调用信息
+let pending = [];
+// notInitializedState 用于模拟 asyncModule
+// 在 asyncModule 初始化完毕前替换它并缓存操作
+let notInitializedState = {
+
+  initialize: function(callback) {
+    asyncModule.initialize(function() {
+      // 初始化完毕设置状态为 true
+      asyncModuleWrapper.initalized = true;
+      // 目前的状态为 activeState
+      activeState = initializedState;
+      // 执行模块初始化完成前的所有 函数调用 
+      pending.forEach(function(req) {
+        asyncModule[req.method].apply(null, req.args);
+      });
+      // 重置队列
+      pending = [];
+      // 调用回调函数
+      callback();
+    });
+  },
+  
+  tellMeSomething: function(callback) {
+    // 此处添加log， 用于观察初始化前此函数被调用次数
+    console.log(&#39;Call NotInitializedState tellMeSomething()&#39;);
+    // 由于模块仍未初始化完成
+    // 此时缓存函数调用参数并放入 pending 队列
+    return pending.push({
+      method: &#39;tellMeSomething&#39;,
+      args: arguments
+    });
+  }
+  
+};
+
+// initializedState 用于指代已经初始化完毕的 asyncModule
+let initializedState = asyncModule;
+
+// activeState 的初始化状态为 notInitializedState
+let activeState = notInitializedState;
+
+module.exports = asyncModuleWrapper;
+</code></pre>
+
+<h5 id="toc_6">Preinitialization queues 的核心思想</h5>
+
+<p>hook 所有依赖模块初始化状态的函数，并且记录每一次模块初始化前的函数调用及其参数。在初始化完毕后执行所有挂起的函数函数调用，并解除 hook。</p>
+
+<h3 id="toc_7">Asynchronous batching and caching</h3>
+
+<p>在一些高吞吐量的服务中，<strong>缓存</strong>往往能优化服务性能，并且减少资源的消耗。这一节阐述如何方便地在异步操作上应用 Cache ，从而大幅提高吞吐量。</p>
+
+<h4 id="toc_8">Implementing a server with no caching or batching</h4>
+
+<p>为了说明没有缓存的服务和带缓存的服务之间的性能差别，这一节将会分别实现两种服务。</p>
+
+<p>假设这个服务器将会在数据库中存储一种模型为<code>{transactionId: {amount, item}}</code>的JSON，而我们将会实现一个<code>totalSales(item, callback)</code>接口，这个接口将会搜索数据库中所有<code>transactionId.item === item</code>的元素，然后计算总数并通过 callback 返回。</p>
+
+<p>通过数据模型可以看出，对于查询 item 的操作如果没有数据库直接支持，我们只能遍历所有数据并找出对应的item项，最后输出统计信息。</p>
+
+<h5 id="toc_9">Asynchronous operation without caching and batching</h5>
+
+<p>无缓存及批量操作的服务</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+// 利用 leveldb 存储数据
+const level = require(&#39;level&#39;);
+const sublevel = require(&#39;level-sublevel&#39;);
+
+const db = sublevel(level(&#39;example-db&#39;, {valueEncoding: &#39;json&#39;}));
+const salesDb = db.sublevel(&#39;sales&#39;);
+
+module.exports = function totalSales(item, callback) {
+  console.log(&#39;totalSales() invoked&#39;);
+  // 初始化 sum
+  let sum = 0;
+  salesDb.createValueStream()
+    .on(&#39;data&#39;, data =&gt; {
+      // 如果item为空，则统计数据库所有数据
+      if(!item || data.item === item) {
+        sum += data.amount;
+      }
+    })
+    .on(&#39;end&#39;, () =&gt; {
+      // 结束时回调
+      callback(null, sum);
+    });
+};
+</code></pre>
+
+<p>以及为这个服务建立一个简单的HTTP透传服务。</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const http = require(&#39;http&#39;);
+const url = require(&#39;url&#39;);
+const totalSales = require(&#39;./totalSales&#39;);
+
+http.createServer((req, res) =&gt; {
+  const query = url.parse(req.url, true).query;
+  totalSales(query.item, (err, sum) =&gt; {
+    res.writeHead(200);
+    res.end(`Total sales for item ${query.item} is ${sum}`);
+  });
+}).listen(8000, () =&gt; console.log(&#39;Started&#39;));
+</code></pre>
+
+<p>最后将会通过脚本往数据库中插入100K条数据，并通过一个test客户端，以200ms为间隔发出20个<strong>相同的</strong>请求，测试该服务器的耗时。<br/>
+（测试结果）<br/>
+<img src="media/15127920862405/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-12-14%20%E4%B8%8B%E5%8D%8811.07.41.png" alt="屏幕快照 2017-12-14 下午11.07.41"/></p>
+
+<p>目前的模式是每次请求都重新查找一遍数据库（也有可能某些包引入优先级缓存）。</p>
+
+<h5 id="toc_10">Asynchronous operation with batching</h5>
+
+<p>对于20个<strong>相同的</strong>请求，服务查询返回<strong>完全</strong>相同的结果。<br/>
+<img src="media/15127920862405/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-12-14%20%E4%B8%8B%E5%8D%8811.33.18.png" alt="屏幕快照 2017-12-14 下午11.33.18"/></p>
+
+<p>这里尝试在服务端引入<strong>批处理（Batching）</strong>技术。</p>
+
+<p>由于此服务的查询是由 item 作为条件查询出统计结果的，这里根据查询条件 item 作为批处理汇聚的 key。</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const totalSales = require(&#39;./totalSales&#39;);
+
+const queues = {};
+module.exports = function totalSalesBatch(item, callback) {
+  // 在首次或 totalSales 完成时 调用 totalSalesBatch
+  // queues[item]将为空
+  // 而在当前 totalSales 未完成时，则会将回调函数推入对应的 queue
+  // 从而汇聚一段时间内（totalSales查询时间）的相同查询。
+  if(queues[item]) {
+    console.log(&#39;Batching operation&#39;);
+    return queues[item].push(callback);
+  }
+  
+  // 初始化 Batching Queue
+  queues[item] = [callback];
+  totalSales(item, (err, res) =&gt; {
+    // 在 totalSales 完成时，取出对应的 Batching Queue
+    const queue = queues[item];
+    // 将查询条件 item 对应的 Batching Queue 清除
+    queues[item] = null; 
+    // 回调所有 callback
+    queue.forEach(cb =&gt; cb(err, res));
+  });
+};
+</code></pre>
+
+<p>上面这段代码创建了一个 totalSales 的代理，并且将请求汇聚。</p>
+
+<p>（测试结果）<br/>
+<img src="media/15127920862405/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-12-14%20%E4%B8%8B%E5%8D%8811.53.10.png" alt="屏幕快照 2017-12-14 下午11.53.10"/></p>
+
+<p>很明显耗时少了一倍！<br/>
+<img src="media/15127920862405/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-12-14%20%E4%B8%8B%E5%8D%8811.54.22.png" alt="屏幕快照 2017-12-14 下午11.54.22"/></p>
+
+<h5 id="toc_11">Asynchronous operation caching</h5>
+
+<p>上面的 Batching 对于需要长时间处理的操作很友好，但是如果是一些简单快速的API，可能在下一个相同操作请求进来之前就执行完了，这样就没有办法做到优化。<br/>
+如果一个 API 获取的数据不需要实时性，可以利用 Caching 去优化查询，从而减少耗时。</p>
+
+<p>以下的代码将 Batching 与 Caching 结合起来</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const totalSales = require(&#39;./totalSales&#39;);
+// Batch Queue 
+const queues = {};
+// 缓存对象 
+const cache = {};
+
+module.exports = function totalSalesBatch(item, callback) {
+  // 尝试从缓存中取出数据
+  const cached = cache[item];
+  if (cached) {
+    // 如果缓存中数据存在则返回该数据
+    console.log(&#39;Cache hit&#39;);
+    // 保持接口一致性，异步返回该数据
+    return process.nextTick(callback.bind(null, null, cached));
+  }
+  // 以下大部分与 Batching Request 相同
+  if (queues[item]) {
+    console.log(&#39;Batching operation&#39;);
+    return queues[item].push(callback);
+  }
+  
+  queues[item] = [callback];
+  totalSales(item, (err, res) =&gt; {
+    if (!err) {
+      // 查询成功将结果放入缓存
+      cache[item] = res;
+      setTimeout(() =&gt; {
+        // 设置超时，在既定时间后删除该缓存
+        delete cache[item];
+      }, 30 * 1000); //30 seconds expiry
+    }
+    
+    const queue = queues[item];
+    queues[item] = null;
+    queue.forEach(cb =&gt; cb(err, res));
+  });
+};
+</code></pre>
+
+<p><strong>使用 Caching 要注意的是要保持异步接口的一致性，参考第二章中提到的 Unleashing Zalgo。</strong></p>
+
+<p><img src="media/15127920862405/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-12-17%20%E4%B8%8A%E5%8D%8811.42.57.png" alt="屏幕快照 2017-12-17 上午11.42.57"/></p>
+
+<p>运行结果</p>
+
+<p><img src="media/15127920862405/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-12-17%20%E4%B8%8A%E5%8D%8811.45.15.png" alt="屏幕快照 2017-12-17 上午11.45.15"/></p>
+
+<h3 id="toc_12">Running CPU-bound tasks</h3>
+
+<p>相比起 IO密集型 的 Nodejs 应用， CPU密集型的应用无法利用事件循环处理耗时的计算任务，造成整个Nodejs进程的阻塞。</p>
+
+<p>假设一种计算任务，需要在集合 \(S\) 中查找其所有子集 \(S_{1}\),\(S_{2}\)...\(S_{n}\) 中，子集中的和 \(\sum S_{x}\) 等于给定的数 sum。例如要就找出集合 <code>[1, 2, -4, 5, -3]</code> 中所有子集中和为 0 的子集，其中就有 <code>[1, 2, -3]</code> 与 <code>[2, -4, 5, -3]</code> 等满足条件。</p>
+
+<p>如果不考虑算法上的优化（动态规划可将时间复杂度优化至\(O(N!)\))，其时间复杂度达到了 \(O(2^n)\)，即使是简单的30个元素的集合，计算复杂度也达到了\(2^{30}\)。</p>
+
+<p>在解释如何在 Nodejs 中规避 CPU密集型 任务带来的进程阻塞问题之前，首先实现一个 计算集合中所有子集并查找出和为给定数 的工具吧。</p>
+
+<pre><code class="language-js">// subsetSum.js
+
+&quot;use strict&quot;;
+
+const EventEmitter = require(&#39;events&#39;).EventEmitter;
+
+class SubsetSum extends EventEmitter {
+  // 构造函数中指定 sum 和 需要查找的 set
+  constructor(sum, set) {
+    super();
+    this.sum = sum;
+    this.set = set;
+    this.totalSubsets = 0;
+  }
+
+  _combine(set, subset) {
+    for(let i = 0; i &lt; set.length; i++) {
+      // 扩大子集的范围，形成 newSubSet
+      let newSubset = subset.concat(set[i]);
+      // 递归调用 _combine，生成原始集合中所有子集
+      this._combine(set.slice(i + 1), newSubset);
+      // 查找出所有子集
+      this._processSubset(newSubset);
+    }
+  }
+
+  _processSubset(subset) {
+    console.log(&#39;Subset&#39;, ++this.totalSubsets, subset);
+    // 化约集合中元素，计算总和
+    const res = subset.reduce((prev, item) =&gt; (prev + item), 0);
+    if(res == this.sum) {
+      // 发送事件
+      this.emit(&#39;match&#39;, subset);
+    }
+  }
+
+  start() {
+    // 初始调用combine
+    console.time();
+    this._combine(this.set, []);
+    this.emit(&#39;end&#39;);
+    console.timeEnd();
+  }
+}
+
+module.exports = SubsetSum;
+</code></pre>
+
+<p>假设我们以<code>[116,119,101,101,-116,109,101,-105,-102,117,-115,-97,119,-116,-104,-105,115]</code>作为需要计算的集合，并且 sum 为0，最终耗时是 5991.757ms，也就是Nodejs进程接近 6s 的时间内无法响应其他任务，都被阻塞在计算任务这里了。</p>
+
+<h4 id="toc_13">Interleaving with setImmediate</h4>
+
+<p>在单线程情况下，计算的总耗时无法逃避，但是可以利用 <strong>分时分片计算</strong> 策略，减少 <strong>连续阻塞</strong> 的时间，同时利用 Stream 的特性，将已计算完成的部分返回到客户端处。</p>
+
+<p>利用 setImmediate(callback) 将部分计算任务延缓到下一轮的 event loop 中，setImmediate(callback) 会将传入的 callback函数 推入<strong>队列\({^1}\)中</strong> 延缓到 I/O callback 后执行所有在<strong>队列\({^1}\)</strong>中的 callbacks ，如果 callbacks 中调用了 setImmediate(\(callback{}^2\))，<br/>
+这些\(callback{}^2\)将会延缓到下一轮 event loop 的 I/O callback 中执行。</p>
+
+<pre><code class="language-js">// subsetSumDefer.js
+&quot;use strict&quot;;
+
+const EventEmitter = require(&#39;events&#39;).EventEmitter;
+
+class SubsetSumDefer extends EventEmitter {
+  constructor(sum, set) {
+    super();
+    this.sum = sum;
+    this.set = set;
+    this.totalSubsets = 0;
+  }
+
+  _combineInterleaved(set, subset) {
+    // runningCombine 用于记录是否还有计算任务需要执行
+    this.runningCombine++;
+    setImmediate(() =&gt; {
+      // 将 _combine 任务延缓到下一轮事件循环的 I/O callback 中执行
+      this._combine(set, subset);
+      if(--this.runningCombine === 0) {
+        // combine 完成 runningCombine - 1
+        // 如果 runningCombine 为 0，通知外部消费者执行结束
+        this.emit(&#39;end&#39;);
+      }
+    });
+  }
+
+  _combine(set, subset) {
+    for(let i = 0; i &lt; set.length; i++) {
+      let newSubset = subset.concat(set[i]);
+      // 每次只计算少量的任务
+      this._combineInterleaved(set.slice(i + 1), newSubset);
+      this._processSubset(newSubset);
+    }
+  }
+
+  _processSubset(subset) {
+    console.log(&#39;Subset&#39;, ++this.totalSubsets, subset);
+    const res = subset.reduce((prev, item) =&gt; prev + item, 0);
+    if(res == this.sum) {
+      // 每发现符合的集合，就像外部消费者发送结果
+      // 从而利用 Stream 的特性将部分以计算结果返回到客户端
+      this.emit(&#39;match&#39;, subset);
+    }
+  }
+
+  start() {
+    this.runningCombine = 0;
+    this._combineInterleaved(this.set, []);
+  }
+}
+
+module.exports = SubsetSumDefer;
+</code></pre>
+
+<p>最后总耗时是在 7129 ms，虽然对于单个连接来说，总计算时间长了，但是以计算数据是实时回显的，并且在计算过程中，Nodejs主循环仍然能处理其他 I/O 时间，总体来说是一个可以接受的方案。</p>
+
+<h4 id="toc_14">Using multiple processes</h4>
+
+<pre><code>本章节中书中实例代码实现并不完全正确，有可能造成错过子进程信息，代码已经过改造
+</code></pre>
+
+<p>Defer 的 分时分片计算策略虽然好，但如果同时涌入多个计算请求，每次 setImmediate 叠加的计算任务过多，还是会将当前线程长时间阻塞。</p>
+
+<p>为了解决这个问题，引入进程池，将计算任务分发到别的进程中，从而将处理请求的 I/O 进程从计算任务中解放出来。</p>
+
+<p>要利用进程池解决计算密集型的问题，首先从实现一个 进程池 开始。</p>
+
+<h5 id="toc_15">Implementing a process pool</h5>
+
+<p>进程池有两个接口，一是 acquire(callback)，将空闲 worker 进程通过 callback 传递，二是 release(worker)，将 worker 放回进程池。</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const fork = require(&#39;child_process&#39;).fork;
+
+class ProcessPool {
+  constructor(file, poolMax) {
+    this.file = file;
+    this.poolMax = poolMax;
+    // pool 队列用于存放空闲的 worker 进程
+    this.pool = [];
+    // 记录当前正在计算的 worker 进程
+    this.active = [];
+    // 用于存放计算任务
+    this.waiting = [];
+  }
+  // 用于从 进程池 中获取 worker
+  acquire(callback) {
+    let worker;
+    if (this.pool.length &gt; 0) {
+      // 如果进程池中已有可用的 worker
+      // 从进程池中获取空闲 worker
+      worker = this.pool.pop();
+      // 将 worker 推入 active 队列
+      this.active.push(worker);
+      // 最后通过 callback 传递 worker
+      return process.nextTick(callback.bind(null, null, worker));
+    }
+    // 如果活跃进程已达 进程池上限，将 callback 推入等待队列
+    if (this.active.length &gt;= this.poolMax) {
+      return this.waiting.push(callback);
+    }
+    // fork 工作进程
+    worker = fork(this.file);
+    this.active.push(worker);
+    // 保持异步操作特性
+    process.nextTick(callback.bind(null, null, worker));
+  }
+  // 用于释放工作进程，归还至进程池
+  release(worker) {
+    if (this.waiting.length &gt; 0) {
+      // 调用 release 表示该 worker 空闲，
+      const waitingCallback = this.waiting.shift();
+      // 将 worker 传递到 等待中的 callback
+      waitingCallback(null, worker);
+    }
+    // 将 worker 从 活动队列中删除
+    this.active = this.active.filter(w =&gt; worker !== w);
+    // 放回空闲队列
+    this.pool.push(worker);
+  }
+}
+
+module.exports = ProcessPool;
+</code></pre>
+
+<h5 id="toc_16">Communicating with a child process</h5>
+
+<p>有了 worker 进程，接下来是解决与 worker 进程通信的问题了。</p>
+
+<p>Nodejs 提供的 child_process 模块集成了进程间通信的功能。</p>
+
+<p>对于父进程来说，通过 send() 可以往子进程发送数据，而通过 on() 则可以订阅事件，获取子进程返回的数据。</p>
+
+<p>对于子进程来说，通过 process.send() 则可以向父进程发送数据。</p>
+
+<p>一个用于结合 processPool 与 计算任务的类</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const EventEmitter = require(&#39;events&#39;).EventEmitter;
+const ProcessPool = require(&#39;./processPool&#39;);
+// 生成是 subsetSumWorker.js worker 的 进程池
+const workers = new ProcessPool(__dirname + &#39;/subsetSumWorker.js&#39;, 2);
+
+class SubsetSumFork extends EventEmitter {
+  constructor(sum, set) {
+    super();
+    this.sum = sum;
+    this.set = set;
+  }
+
+  start() {
+    // 从进程池中获取 worker
+    workers.acquire((err, worker) =&gt; {
+      const onMessage = msg =&gt; {
+        if (msg.event === &#39;end&#39;) {
+          // 如果是 end 事件， 移除 onMessage listener 及 归还 worker
+          worker.removeListener(&#39;message&#39;, onMessage);
+          workers.release(worker);
+        }
+        // 透传事件与数据至 消费者处
+        this.emit(msg.event, msg.data);
+      };
+      // 首先订阅 message 事件
+      worker.on(&#39;message&#39;, onMessage);
+      // 然后发送数据开始计算 
+      worker.send({sum: this.sum, set: this.set});
+    });
+  }
+}
+
+module.exports = SubsetSumFork;
+</code></pre>
+
+<p>最后是 worker 代码</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const SubsetSum = require(&#39;./subsetSum&#39;);
+
+process.on(&#39;message&#39;, msg =&gt; {  // [1]
+  const subsetSum = new SubsetSum(msg.sum, msg.set);
+  
+  subsetSum.on(&#39;match&#39;, data =&gt; {  // [2]
+    process.send({event: &#39;match&#39;, data: data});
+  });
+  
+  subsetSum.on(&#39;end&#39;, data =&gt; {
+    process.send({event: &#39;end&#39;, data: data});
+  });
+  
+  subsetSum.start();
+});
+</code></pre>
+
+<p>运行的耗时在 6551.740ms 考虑到 进程间通信 与 进程池初始化时间，这个结果是正常的。</p>
+
+			</div>
+
+		
+	  
+		<footer>
+		 <p class="meta">
+
+			
+			<span class="categories">
+			 
+			</span>
+		    </p>
+		    <p class="meta">
+		      
+		 </p>
+	    
+		<div class="sharing">
+		  
+          
+
+          
+
+		</div>
+
+	    <p class="meta">
+	    
+	    
+	        <a class="basic-alignment right" href="15124581127035.html" 
+	        title="Next Post: SQL必知必会 1 - 7 章">SQL必知必会 1 - 7 章 &raquo;</a>
+	    
+	    </p>
+	  </footer>
+	</article>
+</div>
+ <aside class="sidebar"> 
+
+	<section>
+	  <h1>Categories</h1>
+	  <ul id="recent_posts">
+	  
+	        
+	      </li>
+	   
+	  </ul>
+	</section>
+	<section>
+	  <h1>Recent Posts</h1>
+	  <ul id="recent_posts">
+	  
+	      
+		      <li class="post">
+		        <a href="15127920862405.html">Node.js设计模式 · 第九章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15124581127035.html">SQL必知必会 1 - 7 章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15116831975159.html">从 Node.js C++ Addon 观察 Js 在 v8 中的表示方式</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15114266480360.html">JavaScript高级程序设计 · 7、22 章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15107096826964.html">Node.js设计模式 · 第八章</a>
+		      </li>
+	     
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	   
+	  </ul>
+	</section>
+	
+</aside> </div></div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2017 -  -
+  <span class="credit">Powered by <a target="_blank" href="https://zerolocusta.github.io">zerolocusta</a> &nbsp;&nbsp; Theme by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+
+  
+    
+
+<script src="asset/chart/all-min.js"></script><script type="text/javascript">$(function(){    var mwebii=0;    var mwebChartEleId = 'mweb-chart-ele-';    $('pre>code').each(function(){        mwebii++;        var eleiid = mwebChartEleId+mwebii;        if($(this).hasClass('language-sequence')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = Diagram.parse($(this).text());            diagram.drawSVG(eleiid,{theme: 'simple'});        }else if($(this).hasClass('language-flow')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = flowchart.parse($(this).text());            diagram.drawSVG(eleiid);        }    });});</script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><script type="text/x-mathjax-config">MathJax.Hub.Config({TeX: { equationNumbers: { autoNumber: "AMS" } }});</script>
+
+</body>
+</html>

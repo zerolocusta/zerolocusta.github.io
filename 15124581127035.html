@@ -1,0 +1,797 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>
+    
+  SQL必知必会 1 - 7 章 - zerolocust
+  
+
+  </title>
+  <meta name="author" content="">
+  <meta name="description" content="locustchen的博客">
+
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <link href="asset/css/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="atom.xml" rel="alternate" title="zerolocust" type="application/atom+xml">
+  <script src="asset/js/modernizr-2.0.js"></script>
+  <script src="asset/js/jquery.min.js"></script>
+  <script src="asset/highlightjs/highlight.pack.js"></script>
+  <link href="asset/highlightjs/styles/solarized_light.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script>hljs.initHighlightingOnLoad();</script>
+
+  <style type="text/css">
+  .cat-children-p{ padding: 6px 0px;}
+  .hljs{background: none;}
+  </style>
+  <script type="text/javascript">
+  var isAddSildbar = true;
+  </script>
+  <script src="asset/js/octopress.js" type="text/javascript"></script>
+</head>
+<script type="text/javascript">
+//链接新开窗口
+function addBlankTargetForLinks () {
+  $('a[href^="http"]').each(function(){
+      $(this).attr('target', '_blank');
+  });
+}
+$(document).ready(function(event) {
+  addBlankTargetForLinks();
+});
+</script>
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="index.html">zerolocust</a></h1>
+  
+    <h2>locustchen的博客</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zerolocusta.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+
+  <li id=""><a target="self" href="index.html">Home</a></li>
+
+  <li id=""><a target="_self" href="archives.html">Archives</a></li>
+
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content"> 
+<div>
+	<article class="hentry" role="article">
+	<header>
+			  	<h1 class="entry-title">SQL必知必会 1 - 7 章</h1>
+				<p class="meta"><time datetime="2017-12-05T15:15:12+08:00" pubdate data-updated="true">2017/12/5 15:15 下午</time></p>
+			 </header>
+		  	<div class="entry-content">
+			  	<h2 id="toc_0">第1章 了解 SQL</h2>
+
+<h3 id="toc_1">数据库基础</h3>
+
+<ul>
+<li>数据库(Database): 保存有组织的数据的容器（通常是一个文件或一组文件）。</li>
+</ul>
+
+<h4 id="toc_2">表</h4>
+
+<ul>
+<li>表(Table): 某种特定类型数据的结构化清单。 这些特性定义了数据在表中如何存储，包含存储什么样的数据，数据如何分解，各部分信息如何命名等信息。描述表的这组信息就是所谓的模式(schema)，模式可以用来描述数据库中特定的表，也可以用来描述整个数据库（和其中表的关系）.</li>
+</ul>
+
+<h4 id="toc_3">列和数据类型</h4>
+
+<ul>
+<li>列(Column): 指的是表中的一个字段, 并且拥有特定的数据类型.</li>
+<li>数据类型(Data Type): 表中的每个列都有特定的数据类型, 指定该列可以存储什么类型的数据.</li>
+</ul>
+
+<h4 id="toc_4">行</h4>
+
+<ul>
+<li>行(Row): 表中的数据是按行存储的，所保存的每个记录都存储在自己的行内。列是描述表中单个字段的属性，而行是在表中多个字段的数据组成的记录(record)。</li>
+</ul>
+
+<h4 id="toc_5">主键</h4>
+
+<ul>
+<li>主键(Primary Key): 表中的每一行都<strong>应该有的</strong>唯一标识，用于标识特定的行，表中的满足条件的每一列都可以作为主键：
+
+<ul>
+<li>任意两行都不具有相同的主键值</li>
+<li>每一行必须都具有一个主键值（即主键不允许为空）</li>
+<li>主键列中的值不允许修改或者更新</li>
+<li>主键不能重用（不允许删除后回收使用）</li>
+</ul></li>
+</ul>
+
+<hr/>
+
+<h2 id="toc_6">第2章 检索数据</h2>
+
+<h3 id="toc_7">SELECT 语句</h3>
+
+<p>使用 SELECT 检索表数据，必须至少给出两条信息——想选择什么（检索哪一列），以及从什么地方选择（检索哪个表）</p>
+
+<h3 id="toc_8">检索单个列</h3>
+
+<p>检索单个列的语句格式如下</p>
+
+<pre><code class="language-sql">SELECT field1 FROM table;
+</code></pre>
+
+<p>例如</p>
+
+<pre><code class="language-sql">SELECT prod_name FROM Products;
+</code></pre>
+
+<p>上述语句利用 SELECT 语句从 Products 表中检索一个名为 prod_name 的列.</p>
+
+<p>并且数据库在处理SQL时，其中所有空格都会被忽略， 例如下面的语句能达到同样的效果，但是可读性更好。</p>
+
+<pre><code class="language-sql">SELECT
+    prod_name
+FROM
+    Products;
+</code></pre>
+
+<h3 id="toc_9">检索多个列</h3>
+
+<p>检索多个列的语句格式如下</p>
+
+<pre><code class="language-sql">SELECT field1[,field2[,field3...]] FROM table;
+</code></pre>
+
+<p>例如</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_id, 
+    prod_name, 
+    prod_price
+FROM 
+    Products;
+</code></pre>
+
+<p>上述语句利用 SELECT 语句从 Products 表中检索三个分别名为 prod_id、prod_name、prod_price 的列.</p>
+
+<h3 id="toc_10">检索所有列</h3>
+
+<pre><code class="language-sql">SELECT * FROM table;
+</code></pre>
+
+<h3 id="toc_11">检索不同的值（去重）</h3>
+
+<pre><code class="language-sql">SELECT DISTINCT field FROM table;
+</code></pre>
+
+<p>DISTINCT将会把列中重复的值去除。例如</p>
+
+<pre><code class="language-sql">SELECT DISTINCT prod_name FROM Products;
+</code></pre>
+
+<p>上述语句会将 prod_name 列中重复的值去除并返回结果。</p>
+
+<p>要注意的是，不能部分使用 DISTINCT ，不仅仅是跟在其后的那一列。</p>
+
+<h3 id="toc_12">限制返回的结果数量</h3>
+
+<p>利用<code>LIMIT</code>可以限制返回的结果数量</p>
+
+<pre><code class="language-sql">SELECT field FROM table LIMIT num;
+</code></pre>
+
+<p>例如</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_name 
+FROM 
+    Products 
+LIMIT 
+    5;
+</code></pre>
+
+<p>上述语句表示从 Products 中选出前5条具有 prod_name 的数据。</p>
+
+<p>还可以利用<code>OFFSET</code>指定从哪儿开始检索。</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_name 
+FROM 
+    Products 
+LIMIT 
+    5
+OFFSET
+    5;
+</code></pre>
+
+<p>上述语句表示从 Products 中的第5行开始，选出前5条具有 prod_name 的数据。</p>
+
+<h3 id="toc_13">使用注释</h3>
+
+<p>行内注释, 利用<code>--</code></p>
+
+<pre><code class="language-sql">SELECT prod_name    -- 这是一条注释  
+FROM Products;
+</code></pre>
+
+<p>多行注释，从<code>/*</code>开始，到<code>*/</code>结束。<code>/*</code>和<code>*/</code>之间的任何内容都是注释、</p>
+
+<pre><code class="language-sql">/* SELECT 
+    prod_name, 
+    vend_id  
+FROM 
+    Products; */
+    
+SELECT 
+    prod_name  
+FROM 
+    Products;
+</code></pre>
+
+<hr/>
+
+<h2 id="toc_14">第3章 排序检索数据</h2>
+
+<p>这一章讲授如何使用 SELECT 语句的 ORDER BY 子句，根据需要排序检索出的数据。</p>
+
+<h3 id="toc_15">排序数据</h3>
+
+<p>通常情况下<code>SELECT</code>获取的数据是未经排序的，利用<code>ORDER BY</code>可以根据某个字段进行排序。</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_name 
+FROM 
+    Products 
+ORDER BY 
+    prod_name;
+</code></pre>
+
+<p>上述语句指示数据库对 prod_name 列以字母顺序排序数据</p>
+
+<h4 id="toc_16">HINTs：</h4>
+
+<ul>
+<li>ORDER BY 子句的位置，应该保证它是 SELECT 语句中最后一条子句。</li>
+<li>通常，ORDER BY 子句中使用的列将是为显示而选择的列。但是，使用用非检索的列排序数据是完全合法的。</li>
+</ul>
+
+<h3 id="toc_17">按多个列排序</h3>
+
+<pre><code class="language-sql">SELECT 
+    prod_id, 
+    prod_price, 
+    prod_name
+FROM
+    Products
+ORDER BY
+    prod_price,
+    prod_name;
+</code></pre>
+
+<p>上述语句在检索出的结果中，按 prod_price 和 prod_name 排序，在两行 prod_price 相同的时候，再按 prod_name 进行排序。</p>
+
+<h3 id="toc_18">按列位置排序</h3>
+
+<p>除了能用列名指出排序顺序外，<code>ORDER BY</code> 还支持按相对列位置进行排序。</p>
+
+<p>例如</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_id, 
+    prod_price, 
+    prod_name
+FROM
+    Products
+ORDER BY
+    2,
+    3;
+</code></pre>
+
+<p>这条语句和前一节中的语句效果相同，<code>SELECT</code>后的选择列的相对位置按照1、2、3对应到<code>ORDER BY</code>中的顺序。</p>
+
+<h3 id="toc_19">指定排序方向</h3>
+
+<p>通过在<code>ORDER BY</code>后添加<code>DESC</code>可以改变排序的方向。</p>
+
+<p>例如在使用<code>DESC</code>之前，选择出来的行是按指定排序字段的从小到大，而指定<code>DESC</code>后， 结果是按照从大到小进行排序。</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_id, 
+    prod_price, 
+    prod_name 
+FROM 
+    Products 
+ORDER BY 
+    prod_price DESC;
+</code></pre>
+
+<p>上述语句将按 prod_price 降序进行排列。</p>
+
+<hr/>
+
+<h2 id="toc_20">第4章 过滤数据</h2>
+
+<h3 id="toc_21">使用 WHERE 子句</h3>
+
+<p>在 SELECT 语句中，数据根据 WHERE 子句中指定的搜索条件进行过滤。 WHERE 子句在表名（ FROM 子句）之后给出，例如</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_name, 
+    prod_price 
+FROM 
+    Products 
+WHERE 
+    prod_price = 3.49;
+</code></pre>
+
+<p>这条语会将 Products 表中 prod_price 为 3.49 的结果检索出来。</p>
+
+<h4 id="toc_22"><code>WHERE</code>子句支持的操作符</h4>
+
+<table>
+<thead>
+<tr>
+<th style="text-align: center">操作符</th>
+<th style="text-align: center">说明</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td style="text-align: center">=</td>
+<td style="text-align: center">等于</td>
+</tr>
+<tr>
+<td style="text-align: center">&lt;&gt;</td>
+<td style="text-align: center">不等于</td>
+</tr>
+<tr>
+<td style="text-align: center">!=</td>
+<td style="text-align: center">不等于</td>
+</tr>
+<tr>
+<td style="text-align: center">&lt;</td>
+<td style="text-align: center">小于</td>
+</tr>
+<tr>
+<td style="text-align: center">&lt;=</td>
+<td style="text-align: center">小于或等于</td>
+</tr>
+<tr>
+<td style="text-align: center">!&lt;</td>
+<td style="text-align: center">不小于</td>
+</tr>
+<tr>
+<td style="text-align: center">&gt;</td>
+<td style="text-align: center">大于</td>
+</tr>
+<tr>
+<td style="text-align: center">&gt;=</td>
+<td style="text-align: center">大于或等于</td>
+</tr>
+<tr>
+<td style="text-align: center">!&gt;</td>
+<td style="text-align: center">不大于</td>
+</tr>
+<tr>
+<td style="text-align: center">BETWEEN</td>
+<td style="text-align: center">是否处于指定的两个值之间</td>
+</tr>
+<tr>
+<td style="text-align: center">LIKE</td>
+<td style="text-align: center">搜索相似字符串</td>
+</tr>
+<tr>
+<td style="text-align: center">IN</td>
+<td style="text-align: center">判断特定的值是否处于字段中</td>
+</tr>
+<tr>
+<td style="text-align: center">IS NULL</td>
+<td style="text-align: center">判断是否为NULL值</td>
+</tr>
+</tbody>
+</table>
+
+<h5 id="toc_23"><code>BETWEEN</code>操作符</h5>
+
+<p>检查某个范围的值，可以使用 BETWEEN 操作符。例如</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_name, 
+    prod_price 
+FROM 
+    Products 
+WHERE 
+    prod_price BETWEEN 5 AND 10;
+</code></pre>
+
+<p>这条语句通过<code>BETWEEN ... AND</code>操作符查询 prod_price 在 5 到 10 之间的数据。</p>
+
+<h5 id="toc_24">空值检查</h5>
+
+<p>确定值是否为 NULL，不能简单地检查是否 <code>= NULL</code>, 而是使用<code>IS NULL</code>来检查具有<code>NULL</code>值的列. 例如</p>
+
+<pre><code class="language-sql">SELECT 
+    cust_name 
+FROM 
+    Customers 
+WHERE 
+    cust_email IS NULL;
+</code></pre>
+
+<p>这条语句检查 Customers 表中 cust_email 为空的行。</p>
+
+<hr/>
+
+<h2 id="toc_25">第5章 高级数据过滤</h2>
+
+<p>这一章介绍如何组合 WHERE 子句以建立功能更强、更高级的搜索条件。跀A恀我们还将学习如何使用 NOT 和 IN 操作符</p>
+
+<h3 id="toc_26">组合 WHERE 子句</h3>
+
+<h4 id="toc_27">AND 操作符</h4>
+
+<p>使用 AND 操作符可以给 WHERE 子句附加条件。其效果去逻辑与相似。 例如</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_id, 
+    prod_price, 
+    prod_name
+FROM 
+    Products 
+WHERE 
+    vend_id = &#39;DLL01&#39; 
+    AND 
+    prod_price &lt;= 4;
+</code></pre>
+
+<p>这条语句从 Products 表中检索出 vend_id 为 DLL01 <strong>并且</strong> prod_price 小于等于4的行。</p>
+
+<h4 id="toc_28">OR 操作符</h4>
+
+<p>OR 操作符效果与逻辑或相似， 同样可以给 WHERE 子句附加条件。 例如</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_id, 
+    prod_price, 
+    prod_name
+FROM 
+    Products 
+WHERE 
+    vend_id = &#39;DLL01&#39; 
+    AND 
+    vend_id = &#39;RLL05&#39;;
+</code></pre>
+
+<p>这条语句从 Products 表中检索出 vend_id 为 DLL01 <strong>或者</strong> vend_id 为 RLL05 的行。</p>
+
+<h4 id="toc_29">求值顺序</h4>
+
+<p>AND 与 OR 操作符可以随意数量组合使用。但是和大多数语言类似，SQL中的操作符也有优先级顺序，在处理 OR 操作符前，优先处理 AND 操作符。</p>
+
+<p>所以在使用多个 AND 或者 OR 操作符的时候，加上括号就好了。</p>
+
+<h3 id="toc_30">IN 操作符</h3>
+
+<p>IN 操作符用来指定条件范围，范围中的每个条件都可以进行匹配。IN 使用一组由逗号分隔、 括在圆括号中的合法值。 例如</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_name, 
+    prod_price 
+FROM 
+    Products 
+WHERE 
+    vend_id 
+        IN ( &#39;DLL01&#39;, &#39;BRS01&#39; ) 
+ORDER BY 
+    prod_name;
+</code></pre>
+
+<p>这条语句表示从 Products 表中筛选出 vend_id 的值为 DLL01 或是 BRS01 的行，并将结果按照 prod_name 排序。与之相对应的使用 OR 操作符的SQL语句：</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_name, 
+    prod_price 
+FROM 
+    Products 
+WHERE 
+    vend_id = &#39;DLL01&#39;
+    OR
+    vend_id = &#39;BRS01&#39; 
+ORDER BY 
+    prod_name;
+</code></pre>
+
+<p>IN 操作符与 （OR 或 AND）操作符相比</p>
+
+<ul>
+<li>IN 操作符的语法更清楚，更直观</li>
+<li>与其他 AND 和 OR 操作符组合使用 IN 时，求值顺序更容易管理</li>
+<li>IN 操作符一般比一组 OR 操作符执行得更快</li>
+<li>IN 的还可以包含其他 SELECT 语句（子查询），更动态的建立 WHERE 子句。</li>
+</ul>
+
+<h3 id="toc_31">NOT 操作符</h3>
+
+<p>WHERE 子句中的 NOT 操作符有且只有一个功能，那就是否定其后所跟的任何条件。与逻辑非功能相似。例如</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_name 
+FROM 
+    Products 
+WHERE 
+    NOT vend_id = &#39;DLL01&#39;
+ORDER BY 
+    prod_name;
+</code></pre>
+
+<p>这条语句表示从 Products 表中检索出 vend_id <strong>不等于</strong> DLL01 的行。</p>
+
+<p>NOT 操作符的优势在于，与 IN 操作符联合使用时， NOT 可以非常简单地找出与条件列表不匹配的行。</p>
+
+<hr/>
+
+<h2 id="toc_32">第6章 用通配符进行过滤</h2>
+
+<p>这一章介绍什么是通配符、如何使用通配符以及怎样使用 LIKE 操作符进行通配搜索，以便对数据进行复杂过滤。</p>
+
+<h3 id="toc_33">LIKE 操作符</h3>
+
+<p>LIKE 操作符允许使用通配符、字面量来构造查询条件，进行模糊匹配。</p>
+
+<h4 id="toc_34">百分号（%）通配符</h4>
+
+<p>搜索串中，<code>%</code>表示任何字符出现<strong>任意次数</strong>。例如可以使用<code>Fish%</code>作为 LIKE 的查询条件，检索出所有以词 Fish 起头的产品。</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_id, 
+    prod_name  
+FROM 
+    Products  
+WHERE 
+    prod_name LIKE &#39;Fish%&#39;;
+</code></pre>
+
+<h4 id="toc_35">下划线（_）通配符</h4>
+
+<p>下划线（_）通配符与百分号（%）通配符相似，只不过<code>_</code>表示匹配<strong>单个字符</strong>。</p>
+
+<p>例如一下句子表示匹配出 Products 中 prod_name 为 XX水果 的查询语句。</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_id, 
+    prod_name  
+FROM 
+    Products  
+WHERE 
+    prod_name LIKE &#39;__水果&#39;; -- 注意这里有两个 _ 操作符
+</code></pre>
+
+<p>这样的查询条件只会匹配诸如 京东水果、企鹅水果，而不会匹配出 红水果、红红红水果。</p>
+
+<hr/>
+
+<h2 id="toc_36">第7章 创建计算字段</h2>
+
+<p>这一章介绍什么是计算字段，如何创建计算字段，以及如何从应用程序中使用别名引用它们。</p>
+
+<h3 id="toc_37">计算字段</h3>
+
+<p>存储在数据库表中的数据一般不是应用程序所需要的格式，除了可以再应用程序中做数据计算之外，SELECT 也支持进行字段计算。</p>
+
+<h3 id="toc_38">拼接字段</h3>
+
+<p>在 MySQL 中可以使用 Concat 函数拼接字段， 例如</p>
+
+<pre><code class="language-sql">SELECT 
+    Concat( vend_name, &#39; (&#39;, vend_country, &#39;)&#39; ) 
+FROM 
+    Vendors 
+ORDER BY vend_name;
+</code></pre>
+
+<p>表示从 Vendors 表中获取每行中 vend_name 与 vend_country 的值，并且按 vend_name 进行排序，同时在返回检索结果时将 vend_name 与 vend_country 拼接成 <code>vend_name (vend_country)</code> 的形式。</p>
+
+<h4 id="toc_39">使用别名（alias）</h4>
+
+<p>SELECT 语句可以很好地拼接地址字段。但是，这个新计算列并不像列（column）一样具有名字，从而无法很好地引用它。</p>
+
+<p>为了解决这个问题，SQL 支持列别名。别名（alias）是一个字段或值的替换名，使用 AS 指定。</p>
+
+<pre><code class="language-sql">SELECT 
+    Concat( vend_name, &#39; (&#39;, vend_country, &#39;)&#39; ) AS vend_title
+FROM 
+    Vendors 
+ORDER BY vend_name;
+</code></pre>
+
+<p>为<code>Concat( vend_name, &#39; (&#39;, vend_country, &#39;)&#39; )</code>的结果创建一个包含指定计算结果的名为vend_title 的计算字段。在检索结果中也会出现 vend_title 这个列，就像它真的存在于表结构中一样。</p>
+
+<h3 id="toc_40">执行算术计算</h3>
+
+<p>SQL允许在语句中通过算术操作符或是数学函数执行算术计算。</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_id,
+    quantity,        
+    item_price,        
+    quantity * item_price AS expanded_price 
+FROM 
+    OrderItems 
+WHERE 
+    order_num = 20008;
+</code></pre>
+
+<p>筛选出 order_num 为 20008 的行，并将行中的 quantity 乘以 item_price 的值，使用别名 expanded_price 指定并返回至客户端。</p>
+
+<h4 id="toc_41">SQL中的算数操作符</h4>
+
+<table>
+<thead>
+<tr>
+<th style="text-align: center">操作符</th>
+<th style="text-align: center">说明</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td style="text-align: center">+</td>
+<td style="text-align: center">加</td>
+</tr>
+<tr>
+<td style="text-align: center">-</td>
+<td style="text-align: center">减</td>
+</tr>
+<tr>
+<td style="text-align: center">*</td>
+<td style="text-align: center">乘</td>
+</tr>
+<tr>
+<td style="text-align: center">/</td>
+<td style="text-align: center">除</td>
+</tr>
+</tbody>
+</table>
+
+			</div>
+
+		
+	  
+		<footer>
+		 <p class="meta">
+
+			
+			<span class="categories">
+			 
+			</span>
+		    </p>
+		    <p class="meta">
+		      
+		 </p>
+	    
+		<div class="sharing">
+		  
+          
+
+          
+
+		</div>
+
+	    <p class="meta">
+	    
+	        <a class="basic-alignment left" href="15127920862405.html" 
+	        title="Previous Post: Node.js设计模式 · 第九章">&laquo; Node.js设计模式 · 第九章</a>
+	    
+	    
+	        <a class="basic-alignment right" href="15116831975159.html" 
+	        title="Next Post: 从 Node.js C++ Addon 观察 Js 在 v8 中的表示方式">从 Node.js C++ Addon 观察 Js 在 v8 中的表示方式 &raquo;</a>
+	    
+	    </p>
+	  </footer>
+	</article>
+</div>
+ <aside class="sidebar"> 
+
+	<section>
+	  <h1>Categories</h1>
+	  <ul id="recent_posts">
+	  
+	        
+	      </li>
+	   
+	  </ul>
+	</section>
+	<section>
+	  <h1>Recent Posts</h1>
+	  <ul id="recent_posts">
+	  
+	      
+		      <li class="post">
+		        <a href="15127920862405.html">Node.js设计模式 · 第九章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15124581127035.html">SQL必知必会 1 - 7 章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15116831975159.html">从 Node.js C++ Addon 观察 Js 在 v8 中的表示方式</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15114266480360.html">JavaScript高级程序设计 · 7、22 章</a>
+		      </li>
+	     
+	  
+	      
+		      <li class="post">
+		        <a href="15107096826964.html">Node.js设计模式 · 第八章</a>
+		      </li>
+	     
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	  
+	      
+	   
+	  </ul>
+	</section>
+	
+</aside> </div></div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2017 -  -
+  <span class="credit">Powered by <a target="_blank" href="https://zerolocusta.github.io">zerolocusta</a> &nbsp;&nbsp; Theme by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+
+  
+    
+
+<script src="asset/chart/all-min.js"></script><script type="text/javascript">$(function(){    var mwebii=0;    var mwebChartEleId = 'mweb-chart-ele-';    $('pre>code').each(function(){        mwebii++;        var eleiid = mwebChartEleId+mwebii;        if($(this).hasClass('language-sequence')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = Diagram.parse($(this).text());            diagram.drawSVG(eleiid,{theme: 'simple'});        }else if($(this).hasClass('language-flow')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = flowchart.parse($(this).text());            diagram.drawSVG(eleiid);        }    });});</script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><script type="text/x-mathjax-config">MathJax.Hub.Config({TeX: { equationNumbers: { autoNumber: "AMS" } }});</script>
+
+</body>
+</html>

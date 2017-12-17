@@ -4,7 +4,7 @@
   <title><![CDATA[zerolocust]]></title>
   <link href="zerolocusta.github.io/atom.xml" rel="self"/>
   <link href="zerolocusta.github.io/"/>
-  <updated>2017-11-01T18:07:28+08:00</updated>
+  <updated>2017-12-17T22:32:57+08:00</updated>
   <id>zerolocusta.github.io/</id>
   <author>
     <name><![CDATA[]]></name>
@@ -12,6 +12,3431 @@
   </author>
   <generator uri="http://www.coderforart.com/">CoderForArt</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Node.js设计模式 · 第九章]]></title>
+    <link href="zerolocusta.github.io/15127920862405.html"/>
+    <updated>2017-12-09T12:01:26+08:00</updated>
+    <id>zerolocusta.github.io/15127920862405.html</id>
+    <content type="html"><![CDATA[
+<h2 id="toc_0">Advanced Asynchronous Recipes</h2>
+
+<p>如何利用一些高级的异步概念去改善我们饿 NodeJS 程序，这一章会介绍例如</p>
+
+<ul>
+<li>如何处理需要异步初始化的模块</li>
+<li>如何利用少量的代价引入批量异步操作与缓存异步操作，从而获得性能提升</li>
+<li>如何处理计算密集型的操作</li>
+</ul>
+
+<h3 id="toc_1">Requiring asynchronously initialized modules</h3>
+
+<p>实际开发中存在不少需要异步初始化的模块，例如数据库客户端模块就是一个。只有在数据库连接完成后才可以进行操作。<br/>
+  然而 NodeJS 的模块系统是同步的，在引入的一刻就可以被其他代码所使用了，这也就造成了模块初始化完成之前极有可能被其他代码使用，从而引起UB。</p>
+
+<h4 id="toc_2">Canonical solutions</h4>
+
+<p>为了说明这个问题以及它的解决方案，这里引入一个 db 模块例子，这个模块需要在连接上远程的数据库之后才能开始处理请求。</p>
+
+<h5 id="toc_3">利用 EventEmitter 实现异步初始化模块调用</h5>
+
+<p>以下代码假设 aDb 是需要异步初始化的模块</p>
+
+<pre><code class="language-js">const db = require(&#39;aDb&#39;) // aDb是需要异步初始化的模块
+
+function runFind(type, callback) {
+    db.find(type, callback);
+}
+
+module.exports = function findAll(type, callback) {
+
+  if (db.connected) {    // 检测db是否已经初始化完成
+    runFind(type, callback); // 初始化完毕则直接调用查询函数
+  } else {
+    // 未初始化完毕则柯里化参数并订阅 connected 事件
+    db.once(&#39;connected&#39;, runFind.bind(this, type, callback));
+  }
+
+}
+</code></pre>
+
+<p>上面这段代码利用了 EventEmitter 实现在数据库未初始化完毕的时候，模块函数被调用时，使用 once 函数订阅事件，而在模块初始化完毕后的调用则直接查询数据库。</p>
+
+<h5 id="toc_4">利用 DI 实现异步初始化模块调用</h5>
+
+<p>依赖注入利用反向注入已初始化的数据库模块至数据库API，从而实现初始化后才接受请求</p>
+
+<pre><code class="language-js">// 在 findAll.js 中
+module.exports = function(db) { // 依赖外部注入已经初始化完成的db
+    return function findAll(type, callback) [
+        db.findAll(type, callback);
+    }
+}
+</code></pre>
+
+<pre><code class="language-js">// 在 app.js 中
+const db = require(&#39;aDb&#39;) //异步初始化的数据库模块
+const findAllFactory = require(&#39;findAll&#39;);
+
+db.on(&#39;connected&#39;, function() {
+    // 订阅 connected 事件，在 db 初始化完成时注入
+    const findAll = findAllFactory(db);
+});
+</code></pre>
+
+<p>然而 DI 解决异步模块初始化的方法看起来很别扭（根本原因在于 NodeJS 并不能很好地应用这种风格），并且 DI 在日益增长的代码项目会慢慢变得庞大且难以维护。</p>
+
+<h4 id="toc_5">Preinitialization queues</h4>
+
+<p>总的来说，以上两种方法都不是很好。这里引入一种 Preinitialization queues 技巧，核心思想是利用<strong>队列</strong>，将模块初始化完成前的操作缓存起来，然后在模块初始化完成时按顺序执行队列中的操作。</p>
+
+<p>在引入 Preinitialization queues 之前，先说明一个 asyncModule，以便之后针对这个异步初始化模块应用 Preinitialization queues 技术。</p>
+
+<pre><code class="language-js">// asyncModule.js
+&quot;use strict&quot;;
+
+const asyncModule = {};
+
+asyncModule.initialized = false;
+asyncModule.initialize = callback =&gt; {
+  setTimeout(() =&gt; {
+    // 设置10秒后初始化状态为true
+    asyncModule.initialized = true;
+    callback();
+  }, 10000);
+};
+
+asyncModule.tellMeSomething = callback =&gt; {
+  process.nextTick(() =&gt; {
+    if(!asyncModule.initialized) {
+      // 检查模块初始化状态
+      return callback(
+        // 未初始化则返回Error
+        new Error(&#39;I don\&#39;t have anything to say right now&#39;)
+      );
+    }
+    // 初始化完成则返回 &#39;Current time is: &#39; + new Date() 字符串
+    callback(null, &#39;Current time is: &#39; + new Date());
+  });
+};
+
+module.exports = asyncModule;
+</code></pre>
+
+<p>然后使用  Preinitialization queues  技术，利用 asyncModuleWrap 封装 asyncModule</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const asyncModule = require(&#39;./asyncModule&#39;);
+
+//The wrapper
+const asyncModuleWrapper = {}
+// 设置 模块的初始化状态为 false
+asyncModuleWrapper.initialized = false;
+// asyncModule.initialize 的钩子
+asyncModuleWrapper.initialize = function() {
+  // 在目前的状态中调用 initialize
+  activeState.initialize.apply(activeState, arguments);
+};
+// asyncModule.tellMeSomething 的钩子
+asyncModuleWrapper.tellMeSomething = function() {
+  // 在目前的状态中调用 tellMeSomething
+  activeState.tellMeSomething.apply(activeState, arguments);
+};
+// pending 队列用于存放在模块未初始化完成时的调用信息
+let pending = [];
+// notInitializedState 用于模拟 asyncModule
+// 在 asyncModule 初始化完毕前替换它并缓存操作
+let notInitializedState = {
+
+  initialize: function(callback) {
+    asyncModule.initialize(function() {
+      // 初始化完毕设置状态为 true
+      asyncModuleWrapper.initalized = true;
+      // 目前的状态为 activeState
+      activeState = initializedState;
+      // 执行模块初始化完成前的所有 函数调用 
+      pending.forEach(function(req) {
+        asyncModule[req.method].apply(null, req.args);
+      });
+      // 重置队列
+      pending = [];
+      // 调用回调函数
+      callback();
+    });
+  },
+  
+  tellMeSomething: function(callback) {
+    // 此处添加log， 用于观察初始化前此函数被调用次数
+    console.log(&#39;Call NotInitializedState tellMeSomething()&#39;);
+    // 由于模块仍未初始化完成
+    // 此时缓存函数调用参数并放入 pending 队列
+    return pending.push({
+      method: &#39;tellMeSomething&#39;,
+      args: arguments
+    });
+  }
+  
+};
+
+// initializedState 用于指代已经初始化完毕的 asyncModule
+let initializedState = asyncModule;
+
+// activeState 的初始化状态为 notInitializedState
+let activeState = notInitializedState;
+
+module.exports = asyncModuleWrapper;
+</code></pre>
+
+<h5 id="toc_6">Preinitialization queues 的核心思想</h5>
+
+<p>hook 所有依赖模块初始化状态的函数，并且记录每一次模块初始化前的函数调用及其参数。在初始化完毕后执行所有挂起的函数函数调用，并解除 hook。</p>
+
+<h3 id="toc_7">Asynchronous batching and caching</h3>
+
+<p>在一些高吞吐量的服务中，<strong>缓存</strong>往往能优化服务性能，并且减少资源的消耗。这一节阐述如何方便地在异步操作上应用 Cache ，从而大幅提高吞吐量。</p>
+
+<h4 id="toc_8">Implementing a server with no caching or batching</h4>
+
+<p>为了说明没有缓存的服务和带缓存的服务之间的性能差别，这一节将会分别实现两种服务。</p>
+
+<p>假设这个服务器将会在数据库中存储一种模型为<code>{transactionId: {amount, item}}</code>的JSON，而我们将会实现一个<code>totalSales(item, callback)</code>接口，这个接口将会搜索数据库中所有<code>transactionId.item === item</code>的元素，然后计算总数并通过 callback 返回。</p>
+
+<p>通过数据模型可以看出，对于查询 item 的操作如果没有数据库直接支持，我们只能遍历所有数据并找出对应的item项，最后输出统计信息。</p>
+
+<h5 id="toc_9">Asynchronous operation without caching and batching</h5>
+
+<p>无缓存及批量操作的服务</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+// 利用 leveldb 存储数据
+const level = require(&#39;level&#39;);
+const sublevel = require(&#39;level-sublevel&#39;);
+
+const db = sublevel(level(&#39;example-db&#39;, {valueEncoding: &#39;json&#39;}));
+const salesDb = db.sublevel(&#39;sales&#39;);
+
+module.exports = function totalSales(item, callback) {
+  console.log(&#39;totalSales() invoked&#39;);
+  // 初始化 sum
+  let sum = 0;
+  salesDb.createValueStream()
+    .on(&#39;data&#39;, data =&gt; {
+      // 如果item为空，则统计数据库所有数据
+      if(!item || data.item === item) {
+        sum += data.amount;
+      }
+    })
+    .on(&#39;end&#39;, () =&gt; {
+      // 结束时回调
+      callback(null, sum);
+    });
+};
+</code></pre>
+
+<p>以及为这个服务建立一个简单的HTTP透传服务。</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const http = require(&#39;http&#39;);
+const url = require(&#39;url&#39;);
+const totalSales = require(&#39;./totalSales&#39;);
+
+http.createServer((req, res) =&gt; {
+  const query = url.parse(req.url, true).query;
+  totalSales(query.item, (err, sum) =&gt; {
+    res.writeHead(200);
+    res.end(`Total sales for item ${query.item} is ${sum}`);
+  });
+}).listen(8000, () =&gt; console.log(&#39;Started&#39;));
+</code></pre>
+
+<p>最后将会通过脚本往数据库中插入100K条数据，并通过一个test客户端，以200ms为间隔发出20个<strong>相同的</strong>请求，测试该服务器的耗时。<br/>
+（测试结果）<br/>
+<img src="media/15127920862405/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-12-14%20%E4%B8%8B%E5%8D%8811.07.41.png" alt="屏幕快照 2017-12-14 下午11.07.41"/></p>
+
+<p>目前的模式是每次请求都重新查找一遍数据库（也有可能某些包引入优先级缓存）。</p>
+
+<h5 id="toc_10">Asynchronous operation with batching</h5>
+
+<p>对于20个<strong>相同的</strong>请求，服务查询返回<strong>完全</strong>相同的结果。<br/>
+<img src="media/15127920862405/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-12-14%20%E4%B8%8B%E5%8D%8811.33.18.png" alt="屏幕快照 2017-12-14 下午11.33.18"/></p>
+
+<p>这里尝试在服务端引入<strong>批处理（Batching）</strong>技术。</p>
+
+<p>由于此服务的查询是由 item 作为条件查询出统计结果的，这里根据查询条件 item 作为批处理汇聚的 key。</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const totalSales = require(&#39;./totalSales&#39;);
+
+const queues = {};
+module.exports = function totalSalesBatch(item, callback) {
+  // 在首次或 totalSales 完成时 调用 totalSalesBatch
+  // queues[item]将为空
+  // 而在当前 totalSales 未完成时，则会将回调函数推入对应的 queue
+  // 从而汇聚一段时间内（totalSales查询时间）的相同查询。
+  if(queues[item]) {
+    console.log(&#39;Batching operation&#39;);
+    return queues[item].push(callback);
+  }
+  
+  // 初始化 Batching Queue
+  queues[item] = [callback];
+  totalSales(item, (err, res) =&gt; {
+    // 在 totalSales 完成时，取出对应的 Batching Queue
+    const queue = queues[item];
+    // 将查询条件 item 对应的 Batching Queue 清除
+    queues[item] = null; 
+    // 回调所有 callback
+    queue.forEach(cb =&gt; cb(err, res));
+  });
+};
+</code></pre>
+
+<p>上面这段代码创建了一个 totalSales 的代理，并且将请求汇聚。</p>
+
+<p>（测试结果）<br/>
+<img src="media/15127920862405/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-12-14%20%E4%B8%8B%E5%8D%8811.53.10.png" alt="屏幕快照 2017-12-14 下午11.53.10"/></p>
+
+<p>很明显耗时少了一倍！<br/>
+<img src="media/15127920862405/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-12-14%20%E4%B8%8B%E5%8D%8811.54.22.png" alt="屏幕快照 2017-12-14 下午11.54.22"/></p>
+
+<h5 id="toc_11">Asynchronous operation caching</h5>
+
+<p>上面的 Batching 对于需要长时间处理的操作很友好，但是如果是一些简单快速的API，可能在下一个相同操作请求进来之前就执行完了，这样就没有办法做到优化。<br/>
+如果一个 API 获取的数据不需要实时性，可以利用 Caching 去优化查询，从而减少耗时。</p>
+
+<p>以下的代码将 Batching 与 Caching 结合起来</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const totalSales = require(&#39;./totalSales&#39;);
+// Batch Queue 
+const queues = {};
+// 缓存对象 
+const cache = {};
+
+module.exports = function totalSalesBatch(item, callback) {
+  // 尝试从缓存中取出数据
+  const cached = cache[item];
+  if (cached) {
+    // 如果缓存中数据存在则返回该数据
+    console.log(&#39;Cache hit&#39;);
+    // 保持接口一致性，异步返回该数据
+    return process.nextTick(callback.bind(null, null, cached));
+  }
+  // 以下大部分与 Batching Request 相同
+  if (queues[item]) {
+    console.log(&#39;Batching operation&#39;);
+    return queues[item].push(callback);
+  }
+  
+  queues[item] = [callback];
+  totalSales(item, (err, res) =&gt; {
+    if (!err) {
+      // 查询成功将结果放入缓存
+      cache[item] = res;
+      setTimeout(() =&gt; {
+        // 设置超时，在既定时间后删除该缓存
+        delete cache[item];
+      }, 30 * 1000); //30 seconds expiry
+    }
+    
+    const queue = queues[item];
+    queues[item] = null;
+    queue.forEach(cb =&gt; cb(err, res));
+  });
+};
+</code></pre>
+
+<p><strong>使用 Caching 要注意的是要保持异步接口的一致性，参考第二章中提到的 Unleashing Zalgo。</strong></p>
+
+<p><img src="media/15127920862405/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-12-17%20%E4%B8%8A%E5%8D%8811.42.57.png" alt="屏幕快照 2017-12-17 上午11.42.57"/></p>
+
+<p>运行结果</p>
+
+<p><img src="media/15127920862405/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-12-17%20%E4%B8%8A%E5%8D%8811.45.15.png" alt="屏幕快照 2017-12-17 上午11.45.15"/></p>
+
+<h3 id="toc_12">Running CPU-bound tasks</h3>
+
+<p>相比起 IO密集型 的 Nodejs 应用， CPU密集型的应用无法利用事件循环处理耗时的计算任务，造成整个Nodejs进程的阻塞。</p>
+
+<p>假设一种计算任务，需要在集合 \(S\) 中查找其所有子集 \(S_{1}\),\(S_{2}\)...\(S_{n}\) 中，子集中的和 \(\sum S_{x}\) 等于给定的数 sum。例如要就找出集合 <code>[1, 2, -4, 5, -3]</code> 中所有子集中和为 0 的子集，其中就有 <code>[1, 2, -3]</code> 与 <code>[2, -4, 5, -3]</code> 等满足条件。</p>
+
+<p>如果不考虑算法上的优化（动态规划可将时间复杂度优化至\(O(N!)\))，其时间复杂度达到了 \(O(2^n)\)，即使是简单的30个元素的集合，计算复杂度也达到了\(2^{30}\)。</p>
+
+<p>在解释如何在 Nodejs 中规避 CPU密集型 任务带来的进程阻塞问题之前，首先实现一个 计算集合中所有子集并查找出和为给定数 的工具吧。</p>
+
+<pre><code class="language-js">// subsetSum.js
+
+&quot;use strict&quot;;
+
+const EventEmitter = require(&#39;events&#39;).EventEmitter;
+
+class SubsetSum extends EventEmitter {
+  // 构造函数中指定 sum 和 需要查找的 set
+  constructor(sum, set) {
+    super();
+    this.sum = sum;
+    this.set = set;
+    this.totalSubsets = 0;
+  }
+
+  _combine(set, subset) {
+    for(let i = 0; i &lt; set.length; i++) {
+      // 扩大子集的范围，形成 newSubSet
+      let newSubset = subset.concat(set[i]);
+      // 递归调用 _combine，生成原始集合中所有子集
+      this._combine(set.slice(i + 1), newSubset);
+      // 查找出所有子集
+      this._processSubset(newSubset);
+    }
+  }
+
+  _processSubset(subset) {
+    console.log(&#39;Subset&#39;, ++this.totalSubsets, subset);
+    // 化约集合中元素，计算总和
+    const res = subset.reduce((prev, item) =&gt; (prev + item), 0);
+    if(res == this.sum) {
+      // 发送事件
+      this.emit(&#39;match&#39;, subset);
+    }
+  }
+
+  start() {
+    // 初始调用combine
+    console.time();
+    this._combine(this.set, []);
+    this.emit(&#39;end&#39;);
+    console.timeEnd();
+  }
+}
+
+module.exports = SubsetSum;
+</code></pre>
+
+<p>假设我们以<code>[116,119,101,101,-116,109,101,-105,-102,117,-115,-97,119,-116,-104,-105,115]</code>作为需要计算的集合，并且 sum 为0，最终耗时是 5991.757ms，也就是Nodejs进程接近 6s 的时间内无法响应其他任务，都被阻塞在计算任务这里了。</p>
+
+<h4 id="toc_13">Interleaving with setImmediate</h4>
+
+<p>在单线程情况下，计算的总耗时无法逃避，但是可以利用 <strong>分时分片计算</strong> 策略，减少 <strong>连续阻塞</strong> 的时间，同时利用 Stream 的特性，将已计算完成的部分返回到客户端处。</p>
+
+<p>利用 setImmediate(callback) 将部分计算任务延缓到下一轮的 event loop 中，setImmediate(callback) 会将传入的 callback函数 推入<strong>队列\({^1}\)中</strong> 延缓到 I/O callback 后执行所有在<strong>队列\({^1}\)</strong>中的 callbacks ，如果 callbacks 中调用了 setImmediate(\(callback{}^2\))，<br/>
+这些\(callback{}^2\)将会延缓到下一轮 event loop 的 I/O callback 中执行。</p>
+
+<pre><code class="language-js">// subsetSumDefer.js
+&quot;use strict&quot;;
+
+const EventEmitter = require(&#39;events&#39;).EventEmitter;
+
+class SubsetSumDefer extends EventEmitter {
+  constructor(sum, set) {
+    super();
+    this.sum = sum;
+    this.set = set;
+    this.totalSubsets = 0;
+  }
+
+  _combineInterleaved(set, subset) {
+    // runningCombine 用于记录是否还有计算任务需要执行
+    this.runningCombine++;
+    setImmediate(() =&gt; {
+      // 将 _combine 任务延缓到下一轮事件循环的 I/O callback 中执行
+      this._combine(set, subset);
+      if(--this.runningCombine === 0) {
+        // combine 完成 runningCombine - 1
+        // 如果 runningCombine 为 0，通知外部消费者执行结束
+        this.emit(&#39;end&#39;);
+      }
+    });
+  }
+
+  _combine(set, subset) {
+    for(let i = 0; i &lt; set.length; i++) {
+      let newSubset = subset.concat(set[i]);
+      // 每次只计算少量的任务
+      this._combineInterleaved(set.slice(i + 1), newSubset);
+      this._processSubset(newSubset);
+    }
+  }
+
+  _processSubset(subset) {
+    console.log(&#39;Subset&#39;, ++this.totalSubsets, subset);
+    const res = subset.reduce((prev, item) =&gt; prev + item, 0);
+    if(res == this.sum) {
+      // 每发现符合的集合，就像外部消费者发送结果
+      // 从而利用 Stream 的特性将部分以计算结果返回到客户端
+      this.emit(&#39;match&#39;, subset);
+    }
+  }
+
+  start() {
+    this.runningCombine = 0;
+    this._combineInterleaved(this.set, []);
+  }
+}
+
+module.exports = SubsetSumDefer;
+</code></pre>
+
+<p>最后总耗时是在 7129 ms，虽然对于单个连接来说，总计算时间长了，但是以计算数据是实时回显的，并且在计算过程中，Nodejs主循环仍然能处理其他 I/O 时间，总体来说是一个可以接受的方案。</p>
+
+<h4 id="toc_14">Using multiple processes</h4>
+
+<pre><code>本章节中书中实例代码实现并不完全正确，有可能造成错过子进程信息，代码已经过改造
+</code></pre>
+
+<p>Defer 的 分时分片计算策略虽然好，但如果同时涌入多个计算请求，每次 setImmediate 叠加的计算任务过多，还是会将当前线程长时间阻塞。</p>
+
+<p>为了解决这个问题，引入进程池，将计算任务分发到别的进程中，从而将处理请求的 I/O 进程从计算任务中解放出来。</p>
+
+<p>要利用进程池解决计算密集型的问题，首先从实现一个 进程池 开始。</p>
+
+<h5 id="toc_15">Implementing a process pool</h5>
+
+<p>进程池有两个接口，一是 acquire(callback)，将空闲 worker 进程通过 callback 传递，二是 release(worker)，将 worker 放回进程池。</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const fork = require(&#39;child_process&#39;).fork;
+
+class ProcessPool {
+  constructor(file, poolMax) {
+    this.file = file;
+    this.poolMax = poolMax;
+    // pool 队列用于存放空闲的 worker 进程
+    this.pool = [];
+    // 记录当前正在计算的 worker 进程
+    this.active = [];
+    // 用于存放计算任务
+    this.waiting = [];
+  }
+  // 用于从 进程池 中获取 worker
+  acquire(callback) {
+    let worker;
+    if (this.pool.length &gt; 0) {
+      // 如果进程池中已有可用的 worker
+      // 从进程池中获取空闲 worker
+      worker = this.pool.pop();
+      // 将 worker 推入 active 队列
+      this.active.push(worker);
+      // 最后通过 callback 传递 worker
+      return process.nextTick(callback.bind(null, null, worker));
+    }
+    // 如果活跃进程已达 进程池上限，将 callback 推入等待队列
+    if (this.active.length &gt;= this.poolMax) {
+      return this.waiting.push(callback);
+    }
+    // fork 工作进程
+    worker = fork(this.file);
+    this.active.push(worker);
+    // 保持异步操作特性
+    process.nextTick(callback.bind(null, null, worker));
+  }
+  // 用于释放工作进程，归还至进程池
+  release(worker) {
+    if (this.waiting.length &gt; 0) {
+      // 调用 release 表示该 worker 空闲，
+      const waitingCallback = this.waiting.shift();
+      // 将 worker 传递到 等待中的 callback
+      waitingCallback(null, worker);
+    }
+    // 将 worker 从 活动队列中删除
+    this.active = this.active.filter(w =&gt; worker !== w);
+    // 放回空闲队列
+    this.pool.push(worker);
+  }
+}
+
+module.exports = ProcessPool;
+</code></pre>
+
+<h5 id="toc_16">Communicating with a child process</h5>
+
+<p>有了 worker 进程，接下来是解决与 worker 进程通信的问题了。</p>
+
+<p>Nodejs 提供的 child_process 模块集成了进程间通信的功能。</p>
+
+<p>对于父进程来说，通过 send() 可以往子进程发送数据，而通过 on() 则可以订阅事件，获取子进程返回的数据。</p>
+
+<p>对于子进程来说，通过 process.send() 则可以向父进程发送数据。</p>
+
+<p>一个用于结合 processPool 与 计算任务的类</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const EventEmitter = require(&#39;events&#39;).EventEmitter;
+const ProcessPool = require(&#39;./processPool&#39;);
+// 生成是 subsetSumWorker.js worker 的 进程池
+const workers = new ProcessPool(__dirname + &#39;/subsetSumWorker.js&#39;, 2);
+
+class SubsetSumFork extends EventEmitter {
+  constructor(sum, set) {
+    super();
+    this.sum = sum;
+    this.set = set;
+  }
+
+  start() {
+    // 从进程池中获取 worker
+    workers.acquire((err, worker) =&gt; {
+      const onMessage = msg =&gt; {
+        if (msg.event === &#39;end&#39;) {
+          // 如果是 end 事件， 移除 onMessage listener 及 归还 worker
+          worker.removeListener(&#39;message&#39;, onMessage);
+          workers.release(worker);
+        }
+        // 透传事件与数据至 消费者处
+        this.emit(msg.event, msg.data);
+      };
+      // 首先订阅 message 事件
+      worker.on(&#39;message&#39;, onMessage);
+      // 然后发送数据开始计算 
+      worker.send({sum: this.sum, set: this.set});
+    });
+  }
+}
+
+module.exports = SubsetSumFork;
+</code></pre>
+
+<p>最后是 worker 代码</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const SubsetSum = require(&#39;./subsetSum&#39;);
+
+process.on(&#39;message&#39;, msg =&gt; {  // [1]
+  const subsetSum = new SubsetSum(msg.sum, msg.set);
+  
+  subsetSum.on(&#39;match&#39;, data =&gt; {  // [2]
+    process.send({event: &#39;match&#39;, data: data});
+  });
+  
+  subsetSum.on(&#39;end&#39;, data =&gt; {
+    process.send({event: &#39;end&#39;, data: data});
+  });
+  
+  subsetSum.start();
+});
+</code></pre>
+
+<p>运行的耗时在 6551.740ms 考虑到 进程间通信 与 进程池初始化时间，这个结果是正常的。</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[SQL必知必会 1 - 7 章]]></title>
+    <link href="zerolocusta.github.io/15124581127035.html"/>
+    <updated>2017-12-05T15:15:12+08:00</updated>
+    <id>zerolocusta.github.io/15124581127035.html</id>
+    <content type="html"><![CDATA[
+<h2 id="toc_0">第1章 了解 SQL</h2>
+
+<h3 id="toc_1">数据库基础</h3>
+
+<ul>
+<li>数据库(Database): 保存有组织的数据的容器（通常是一个文件或一组文件）。</li>
+</ul>
+
+<h4 id="toc_2">表</h4>
+
+<ul>
+<li>表(Table): 某种特定类型数据的结构化清单。 这些特性定义了数据在表中如何存储，包含存储什么样的数据，数据如何分解，各部分信息如何命名等信息。描述表的这组信息就是所谓的模式(schema)，模式可以用来描述数据库中特定的表，也可以用来描述整个数据库（和其中表的关系）.</li>
+</ul>
+
+<h4 id="toc_3">列和数据类型</h4>
+
+<ul>
+<li>列(Column): 指的是表中的一个字段, 并且拥有特定的数据类型.</li>
+<li>数据类型(Data Type): 表中的每个列都有特定的数据类型, 指定该列可以存储什么类型的数据.</li>
+</ul>
+
+<h4 id="toc_4">行</h4>
+
+<ul>
+<li>行(Row): 表中的数据是按行存储的，所保存的每个记录都存储在自己的行内。列是描述表中单个字段的属性，而行是在表中多个字段的数据组成的记录(record)。</li>
+</ul>
+
+<h4 id="toc_5">主键</h4>
+
+<ul>
+<li>主键(Primary Key): 表中的每一行都<strong>应该有的</strong>唯一标识，用于标识特定的行，表中的满足条件的每一列都可以作为主键：
+
+<ul>
+<li>任意两行都不具有相同的主键值</li>
+<li>每一行必须都具有一个主键值（即主键不允许为空）</li>
+<li>主键列中的值不允许修改或者更新</li>
+<li>主键不能重用（不允许删除后回收使用）</li>
+</ul></li>
+</ul>
+
+<hr/>
+
+<h2 id="toc_6">第2章 检索数据</h2>
+
+<h3 id="toc_7">SELECT 语句</h3>
+
+<p>使用 SELECT 检索表数据，必须至少给出两条信息——想选择什么（检索哪一列），以及从什么地方选择（检索哪个表）</p>
+
+<h3 id="toc_8">检索单个列</h3>
+
+<p>检索单个列的语句格式如下</p>
+
+<pre><code class="language-sql">SELECT field1 FROM table;
+</code></pre>
+
+<p>例如</p>
+
+<pre><code class="language-sql">SELECT prod_name FROM Products;
+</code></pre>
+
+<p>上述语句利用 SELECT 语句从 Products 表中检索一个名为 prod_name 的列.</p>
+
+<p>并且数据库在处理SQL时，其中所有空格都会被忽略， 例如下面的语句能达到同样的效果，但是可读性更好。</p>
+
+<pre><code class="language-sql">SELECT
+    prod_name
+FROM
+    Products;
+</code></pre>
+
+<h3 id="toc_9">检索多个列</h3>
+
+<p>检索多个列的语句格式如下</p>
+
+<pre><code class="language-sql">SELECT field1[,field2[,field3...]] FROM table;
+</code></pre>
+
+<p>例如</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_id, 
+    prod_name, 
+    prod_price
+FROM 
+    Products;
+</code></pre>
+
+<p>上述语句利用 SELECT 语句从 Products 表中检索三个分别名为 prod_id、prod_name、prod_price 的列.</p>
+
+<h3 id="toc_10">检索所有列</h3>
+
+<pre><code class="language-sql">SELECT * FROM table;
+</code></pre>
+
+<h3 id="toc_11">检索不同的值（去重）</h3>
+
+<pre><code class="language-sql">SELECT DISTINCT field FROM table;
+</code></pre>
+
+<p>DISTINCT将会把列中重复的值去除。例如</p>
+
+<pre><code class="language-sql">SELECT DISTINCT prod_name FROM Products;
+</code></pre>
+
+<p>上述语句会将 prod_name 列中重复的值去除并返回结果。</p>
+
+<p>要注意的是，不能部分使用 DISTINCT ，不仅仅是跟在其后的那一列。</p>
+
+<h3 id="toc_12">限制返回的结果数量</h3>
+
+<p>利用<code>LIMIT</code>可以限制返回的结果数量</p>
+
+<pre><code class="language-sql">SELECT field FROM table LIMIT num;
+</code></pre>
+
+<p>例如</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_name 
+FROM 
+    Products 
+LIMIT 
+    5;
+</code></pre>
+
+<p>上述语句表示从 Products 中选出前5条具有 prod_name 的数据。</p>
+
+<p>还可以利用<code>OFFSET</code>指定从哪儿开始检索。</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_name 
+FROM 
+    Products 
+LIMIT 
+    5
+OFFSET
+    5;
+</code></pre>
+
+<p>上述语句表示从 Products 中的第5行开始，选出前5条具有 prod_name 的数据。</p>
+
+<h3 id="toc_13">使用注释</h3>
+
+<p>行内注释, 利用<code>--</code></p>
+
+<pre><code class="language-sql">SELECT prod_name    -- 这是一条注释  
+FROM Products;
+</code></pre>
+
+<p>多行注释，从<code>/*</code>开始，到<code>*/</code>结束。<code>/*</code>和<code>*/</code>之间的任何内容都是注释、</p>
+
+<pre><code class="language-sql">/* SELECT 
+    prod_name, 
+    vend_id  
+FROM 
+    Products; */
+    
+SELECT 
+    prod_name  
+FROM 
+    Products;
+</code></pre>
+
+<hr/>
+
+<h2 id="toc_14">第3章 排序检索数据</h2>
+
+<p>这一章讲授如何使用 SELECT 语句的 ORDER BY 子句，根据需要排序检索出的数据。</p>
+
+<h3 id="toc_15">排序数据</h3>
+
+<p>通常情况下<code>SELECT</code>获取的数据是未经排序的，利用<code>ORDER BY</code>可以根据某个字段进行排序。</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_name 
+FROM 
+    Products 
+ORDER BY 
+    prod_name;
+</code></pre>
+
+<p>上述语句指示数据库对 prod_name 列以字母顺序排序数据</p>
+
+<h4 id="toc_16">HINTs：</h4>
+
+<ul>
+<li>ORDER BY 子句的位置，应该保证它是 SELECT 语句中最后一条子句。</li>
+<li>通常，ORDER BY 子句中使用的列将是为显示而选择的列。但是，使用用非检索的列排序数据是完全合法的。</li>
+</ul>
+
+<h3 id="toc_17">按多个列排序</h3>
+
+<pre><code class="language-sql">SELECT 
+    prod_id, 
+    prod_price, 
+    prod_name
+FROM
+    Products
+ORDER BY
+    prod_price,
+    prod_name;
+</code></pre>
+
+<p>上述语句在检索出的结果中，按 prod_price 和 prod_name 排序，在两行 prod_price 相同的时候，再按 prod_name 进行排序。</p>
+
+<h3 id="toc_18">按列位置排序</h3>
+
+<p>除了能用列名指出排序顺序外，<code>ORDER BY</code> 还支持按相对列位置进行排序。</p>
+
+<p>例如</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_id, 
+    prod_price, 
+    prod_name
+FROM
+    Products
+ORDER BY
+    2,
+    3;
+</code></pre>
+
+<p>这条语句和前一节中的语句效果相同，<code>SELECT</code>后的选择列的相对位置按照1、2、3对应到<code>ORDER BY</code>中的顺序。</p>
+
+<h3 id="toc_19">指定排序方向</h3>
+
+<p>通过在<code>ORDER BY</code>后添加<code>DESC</code>可以改变排序的方向。</p>
+
+<p>例如在使用<code>DESC</code>之前，选择出来的行是按指定排序字段的从小到大，而指定<code>DESC</code>后， 结果是按照从大到小进行排序。</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_id, 
+    prod_price, 
+    prod_name 
+FROM 
+    Products 
+ORDER BY 
+    prod_price DESC;
+</code></pre>
+
+<p>上述语句将按 prod_price 降序进行排列。</p>
+
+<hr/>
+
+<h2 id="toc_20">第4章 过滤数据</h2>
+
+<h3 id="toc_21">使用 WHERE 子句</h3>
+
+<p>在 SELECT 语句中，数据根据 WHERE 子句中指定的搜索条件进行过滤。 WHERE 子句在表名（ FROM 子句）之后给出，例如</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_name, 
+    prod_price 
+FROM 
+    Products 
+WHERE 
+    prod_price = 3.49;
+</code></pre>
+
+<p>这条语会将 Products 表中 prod_price 为 3.49 的结果检索出来。</p>
+
+<h4 id="toc_22"><code>WHERE</code>子句支持的操作符</h4>
+
+<table>
+<thead>
+<tr>
+<th style="text-align: center">操作符</th>
+<th style="text-align: center">说明</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td style="text-align: center">=</td>
+<td style="text-align: center">等于</td>
+</tr>
+<tr>
+<td style="text-align: center">&lt;&gt;</td>
+<td style="text-align: center">不等于</td>
+</tr>
+<tr>
+<td style="text-align: center">!=</td>
+<td style="text-align: center">不等于</td>
+</tr>
+<tr>
+<td style="text-align: center">&lt;</td>
+<td style="text-align: center">小于</td>
+</tr>
+<tr>
+<td style="text-align: center">&lt;=</td>
+<td style="text-align: center">小于或等于</td>
+</tr>
+<tr>
+<td style="text-align: center">!&lt;</td>
+<td style="text-align: center">不小于</td>
+</tr>
+<tr>
+<td style="text-align: center">&gt;</td>
+<td style="text-align: center">大于</td>
+</tr>
+<tr>
+<td style="text-align: center">&gt;=</td>
+<td style="text-align: center">大于或等于</td>
+</tr>
+<tr>
+<td style="text-align: center">!&gt;</td>
+<td style="text-align: center">不大于</td>
+</tr>
+<tr>
+<td style="text-align: center">BETWEEN</td>
+<td style="text-align: center">是否处于指定的两个值之间</td>
+</tr>
+<tr>
+<td style="text-align: center">LIKE</td>
+<td style="text-align: center">搜索相似字符串</td>
+</tr>
+<tr>
+<td style="text-align: center">IN</td>
+<td style="text-align: center">判断特定的值是否处于字段中</td>
+</tr>
+<tr>
+<td style="text-align: center">IS NULL</td>
+<td style="text-align: center">判断是否为NULL值</td>
+</tr>
+</tbody>
+</table>
+
+<h5 id="toc_23"><code>BETWEEN</code>操作符</h5>
+
+<p>检查某个范围的值，可以使用 BETWEEN 操作符。例如</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_name, 
+    prod_price 
+FROM 
+    Products 
+WHERE 
+    prod_price BETWEEN 5 AND 10;
+</code></pre>
+
+<p>这条语句通过<code>BETWEEN ... AND</code>操作符查询 prod_price 在 5 到 10 之间的数据。</p>
+
+<h5 id="toc_24">空值检查</h5>
+
+<p>确定值是否为 NULL，不能简单地检查是否 <code>= NULL</code>, 而是使用<code>IS NULL</code>来检查具有<code>NULL</code>值的列. 例如</p>
+
+<pre><code class="language-sql">SELECT 
+    cust_name 
+FROM 
+    Customers 
+WHERE 
+    cust_email IS NULL;
+</code></pre>
+
+<p>这条语句检查 Customers 表中 cust_email 为空的行。</p>
+
+<hr/>
+
+<h2 id="toc_25">第5章 高级数据过滤</h2>
+
+<p>这一章介绍如何组合 WHERE 子句以建立功能更强、更高级的搜索条件。跀A恀我们还将学习如何使用 NOT 和 IN 操作符</p>
+
+<h3 id="toc_26">组合 WHERE 子句</h3>
+
+<h4 id="toc_27">AND 操作符</h4>
+
+<p>使用 AND 操作符可以给 WHERE 子句附加条件。其效果去逻辑与相似。 例如</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_id, 
+    prod_price, 
+    prod_name
+FROM 
+    Products 
+WHERE 
+    vend_id = &#39;DLL01&#39; 
+    AND 
+    prod_price &lt;= 4;
+</code></pre>
+
+<p>这条语句从 Products 表中检索出 vend_id 为 DLL01 <strong>并且</strong> prod_price 小于等于4的行。</p>
+
+<h4 id="toc_28">OR 操作符</h4>
+
+<p>OR 操作符效果与逻辑或相似， 同样可以给 WHERE 子句附加条件。 例如</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_id, 
+    prod_price, 
+    prod_name
+FROM 
+    Products 
+WHERE 
+    vend_id = &#39;DLL01&#39; 
+    AND 
+    vend_id = &#39;RLL05&#39;;
+</code></pre>
+
+<p>这条语句从 Products 表中检索出 vend_id 为 DLL01 <strong>或者</strong> vend_id 为 RLL05 的行。</p>
+
+<h4 id="toc_29">求值顺序</h4>
+
+<p>AND 与 OR 操作符可以随意数量组合使用。但是和大多数语言类似，SQL中的操作符也有优先级顺序，在处理 OR 操作符前，优先处理 AND 操作符。</p>
+
+<p>所以在使用多个 AND 或者 OR 操作符的时候，加上括号就好了。</p>
+
+<h3 id="toc_30">IN 操作符</h3>
+
+<p>IN 操作符用来指定条件范围，范围中的每个条件都可以进行匹配。IN 使用一组由逗号分隔、 括在圆括号中的合法值。 例如</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_name, 
+    prod_price 
+FROM 
+    Products 
+WHERE 
+    vend_id 
+        IN ( &#39;DLL01&#39;, &#39;BRS01&#39; ) 
+ORDER BY 
+    prod_name;
+</code></pre>
+
+<p>这条语句表示从 Products 表中筛选出 vend_id 的值为 DLL01 或是 BRS01 的行，并将结果按照 prod_name 排序。与之相对应的使用 OR 操作符的SQL语句：</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_name, 
+    prod_price 
+FROM 
+    Products 
+WHERE 
+    vend_id = &#39;DLL01&#39;
+    OR
+    vend_id = &#39;BRS01&#39; 
+ORDER BY 
+    prod_name;
+</code></pre>
+
+<p>IN 操作符与 （OR 或 AND）操作符相比</p>
+
+<ul>
+<li>IN 操作符的语法更清楚，更直观</li>
+<li>与其他 AND 和 OR 操作符组合使用 IN 时，求值顺序更容易管理</li>
+<li>IN 操作符一般比一组 OR 操作符执行得更快</li>
+<li>IN 的还可以包含其他 SELECT 语句（子查询），更动态的建立 WHERE 子句。</li>
+</ul>
+
+<h3 id="toc_31">NOT 操作符</h3>
+
+<p>WHERE 子句中的 NOT 操作符有且只有一个功能，那就是否定其后所跟的任何条件。与逻辑非功能相似。例如</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_name 
+FROM 
+    Products 
+WHERE 
+    NOT vend_id = &#39;DLL01&#39;
+ORDER BY 
+    prod_name;
+</code></pre>
+
+<p>这条语句表示从 Products 表中检索出 vend_id <strong>不等于</strong> DLL01 的行。</p>
+
+<p>NOT 操作符的优势在于，与 IN 操作符联合使用时， NOT 可以非常简单地找出与条件列表不匹配的行。</p>
+
+<hr/>
+
+<h2 id="toc_32">第6章 用通配符进行过滤</h2>
+
+<p>这一章介绍什么是通配符、如何使用通配符以及怎样使用 LIKE 操作符进行通配搜索，以便对数据进行复杂过滤。</p>
+
+<h3 id="toc_33">LIKE 操作符</h3>
+
+<p>LIKE 操作符允许使用通配符、字面量来构造查询条件，进行模糊匹配。</p>
+
+<h4 id="toc_34">百分号（%）通配符</h4>
+
+<p>搜索串中，<code>%</code>表示任何字符出现<strong>任意次数</strong>。例如可以使用<code>Fish%</code>作为 LIKE 的查询条件，检索出所有以词 Fish 起头的产品。</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_id, 
+    prod_name  
+FROM 
+    Products  
+WHERE 
+    prod_name LIKE &#39;Fish%&#39;;
+</code></pre>
+
+<h4 id="toc_35">下划线（_）通配符</h4>
+
+<p>下划线（_）通配符与百分号（%）通配符相似，只不过<code>_</code>表示匹配<strong>单个字符</strong>。</p>
+
+<p>例如一下句子表示匹配出 Products 中 prod_name 为 XX水果 的查询语句。</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_id, 
+    prod_name  
+FROM 
+    Products  
+WHERE 
+    prod_name LIKE &#39;__水果&#39;; -- 注意这里有两个 _ 操作符
+</code></pre>
+
+<p>这样的查询条件只会匹配诸如 京东水果、企鹅水果，而不会匹配出 红水果、红红红水果。</p>
+
+<hr/>
+
+<h2 id="toc_36">第7章 创建计算字段</h2>
+
+<p>这一章介绍什么是计算字段，如何创建计算字段，以及如何从应用程序中使用别名引用它们。</p>
+
+<h3 id="toc_37">计算字段</h3>
+
+<p>存储在数据库表中的数据一般不是应用程序所需要的格式，除了可以再应用程序中做数据计算之外，SELECT 也支持进行字段计算。</p>
+
+<h3 id="toc_38">拼接字段</h3>
+
+<p>在 MySQL 中可以使用 Concat 函数拼接字段， 例如</p>
+
+<pre><code class="language-sql">SELECT 
+    Concat( vend_name, &#39; (&#39;, vend_country, &#39;)&#39; ) 
+FROM 
+    Vendors 
+ORDER BY vend_name;
+</code></pre>
+
+<p>表示从 Vendors 表中获取每行中 vend_name 与 vend_country 的值，并且按 vend_name 进行排序，同时在返回检索结果时将 vend_name 与 vend_country 拼接成 <code>vend_name (vend_country)</code> 的形式。</p>
+
+<h4 id="toc_39">使用别名（alias）</h4>
+
+<p>SELECT 语句可以很好地拼接地址字段。但是，这个新计算列并不像列（column）一样具有名字，从而无法很好地引用它。</p>
+
+<p>为了解决这个问题，SQL 支持列别名。别名（alias）是一个字段或值的替换名，使用 AS 指定。</p>
+
+<pre><code class="language-sql">SELECT 
+    Concat( vend_name, &#39; (&#39;, vend_country, &#39;)&#39; ) AS vend_title
+FROM 
+    Vendors 
+ORDER BY vend_name;
+</code></pre>
+
+<p>为<code>Concat( vend_name, &#39; (&#39;, vend_country, &#39;)&#39; )</code>的结果创建一个包含指定计算结果的名为vend_title 的计算字段。在检索结果中也会出现 vend_title 这个列，就像它真的存在于表结构中一样。</p>
+
+<h3 id="toc_40">执行算术计算</h3>
+
+<p>SQL允许在语句中通过算术操作符或是数学函数执行算术计算。</p>
+
+<pre><code class="language-sql">SELECT 
+    prod_id,
+    quantity,        
+    item_price,        
+    quantity * item_price AS expanded_price 
+FROM 
+    OrderItems 
+WHERE 
+    order_num = 20008;
+</code></pre>
+
+<p>筛选出 order_num 为 20008 的行，并将行中的 quantity 乘以 item_price 的值，使用别名 expanded_price 指定并返回至客户端。</p>
+
+<h4 id="toc_41">SQL中的算数操作符</h4>
+
+<table>
+<thead>
+<tr>
+<th style="text-align: center">操作符</th>
+<th style="text-align: center">说明</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td style="text-align: center">+</td>
+<td style="text-align: center">加</td>
+</tr>
+<tr>
+<td style="text-align: center">-</td>
+<td style="text-align: center">减</td>
+</tr>
+<tr>
+<td style="text-align: center">*</td>
+<td style="text-align: center">乘</td>
+</tr>
+<tr>
+<td style="text-align: center">/</td>
+<td style="text-align: center">除</td>
+</tr>
+</tbody>
+</table>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[从 Node.js C++ Addon 观察 Js 在 v8 中的表示方式]]></title>
+    <link href="zerolocusta.github.io/15116831975159.html"/>
+    <updated>2017-11-26T15:59:57+08:00</updated>
+    <id>zerolocusta.github.io/15116831975159.html</id>
+    <content type="html"><![CDATA[
+<h2 id="toc_0"><a href="https://github.com/nodejs/nan">Native Abstractions for Node.js</a> (nan)</h2>
+
+<blockquote>
+<p>A header file filled with macro and utility goodness for making add-on development for Node.js easier</p>
+</blockquote>
+
+<p>Nan 是一个具有更丰富的功能封装以方便开发 Node.js C++ 插件的头文件. 跟随 Nan 的 README 文件, 从 v8 引擎开始, 同时结合 libuv , 再到 Node.js 中了解 C++ 插件, 最后观察<code>nan</code>究竟做了哪些封装.</p>
+
+<h3 id="toc_1"><a href="https://github.com/v8/v8/wiki/Getting%20Started%20with%20Embedding">The V8 Getting Started * Guide</a></h3>
+
+<h6 id="toc_2"><code>v8</code>本来是为<code>Chrome</code>设计的<code>JavaScript</code>解析引擎, 看的时候多从浏览器的角度去考虑.</h6>
+
+<h4 id="toc_3">Hello World</h4>
+
+<p>接下来会给出一个<code>Hello Example</code>, 演示如何使用<code>v8</code>打印出<code>Hello World</code>. 在给出代码之前, 首先简述几个概念:</p>
+
+<ul>
+<li><code>Isolate</code>: 表示一个<code>v8</code>虚拟机实例.</li>
+<li><code>Local Handle</code>: 指向<code>v8</code>对象的引用对象, 由于<code>v8</code>引擎的垃圾回收机制的工作方式, 所有的<code>v8</code>对象都需要通过<code>handle</code>访问.</li>
+<li><code>Handle Scope</code>: 一个或多个<code>Handle</code>的集合. 当我们使用完多个<code>Handle</code>后, 无需通过逐个析构的方式去删除它们, 而是通过析构<code>Handle Scope</code>就可以了.</li>
+<li><code>Context</code>: 为<code>JavaScript</code>在同一个<code>v8</code>虚拟机实例中提供<strong>隔离的</strong>执行环境.</li>
+</ul>
+
+<p>更详细的解释将会在<a href="https://github.com/v8/v8/wiki/Embedder%27s-Guide">Embedder&#39;s Guide</a>中进行讨论.</p>
+
+<p>将<code>hello-world.cc</code>拆开来看</p>
+
+<p>①  启动<code>v8</code>部分.</p>
+
+<pre><code class="language-c++">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &quot;include/libplatform/libplatform.h&quot;
+#include &quot;include/v8.h&quot;
+int main(int argc, char* argv[]) {
+--// Initialize V8.
+--
+--// 初始化International Components for Unicode
+--// 用于处理Unicode编码
+--// 从本地的icudtl.dat读取编解码数据
+--v8::V8::InitializeICUDefaultLocation(argv[0]);
+--// natives_blob.bin 和 snapshot_blob.bin
+--// 用于加速启动V8引擎
+--v8::V8::InitializeExternalStartupData(argv[0]);
+--// 初始化v8平台
+--std::unique_ptr&lt;v8::Platform&gt; platform = v8::platform::NewDefaultPlatform();
+--// 初始化v8管理平台
+--v8::V8::InitializePlatform(platform.get());
+--v8::V8::Initialize();
+</code></pre>
+
+<ul>
+<li><code>v8::V8::InitializeICUDefaultLocation</code>: <code>v8</code>的<code>Unicode</code>字符处理依赖于<code>icu</code>库, 同时使用该函数从外部的<code>icudtl.dat</code>文件加载<code>Unicode</code>的编解码数据.</li>
+<li><code>v8::V8::InitializeExternalStartupData</code>: <code>v8</code>在启动的时候需要预先加载一些<code>JavaScript build-in</code>函数, 例如<code>math</code>、<code>full-featured regular expression engine</code>, 这个启动过程相当缓慢. 而自从<code>4.3</code>版本开始, <code>v8</code>引入了<code>snapshotting</code>快照加载功能用于加速这个过程, 目前依赖两种快照<code>natives_blob.bin</code>和<code>snapshot_blob.bin</code>.
+
+<ul>
+<li><code>natives_blob.bin</code>: 存储了<code>JavaScript build-in</code>函数解析执行后的内存布局快照(<code>JavaScript build-in</code>可以在<code>v8/src/objects.h</code>中的<code>FUNCTIONS_WITH_ID_LIST</code>宏中查看.</li>
+<li><code>snapshot_blob.bin</code>: 存储了<code>v8</code>启动后的内存布局快照.</li>
+</ul></li>
+<li><code>v8::platform</code>: 管理<code>v8</code>引擎实例<code>isolate</code>的接口, 保存多个<code>isolate</code>的执行状态和所在线程.</li>
+</ul>
+
+<hr/>
+
+<p>②  创建<code>v8</code>引擎实例 </p>
+
+<pre><code class="language-c++">--// Create a new Isolate and make it the current one.
+--v8::Isolate::CreateParams create_params;
+--create_params.array_buffer_allocator =
+--    v8::ArrayBuffer::Allocator::NewDefaultAllocator();
+--v8::Isolate* isolate = v8::Isolate::New(create_params);
+</code></pre>
+
+<ul>
+<li><code>create_params</code>: 存储<code>v8</code>引擎的初始化参数</li>
+<li><code>v8::Isolate::New</code>: 实例化<code>v8</code>引擎</li>
+</ul>
+
+<hr/>
+
+<p>③  创建<code>JavaScript</code>代码的执行环境</p>
+
+<pre><code class="language-js">// 创建临时作用域用于自动析构 HandleScope
+--{
+----v8::Isolate::Scope isolate_scope(isolate);
+----// Create a stack-allocated handle scope.
+----// HandleScope, 之前的概念简要中提到的利用RAII创建和析构Handle
+----// HandleScope作用于isolate(v8实例)
+----// 表示从此开始在isolate中创建的handle在作用域结束时回收
+----v8::HandleScope handle_scope(isolate);
+----// Create a new context.
+----// 创建隔离的`JavaScript`代码执行环境
+----v8::Local&lt;v8::Context&gt; context = v8::Context::New(isolate);
+----// Enter the context for compiling and running the hello world script.
+----// Context::Scope 作用于 context
+----// 表示从此开始在context中创建的实例在离开作用域时回收
+----v8::Context::Scope context_scope(context);
+----// Create a string containing the JavaScript source code.
+----// 将`JavaScript`代码实例化表示为 v8::String
+----// 此处的JavaScript代码为 &#39;Hello&#39; + &#39;, World&#39;
+----v8::Local&lt;v8::String&gt; source =
+----    v8::String::NewFromUtf8(isolate, &quot;&#39;Hello&#39; + &#39;, World!&#39;&quot;,
+----                            v8::NewStringType::kNormal)
+----        .ToLocalChecked();
+----// Compile the source code.
+----// 解析JavaScript代码
+----v8::Local&lt;v8::Script&gt; script =
+----    v8::Script::Compile(context, source).ToLocalChecked();
+----// Run the script to get the result.
+----// 执行编译后的`JavaScript`代码, 并且在context中执行
+----v8::Local&lt;v8::Value&gt; result = script-&gt;Run(context).ToLocalChecked();
+----// Convert the result to an UTF8 string and print it.
+----// 从v8::Value中提取执行结果, 转换为utf-8字符串
+----v8::String::Utf8Value utf8(isolate, result);
+----printf(&quot;%s\n&quot;, *utf8);
+--}
+//↑ 临时作用域结束, 自动析构临时作用域内创建的HandleScope
+</code></pre>
+
+<ul>
+<li><code>v8::Isolate::Scope</code>: 作用于<code>isolate</code>实例, 利用<code>RAII</code>自动管理此作用域内所有的操作, 在离开作用域时回收.</li>
+<li><code>v8::Local&lt;T&gt;</code>: 相当于只能指针, 表示被引用对象, 由<code>HandleScope</code>管理, 离开作用域时析构该引用.</li>
+<li><code>v8::Script</code>: 编译后的<code>JavaScript</code>代码的<code>AST</code>抽象表示根节点, 必须在实例化是绑定到<code>v8::Context</code>.</li>
+</ul>
+
+<hr/>
+
+<p>④  析构<code>v8</code>实例</p>
+
+<pre><code class="language-c++">--// Dispose the isolate and tear down V8.
+--isolate-&gt;Dispose();
+--v8::V8::Dispose();
+--v8::V8::ShutdownPlatform();
+--delete create_params.array_buffer_allocator;
+--return 0;
+}
+</code></pre>
+
+<h4 id="toc_4"><code>Hello World</code>启示</h4>
+
+<ol>
+<li><code>v8</code>依赖引用计数进行垃圾回收, 并且在<code>v8</code>提供的<code>API</code>接口中利用<code>Handle</code>进行引用计数.</li>
+<li><code>Handle</code>仅仅是对<code>v8</code>引擎实例中<code>v8数据结构</code>的引用, 在解构后仅仅是将其引用计数－1, 何时进行内存回收由<code>垃圾回收实例</code>决定.</li>
+<li><code>v8</code>中可以有多个<code>v8</code>引擎实例, 但每个实例中的<code>v8</code>数据结构都是与<code>v8</code>引擎强关联的, 无法跨引擎传递使用.</li>
+</ol>
+
+<h3 id="toc_5"><a href="https://github.com/v8/v8/wiki/Embedder%27s-Guide">Embedder&#39;s Guide</a></h3>
+
+<p>解释<code>v8</code>提供的<code>C++ API</code>中的核心概念: </p>
+
+<ul>
+<li><code>Handle</code></li>
+<li><code>Contexts</code></li>
+<li><code>Templates</code></li>
+<li><code>Accessors</code></li>
+<li><code>Interceptors</code></li>
+<li><code>Security Model</code></li>
+<li><code>Exceptions</code></li>
+<li><code>Inheritance</code></li>
+</ul>
+
+<hr/>
+
+<h4 id="toc_6">Handles and Garbage Collection</h4>
+
+<p><code>Handle</code>是<code>v8</code>引擎堆中<code>JavaScript</code>对象的引用. <code>v8</code>垃圾回收器会将<strong>无法访问</strong>的<code>JavaScript</code>对象进行回收. 而在垃圾回收过程中, <code>JavaScript</code>对象在内存中的位置会经常移动, 当一个对象移动完成后, 所有在此对象上的<code>Handle</code>引用也会更新, 重新指向对象的新地址.</p>
+
+<p><code>Handle</code>有几种类型:</p>
+
+<ul>
+<li><p><code>Local Handle</code>: <code>Local</code>中对<code>JavaScript</code>对象的引用是基于<code>Handle Stack</code>的. 必须配合<code>HandleScope</code>一起使用. <code>HandleScope</code>在构造时, 会营造出<code>Handle Stack</code>, 在此之后构造的所有<code>Local Handle</code>都由这个<code>HandleScope</code>管理, 并在<code>HandleScope</code>析构后<strong>Clear</strong>, 释放<code>Local Handle</code>对<code>JavaScript</code>对象的引用.</p>
+
+<ul>
+<li><code>Local</code>中对<code>JavaScript</code>对象的引用是基于<code>Handle Stack</code>的, 由<code>HandleScope</code>管理.</li>
+<li><code>Handle Stack</code>要与<code>C++ Stack</code>区分开, <code>HandleScope</code>是基于<code>C++ Stack</code>的, 在离开作用域时析构, 而<code>Local</code>是基于<code>Handle Stack</code>的, 在<code>Handle Stack</code>删除时解开对<code>JavaScript</code>对象的引用并析构.</li>
+<li><code>Local</code>必须执行在<code>HandleScope</code>中, 否则会造成内存泄漏, 还有可能引起<code>v8</code>崩溃.</li>
+<li>由于<code>HandleScope</code>是基于<code>C++ Stack</code>的, 如果<code>Local</code>被复制(或别引用)离开了当前作用域(也同时离开了当前<code>HandleScope</code>), 需要使用<code>EscapableHandleScope</code>或者<strong>利用</strong>其中的对象指针生成<code>Persistent</code></li>
+<li> <code>Handle</code> is an alias for <code>Local</code> for historical reasons.</li>
+</ul></li>
+<li><p><code>Persistent Handle</code>: <code>Persistent</code>同样是对于<code>v8</code>引擎中<code>JavaScript</code>对象的引用, 与<code>Local</code>不同的是<code>Persistent</code>并不由<code>HandleScope</code>管理, 而是需要调用<code>Persistent Handle::Reset()</code>进行其对<code>JavaScript</code>对象的解引用.</p></li>
+</ul>
+
+<p><img src="media/15116831975159/local_persist_handles_review.png" alt="local_persist_handles_revie"/></p>
+
+<hr/>
+
+<h4 id="toc_7">Contexts</h4>
+
+<p><code>Context</code>是在<code>v8</code>引擎实例<code>Isolate</code>内部的一个独立地<code>JavaScript</code>执行环境. 在执行<code>JavaScript</code>代码时, 必须指定其<code>Context</code>.</p>
+
+<p><code>Context</code>的存在是由于<code>JavaScript</code>的内置函数与对象(<code>build-in functions and objects</code>), 全局运行环境(<code>global</code>)都是可以被用户代码改变的. 如果两份不相关的代码在没有<code>Context</code>的情况下运行, 那么其中一份代码改变了全局相关属性后, 另一份<code>JavaScript</code>代码也会受到影响.</p>
+
+<h5 id="toc_8">Contexts Extensive Caching</h5>
+
+<p><code>Context</code>中有独立的<code>build-in functions and objects</code>、<code>global</code>, 而<code>build-in</code>里有不少是由<code>JavaScript</code>低等级代码(<code>低级胶水JavaScript</code>, <code>JavaScript</code>中通过<code>%</code>调用<code>C++</code>函数), 这意味着每次新建<code>Context</code>的时候都需要解析并生成一份<code>build-in</code>.</p>
+
+<p>不过<code>v8</code>提供了对<code>build-in</code>的缓存, 在第一份<code>Context</code>初始化完成后, 后续生成的<code>Context</code>只需沿用已经初始化完成的<code>build-in</code>就可以了.</p>
+
+<p>而且<code>v8</code>提供快照功能, 在<code>v8</code>进程初始化的时候可以通过编译时提前准备好的<code>snapshot_blob.bin</code>快照, 初始化第一个<code>Context</code>堆内存空间并将<code>build-in</code>缓存起来.</p>
+
+<p><img src="media/15116831975159/intro_contexts.png" alt="intro_contexts"/></p>
+
+<p><strong>即使是使用了缓存技术, 每个<code>Context</code>仍然是独立的, 只是他们的对全局对象和<code>build-in</code>的修改记录在自己的内存空间里, 而不会影响缓存数据.</strong></p>
+
+<hr/>
+
+<h4 id="toc_9">Templates</h4>
+
+<p><code>v8</code>语义下的<code>template</code>指的是<code>JavaScript</code>函数和对象在<code>C++</code>与之对应的抽象. 通过<code>template</code>可以在<code>JavaScript</code>中访问被<code>template</code><strong>封装后</strong>的<code>C++</code>函数和对象.</p>
+
+<p>在<code>JavaScript</code>语义下, <code>Function</code>和<code>Object</code>具有很多相似的地方, 但是在<code>C++</code>语义下, 这两种是完全不一样的东西. 为了将<code>C++</code>语义下的<code>Function</code>与<code>Object</code>映射到<code>v8</code>引擎中, <code>v8</code>提供了两种<code>Template</code></p>
+
+<ul>
+<li><p><code>Function Template</code>: 提供了<code>C++</code>中对<code>JavaScript</code>函数的抽象, 可以在<code>C++</code>中创建<code>JavaScript</code>函数. 也可以包裹单个<code>C++</code>函数, 并抽象成<code>JavaScript</code>函数.</p></li>
+<li><p><code>Object Template</code>: 提供了<code>C++</code>中对<code>JavaScript</code>中对象<strong>实例</strong>的抽象.</p></li>
+</ul>
+
+<p>重申一下, <code>Function Template</code>是用于在<code>C++</code>中(描述)创建<code>JavaScript</code>中的函数的, 而<code>Object Template</code>是用于在<code>C++</code>中(描述)创建并返回<code>JavaScript</code><strong>对象实例</strong>的. </p>
+
+<p>在<code>C++</code>中<strong>可以</strong>通过<code>Function Template</code>来模拟<code>JavaScript</code>中的类, 而<code>Object Template</code>用于创建<code>JavaScript</code>对象<strong>实例</strong>.</p>
+
+<pre><code class="language-c++">// Create a template for the global object and set the
+// built-in global functions.
+Local&lt;ObjectTemplate&gt; global = ObjectTemplate::New(isolate);
+global-&gt;Set(String::NewFromUtf8(isolate, &quot;log&quot;), FunctionTemplate::New(isolate, LogCallback));
+
+// Each processor gets its own context so different processors
+// do not affect each other.
+Persistent&lt;Context&gt; context = Context::New(isolate, NULL, global);
+</code></pre>
+
+<hr/>
+
+<h4 id="toc_10">Accessors</h4>
+
+<p><code>v8</code>中提供的<code>Accessors</code>与<code>JavaScript</code>中的访问器概念一样, 提供控制<strong>对象</strong>中属性的访问行为.</p>
+
+<p>通过对象中的<code>SetAccessor</code>方法可以对<strong>对象</strong>添加访问器属性, 并且通过<code>AccessorGetterCallback</code>、<code>AccessorSetterCallback</code>添加<strong>对象</strong>的<code>[Getter|Setter]</code>, 以及<code>AccessControl</code>控制访问器权限.</p>
+
+<pre><code class="language-c++">enum AccessControl {
+  DEFAULT = 0,
+  ALL_CAN_READ = 1,
+  ALL_CAN_WRITE = 1 &lt;&lt; 1,
+  PROHIBITS_OVERWRITING = 1 &lt;&lt; 2
+};
+
+typedef void (*AccessorGetterCallback)(Local&lt;String&gt; property,
+                                       const PropertyCallbackInfo&lt;Value&gt;&amp; info);
+                                       
+typedef void (*AccessorSetterCallback)(Local&lt;String&gt; property,
+                                       Local&lt;Value&gt; value,
+                                       const PropertyCallbackInfo&lt;void&gt;&amp; info);
+</code></pre>
+
+<hr/>
+
+<h4 id="toc_11">Interceptors</h4>
+
+<blockquote>
+<p>访问对象前插一脚</p>
+</blockquote>
+
+<p><code>Interceptors</code>提供了<strong>访问对象前</strong>调用自定义函数的机会. <code>Interceptors</code>分为两种</p>
+
+<ul>
+<li><code>named property interceptors</code>: 在通过字符串名字(<code>string name</code>)访问对象前调用的, 例如<code>document.theFormName.elementName</code>.</li>
+<li><code>indexed property interceptors</code>: 通过索引访问对象前调用. 例如<code>document.forms.elements[0]</code>.</li>
+</ul>
+
+<p>在目前的<code>[Embedder&#39;s Guide](https://github.com/v8/v8/wiki/Embedder%27s-Guide)</code>中, 使用的分别是</p>
+
+<pre><code class="language-c++">void ObjectTemplate::SetNamedPropertyHandler(
+    IndexedPropertyGetterCallback getter,
+    IndexedPropertySetterCallback setter = 0,
+    IndexedPropertyQueryCallback query = 0,
+    IndexedPropertyDeleterCallback deleter = 0,
+    IndexedPropertyEnumeratorCallback enumerator = 0,
+    Local&lt;Value&gt; data = Local&lt;Value&gt;());
+
+void ObjectTemplate::SetIndexedPropertyHandler(
+    NamedPropertyGetterCallback getter,
+    NamedPropertySetterCallback setter = 0,
+    NamedPropertyQueryCallback query = 0,
+    NamedPropertyDeleterCallback deleter = 0,
+    NamedPropertyEnumeratorCallback enumerator = 0,
+    Local&lt;Value&gt; data = Local&lt;Value&gt;());
+</code></pre>
+
+<p>但是以上两个函数都已经在最新的<code>v8</code>源码中被标记为<code>deprecate</code>, 取而代之的是</p>
+
+<pre><code class="language-c++">void SetHandler(const NamedPropertyHandlerConfiguration&amp; configuration);
+
+void SetHandler(const IndexedPropertyHandlerConfiguration&amp; configuration);
+</code></pre>
+
+<h5 id="toc_12">Different between Interceptors And Accessor</h5>
+
+<p><code>Interceptors</code>会影响对象所有属性的访问行为, 而<code>Accessor</code>只会针对单个属性.</p>
+
+<h4 id="toc_13">Exceptions</h4>
+
+<p><code>v8</code>在运行时发生错误会抛出异常, 而在<code>C++</code>中可以利用<code>TryCatch</code>类作用域<code>Isolate</code>, 捕获<code>v8</code>运行过程中抛出的异常.</p>
+
+<pre><code class="language-js">TryCatch trycatch(isolate);
+Local&lt;Value&gt; v = script-&gt;Run();
+// 当发生异常时, `v8`会返回一个空的`Value`实例
+if (v.IsEmpty()) {
+  Local&lt;Value&gt; exception = trycatch.Exception();
+  String::Utf8Value exception_str(exception);
+  printf(&quot;Exception: %s\n&quot;, *exception_str);
+  // ...
+}
+</code></pre>
+
+<h4 id="toc_14">Inheritance</h4>
+
+<blockquote>
+<p>  在<code>C++</code>中利用<code>Function Template</code>模拟<code>JavaScript</code>中的类.</p>
+</blockquote>
+
+<p><code>JavaScript</code>本来是没有类的, 但是可以利用<code>function</code>去模拟类的行为.</p>
+
+<pre><code class="language-js">// Create an object &quot;bicycle&quot; 
+function bicycle(){ 
+} 
+// Create an instance of bicycle called roadbike
+var roadbike = new bicycle()
+// Define a custom property, wheels, on roadbike 
+roadbike.wheels = 2
+</code></pre>
+
+<p>以及利用<code>prototype</code>去模拟类的实例方法和属性</p>
+
+<pre><code class="language-js">// First, create the &quot;bicycle&quot; object
+function bicycle(){ 
+}
+// Assign the wheels property to the object&#39;s prototype
+bicycle.prototype.wheels = 2
+</code></pre>
+
+<p>而<code>v8 C++ API</code>也提供了设置<code>Function prototype</code>的方法.</p>
+
+<pre><code class="language-c++">// function biketemplate() { }
+Local&lt;FunctionTemplate&gt; biketemplate = FunctionTemplate::New(isolate);
+// biketemplate.prototype.wheels = MyWheelsMethodCallback;
+biketemplate-&gt;PrototypeTemplate().Set(
+    String::NewFromUtf8(isolate, &quot;wheels&quot;),
+    FunctionTemplate::New(isolate, MyWheelsMethodCallback)-&gt;GetFunction();
+)
+</code></pre>
+
+<p>同时也提供了<code>inherit</code>方法</p>
+
+<pre><code class="language-c++">void Inherit(Local&lt;FunctionTemplate&gt; parent);
+</code></pre>
+
+<hr/>
+
+<h3 id="toc_15">v8中的<code>Maybe type</code></h3>
+
+<blockquote>
+<p><code>Maybe type</code>参考了具有强类型系统的严格函数式语言<code>Haskell</code>.</p>
+</blockquote>
+
+<h5 id="toc_16">From Haskell</h5>
+
+<p>It allows the programmer to specify something may not be there.</p>
+
+<pre><code class="language-haskell">data Maybe a = Just a | Nothing
+</code></pre>
+
+<h5 id="toc_17">To v8</h5>
+
+<p><code>v8</code>中提供<code>Maybe&lt;T&gt;</code>和<code>MaybeLocal&lt;T&gt;</code>用于在获取对象中实际的值时, 先检查所获得的值是否为空. 如果为空则抛出异常, 不为空则返回<code>&lt;T&gt;</code>或<code>Local&lt;T&gt;</code>.</p>
+
+<p>例如<code>MaybeLocal</code>中</p>
+
+<pre><code class="language-c++">template &lt;class T&gt;
+Local&lt;T&gt; MaybeLocal&lt;T&gt;::ToLocalChecked() {
+  if (V8_UNLIKELY(val_ == nullptr)) V8::ToLocalEmpty();
+  return Local&lt;T&gt;(val_);
+}
+</code></pre>
+
+<pre><code class="language-c++">void V8::ToLocalEmpty() {
+  Utils::ApiCheck(false, &quot;v8::ToLocalChecked&quot;, &quot;Empty MaybeLocal.&quot;);
+}
+</code></pre>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[JavaScript高级程序设计 · 7、22 章]]></title>
+    <link href="zerolocusta.github.io/15114266480360.html"/>
+    <updated>2017-11-23T16:44:08+08:00</updated>
+    <id>zerolocusta.github.io/15114266480360.html</id>
+    <content type="html"><![CDATA[
+<h2 id="toc_0">第七章 函数表达式</h2>
+
+<h4 id="toc_1">摘要</h4>
+
+<ol>
+<li>什么函数表达式</li>
+<li>使用函数实现递归</li>
+<li>使用闭包定义私有变量</li>
+</ol>
+
+<h3 id="toc_2">函数声明与函数表达式</h3>
+
+<ul>
+<li>函数声明:</li>
+</ul>
+
+<pre><code class="language-js">function foo(arg0, arg1, arg2) {
+    console.log(&#39;hello wrold&#39;);
+}
+</code></pre>
+
+<ul>
+<li>函数表达式:</li>
+</ul>
+
+<pre><code class="language-js">let foo = function(arg0, arg1, arg2) {
+    console.log(&#39;hello world&#39;);
+}
+</code></pre>
+
+<p>而<code>函数声明</code>和<code>函数表达式</code>的区别在于, <code>函数声明</code>在解析的时候会进行<strong>函数声明提升</strong>, 这意味着函数在声明之前就可以使用, 不依赖函数的声明顺序(例如在<code>c语言</code>中,函数在使用前必须先声明, 否则找不到<code>Symbol</code>.)</p>
+
+<p>而<code>函数表达式</code>则按照变量的解析规则进行解析.</p>
+
+<p>基于这一特性, 以下的代码极有可能出现问题</p>
+
+<pre><code class="language-js">if (condition) {
+    function sayHello() {
+        console.log(&#39;Hello&#39;);
+    };
+} else {
+    function sayHello() {
+        console.log(&#39;Yoooo&#39;);
+    };
+}
+</code></pre>
+
+<p>实际上这是在<code>ECMAScript</code>中属于无效语法, 大部分<code>JavaScript</code>引擎都会尝试修正错误, 但问题在于修正问题的方式不一致, 也就说这是一个UB.</p>
+
+<p>正确的使用方式应该是</p>
+
+<pre><code class="language-js">let sayHello = null;
+
+if (condition) {
+    sayHello = function() {
+        console.log(&#39;hello&#39;);
+    };
+} else {
+    sayHello = function() {
+        console.log(&#39;Yoooo&#39;);
+    };
+}
+</code></pre>
+
+<h4 id="toc_3">递归</h4>
+
+<p>常规递归代码</p>
+
+<pre><code class="language-js">function fac(num) {
+    if (num &lt;= 1)
+        return 1;
+    return num * fac(num - 1);
+}
+</code></pre>
+
+<p>然而由于<code>JavaScript</code>中, 常规函数在声明后仍然可以修改他的值,  例如</p>
+
+<pre><code class="language-js">let anotherFac = fac;
+fac = null;
+anotherFac(10);
+</code></pre>
+
+<p><code>fac</code>在被置为<code>null</code>之后, 原有的<code>fac</code>函数内部在通过<code>fac</code>函数进行调用已经失效, 从而造成函数调用失败.<br/>
+(在<code>Chrome</code>中运行的结果)<br/>
+<img src="media/15114266480360/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-23%20%E4%B8%8B%E5%8D%889.31.13.png" alt="屏幕快照 2017-11-23 下午9.31.13"/></p>
+
+<p>书中给出的解决方式是利用<code>arguments.callee</code>去代替通过函数名递归</p>
+
+<pre><code class="language-js">function fac(num) {
+    if (num &lt;= 1)
+        return num;
+    return num * arguments.callee(num - 1);
+}
+</code></pre>
+
+<p>不过<code>arguments.callee</code>在严格模式下并不允许使用并且抛出<code>TypeError</code>, 根据<code>JavaScript MDN</code>的解释</p>
+
+<blockquote>
+<p>不再支持 arguments.callee。正常模式下，arguments.callee 指向当前正在执行的函数。这个作用很小：直接给执行函数命名就可以了！此外，arguments.callee 十分不利于优化，例如内联函数，因为arguments.callee 会依赖对非内联函数的引用。</p>
+</blockquote>
+
+<p>更好的方法是将具名函数赋予变量, 成为函数表达式</p>
+
+<pre><code class="language-js">let fac = function f(num) {
+    if (num &lt;= 1)
+        return num;
+    return num * f(num - 1);
+}
+</code></pre>
+
+<h4 id="toc_4">闭包</h4>
+
+<p>闭包是指有权访问另一个函数作用域中的变量的函数, 更通俗的将, 是能通过引用或值捕获函数外部的变量, 从而延长变量的生命周期.</p>
+
+<pre><code class="language-js">function createClosure() {
+    let num = 1;
+     
+    return function() {
+        console.log(num);
+    }
+}
+</code></pre>
+
+<p>在<code>createClosure</code>函数中创建变量<code>num</code>, 返回一个匿名函数, 而匿名函数内部仍然能访问<code>num</code>.</p>
+
+<h5 id="toc_5"><code>ECMAScript</code>中的闭包原理</h5>
+
+<p>当某个函数首次被调用时, 会创建一个<strong>执行环境</strong>以及相应的<strong>作用域链</strong>,并且吧作用域链赋予特殊的内部属性<code>[[Scope]]</code>, 然后使用<code>this</code>, <code>arguments</code>来初始化函数活动对象.</p>
+
+<p>而在作用域链中, 外部函数的活动对象处于第二位, 外部函数的外部函数活动对象处于第三位, 以此类推, 直到作用域链的终点: 全局执行环境.</p>
+
+<p>例如,在全局环境中声明与执行函数</p>
+
+<pre><code class="language-js">function compare(value1, value2) {
+    if (value1 &lt; value2)
+        return -1;
+    if (value1 &gt; value2)
+        return 1;
+    return 0
+}
+
+let result = compare(5, 10);
+</code></pre>
+
+<p>以上代码首先定义了<code>compare</code>函数, 随后调用<code>compare</code>, 在第一次调用<code>compare</code>函数前, 会先创建一个包含<code>this</code>, <code>arguments</code>, <code>value1</code>和<code>value2</code>的活动对象(<code>activation object</code>). 全局执行环境的变量对象<code>(variable object)</code>在<code>compare</code>函数的作用域链中则处于第二位.<br/>
+<img src="media/15114266480360/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-26%20%E4%B8%8A%E5%8D%889.47.06.png" alt="屏幕快照 2017-11-26 上午9.47.06"/></p>
+
+<blockquote>
+<p>上图中出现了四种对象</p>
+
+<ul>
+<li>(compare execution context) : compare函数的执行环境</li>
+<li>(Scope Chain) : compare函数的作用域链</li>
+<li>(Global variable object): 全局执行环境的变量对象(variable Object)</li>
+<li>(compare() activation object): compare函数的活动对象(activation object)</li>
+</ul>
+</blockquote>
+
+<p>每个执行环境都有一个<code>variable object</code>. 全局环境的<code>variable object</code>始终存在.而像<code>compare</code>函数的<code>variable object</code>只有在函数执行过程中存在, 函数执行完毕就会被销毁.</p>
+
+<p>在创建和调用函数式, 各种内部对象的创建顺序:</p>
+
+<ol>
+<li>创建函数时, 会<strong>预先</strong>创建一个包含全局变量对象(<code>Global variable object</code>)的作用域链(<code>Scope chain</code>), 这个作用域链被保存在<code>[[Scope]]</code>中.</li>
+<li>当执行函数时, 会为函数创建一个<code>execution context</code>, 然后通过<strong>复制</strong>函数的<code>[[Scope]]</code>属性中的对象构建起<code>execution context</code>中的<code>scope chain</code>.</li>
+<li>创建一个该函数的活动对象(这个对象被当作该函数的<code>变量对象</code>), 随后被推入作用域链中.</li>
+</ol>
+
+<p>作用域链的本质是一个变量对象的指针链表, 它只引用而不包含实际的变量对象.</p>
+
+<p>一般来说, 当函数执行完毕后, 它的局部活动对象就会被销毁, 内存中紧保存全局环境的活动对象.<br/>
+但是, 闭包的情况又不一样.</p>
+
+<h5 id="toc_6">闭包时的  函数局部活动对象 生命周期</h5>
+
+<p>考虑一下闭包函数</p>
+
+<pre><code class="language-js">function createComparisonFunction(propertyName) {
+    
+    return function(object1, object2) {
+        let value1 = object1[propertyName];
+        let value2 = object2[propertyName];
+        
+        if (value1 &lt; value2)
+            return -1;
+        if (value 1 &gt; value2)
+            return 1;
+        return 0
+    };
+}
+
+let compareName = createComparisonFunction(&#39;name&#39;);
+
+let result = compareName({ name: &#39;locust&#39; }, { name: &#39;chen&#39; });
+</code></pre>
+
+<p>由于<code>createComparisonFunction</code>返回了一个闭包函数, 而该函数内部引用了<code>createComparisonFunction</code>的形参<code>propertyName</code>, 这个<code>propertyName</code>存在于<code>createComparisonFunction</code>的<code>active object(活动对象)</code>中, 即使<code>createComparisonFunction</code>执行完毕, 但由于匿名函数的<code>作用域链</code>仍然引用这它的活动对象, 即使它执行完毕后仍然不会被销毁. 而是直到匿名函数也执行完毕后才会被销毁.<br/>
+<img src="media/15114266480360/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-26%20%E4%B8%8A%E5%8D%8811.42.25.png" alt="屏幕快照 2017-11-26 上午11.42.25"/></p>
+
+<h5 id="toc_7">闭包与变量</h5>
+
+<p>从上一节可以看出, 闭包保存下的是整个活动对象, 而不是仅仅某个特殊的变量. 也就是说, 当我们创建闭包后, 改变被保存的变量的值时, 也会引起闭包中那个变量值得改变.</p>
+
+<pre><code class="language-js">function createFunctions() {
+    let result = [];
+    for(var i = 0; i &lt; 10; i++) {
+        result.push(function () {
+            console.log(i);
+        });
+    }
+    return result;
+}
+</code></pre>
+
+<p>一种方法是创建另一个匿名函数强制让闭包的行为符合预期</p>
+
+<pre><code class="language-js">function createFunctions() {
+    let result = [];
+    for(var i = 0; i &lt; 10; i++) {
+        // 通过形参 num 捕抓循环不变量 i
+        result.push( function(num) {
+            return function() {
+                // 闭包捕获 num
+                console.log(num);
+            }
+        }(i));
+    }
+    return result;
+}
+</code></pre>
+
+<p>另外一种方式是使用<code>let</code>或<code>const</code>来自动为变量创建不用的作用域</p>
+
+<pre><code class="language-js">function createFunctions() {
+    let result = [];
+    for(let i = 0; i &lt; 10; i++) {
+        result.push(function () {
+            console.log(i);
+        });
+    }
+    return result;
+}
+</code></pre>
+
+<h5 id="toc_8">内存泄漏</h5>
+
+<p>由于Js引擎大多采用引用计数作为垃圾回收的策略, 在某些实现中, 闭包会导致内存泄漏的问题, 例如在IE中运行下列代码</p>
+
+<pre><code class="language-js">function assignHandler() {
+    let element = document.getElementById(&quot;someElement&quot;);
+    
+    element.onclick = function() {
+        alert(element.id);
+    }
+}
+</code></pre>
+
+<p>上述这段代码在匿名函数中保存了<code>assignHandler()</code>函数的活动对象, 只要匿名函数仍然存在, <code>element</code>的引用计数至少为1, 从而无法它的回收内存</p>
+
+<p>正确的方法是将<code>element</code>置为null以解除它的引用计数.</p>
+
+<pre><code class="language-js">function assignHandler() {
+    let element = document.getElementById(&quot;someElement&quot;);
+    let id = element.id;
+    element.onclick = function() {
+        alert(id);
+    }
+    element = null;
+}
+</code></pre>
+
+<h4 id="toc_9">模仿块级作用域</h4>
+
+<blockquote>
+<p>在<code>ES6</code>之前, 变量生命的关键字只有<code>var</code>, <code>var</code>会导致提升, 所以在那时候<code>JavaScript</code>没有块级作用域概念</p>
+</blockquote>
+
+<pre><code class="language-js">function outputNumbers() {
+    for(var i = 0; i &lt; 10; i++) {
+        alert(i);
+    }
+    // 由于变量提升, 在作用域外仍能访问i
+    alert(i);
+}
+</code></pre>
+
+<p>但是, <strong>变量提升的终点是函数</strong>, 利用嵌套函数去限制变量提升的范围, 就能达到模拟块级作用域的效果了.</p>
+
+<pre><code class="language-js">function outputNumbers() {
+    
+    (function () {
+        for(var i = 0; i &lt; 10; i++) {
+            alert(i);
+        }
+    })();
+    
+    alert(i);   // 抛出错误
+}
+</code></pre>
+
+<p>当然在<code>ES6</code>后, 使用<code>let</code>和<code>const</code>就不会出现这样的问题了.</p>
+
+<pre><code class="language-js">function outputNumbers() {
+    for(let i = 0; i &lt; 10; i++) {
+        alert(i);
+    }
+
+    alert(i);   // 抛出错误
+}
+</code></pre>
+
+<h4 id="toc_10">私有变量</h4>
+
+<p>利用闭包捕获私有变量, 从而使得只有闭包函数内部才能访问私有变量, 而无法从外部访问这个变量.</p>
+
+<p>在<code>面向对象编程</code>中已经阐述过利用函数去模拟对象.</p>
+
+<pre><code class="language-js">function MyObject() {
+    // 创建私有变量
+    let privateVariable = 10;
+    
+    // 创建私有方法
+    function privateFunction() {
+        return false;
+    }
+    
+    // 创建公有方法
+    this.publicFunction = function() {
+        // 闭包捕获 privateVariable 与 privateFunction
+        privateVariable++;
+        return privateFunction();
+    }
+}
+
+let myObject = new MyObject();
+myObject.publicFunction();
+</code></pre>
+
+<h5 id="toc_11">静态私有变量</h5>
+
+<p>当我们希望创建静态私有变量时, 同样可以使用上一节的方法, 但是<code>静态私有变量</code>特性一般是多个实例共享. 这样一来, 利用上一节的方法创建静态私有变量的方法就会造成不必要的内存浪费(每个实例都有一个静态私有变量的副本).</p>
+
+<p>利用闭包解决这个问题.</p>
+
+<pre><code class="language-js">let Person;
+(function () {
+    let name = &quot;locust&quot;;
+    
+    Person = function() {}
+    
+    Person.prototype.printName = function() { 
+        // 多个实例共用的静态私有变量
+        console.log(name);
+    };  
+})();
+
+let p = new Person();
+</code></pre>
+
+<h5 id="toc_12">模块模式</h5>
+
+<p><code>JavaScript</code>中没有模块的概念, 但我们可以利用函数去模拟模块的行为</p>
+
+<pre><code class="language-js">let application = function() {
+    
+    // 私有变量和私有方法
+    let components = [];
+    
+    // 初始化
+    components.push(new components());
+    
+    // 返回公共函数
+    return {
+    
+        getComponentCount: function() {
+            return components.length;
+        }
+        
+        registerComponent: function(component) {
+            components.push(component);
+        }
+        
+    }
+}
+</code></pre>
+
+<h2 id="toc_13">第二十二章 高级技巧</h2>
+
+<p><code>JavaScript</code>是一门及其灵活的语言, 也由于它是动态语言的属性, 为了更好、更安全地编写<code>JavaScript</code>代码, 我们还需要利用<code>ECMAScript</code>的特点编写更多的复杂和有趣的模式.</p>
+
+<h3 id="toc_14">高级函数</h3>
+
+<h4 id="toc_15">安全的类型检测</h4>
+
+<p>JavaScript内置的类型检测机制并不靠谱, 例如<code>typeof</code>操作符在<code>safari</code>中对正则表达式使用会返回<code>function</code>, 又比如<code>instanceof</code>操作符, 对于某些对象来说, 必须是在同一全局作用域中生成的对象才能返回<code>true</code>.</p>
+
+<p>由此, 我们需要更完善的类型检测机制: <code>Object.prototype.toString.call()</code>, 在任何值上调用这个方法, 都会返回类似于<code>[object NativeContructorName]</code>. 而每个类内部都会有一个特殊属性<code>[[Class]]</code>, 这个属性指定了<code>[object NativeContructorName]</code>中的<code>NativeContructorName</code>.</p>
+
+<pre><code class="language-js">console.log(Object.prototype.toString.call([])) // 打印出&quot;[object Array]&quot;
+</code></pre>
+
+<p>由此可以实现一些根据构造函数判断变量类型的方法</p>
+
+<pre><code class="language-js">isRegExp(value) {
+    return Object.prototype.toString.call(value) === &#39;[object RegExp]&#39;;
+}
+</code></pre>
+
+<h4 id="toc_16">作用域安全的构造函数</h4>
+
+<p>JavaScript中的, 对构造函数使用<code>new</code>的时候, 会经历以下步骤</p>
+
+<ol>
+<li>创建一个新的对象</li>
+<li>将构造函数的作用域赋给新的对象(也就是<code>this</code>指向了新的对象)</li>
+<li>执行构造函数中的代码(给新对象添加属性和方法)</li>
+<li>返回新对象</li>
+</ol>
+
+<p>正常情况下不会出现什么奇怪的问题</p>
+
+<pre><code class="language-js">function Person(name, age, job) {
+    this.name = name;
+    this.age  = age;
+    this.job  = job;
+}
+
+let person = new Person(&#39;locust&#39;, 22, &#39;coder&#39;);
+</code></pre>
+
+<p>然而, 当我们错误地编写代码, 漏掉了<code>new</code>操作符的话</p>
+
+<pre><code class="language-js">let person = Person(&#39;locust&#39;, 22, &#39;coder&#39;);
+
+console.log(window.name) // &#39;locust&#39;
+console.log(window.age)  // 22 
+console.log(window.job) // &#39;coder&#39;
+</code></pre>
+
+<p>不小心污染了<strong>全局作用域!</strong>, 而此时<code>person</code>对象也能正常读取, 在出现这种问题后会非常难以debug.</p>
+
+<p>但是我们可以使用一种技巧构建<strong>作用域安全的构造函数</strong>, 判断当前环境是否为<code>构造函数所在环境</code></p>
+
+<pre><code class="language-js">function Person(name, age, job) {
+    if (this instanceof Person) {
+        this.name = name;
+        this.age  = age;
+        this.job  = job;    
+    } else {
+        return new Person(name, age, job);
+    }
+}
+</code></pre>
+
+<h4 id="toc_17">惰性载入函数</h4>
+
+<p>考虑以下情况的代码</p>
+
+<pre><code class="language-js">window.name = &#39;firefox&#39;;
+ 
+function foo() {
+    if (window.name === &#39;firefox&#39;) {
+        console.log(&#39;hello&#39;);
+    } else if (window.name === &#39;chrome&#39;)
+        console.log(&#39;world&#39;);
+}
+
+foo();
+</code></pre>
+
+<p><code>foo</code>函数在根据<code>window.name</code>属性打印出不同的字符. 假设我们的<code>window.name</code>属性一直都不变, 而每次执行<code>foo</code>函数式都要检测一边<code>window.name</code>就很浪费了.</p>
+
+<p>我们可以利用<strong>惰性载入函数</strong>技巧, 只在第一次调用函数是判断条件, 并改变函数的内部语句.</p>
+
+<pre><code class="language-js">let window = {};
+window.name = &#39;firefox&#39;;
+ 
+function foo() {
+    if (window.name === &#39;firefox&#39;) {
+        // 改变foo函数的值
+        foo = function() {
+            console.log(&#39;hello&#39;);
+        }
+    } else if (window.name === &#39;chrome&#39;){
+        foo = function() {
+            console.log(&#39;world&#39;);
+        }
+    }
+    return foo();
+}
+
+foo(); // 打印出hello 
+</code></pre>
+
+<p>而这种方法在函数第一次被调用时仍然会有一次的性能损失, 更好的方法是, 利用函数表达式在声明函数式就指定适当的函数</p>
+
+<pre><code class="language-js">let window = {};
+window.name = &#39;firefox&#39;;
+
+let foo = (function (){
+    if (window.name === &#39;firefox&#39;) {
+        return function() {
+            console.log(&#39;hello&#39;);
+        }
+    } else if (window.name === &#39;chrome&#39;) {
+        return function() {
+            console.log(&#39;world&#39;);
+        }
+    }   
+})();
+
+foo(); // 打印出hello
+</code></pre>
+
+<h4 id="toc_18">函数绑定</h4>
+
+<p>这一节展示的是ES5中<code>bind()</code>出现前是如何利用函数模拟函数绑定的.</p>
+
+<pre><code class="language-js">let handler = {
+    message: &#39;Event Handler&#39;,
+    
+    handleClick: function(event) {
+        console.log(this.message);
+    }
+};
+</code></pre>
+
+<p>上面这段代码中的<code>handleClick</code>函数中输出<code>this.message</code>依赖于其所在的环境, 例如</p>
+
+<pre><code class="language-js">let btn = document.getElementById(&#39;my-btn&#39;);
+EventUtil.addHandler(btn, &#39;click&#39;, handler.handleClick);
+</code></pre>
+
+<p>上面这段代码的目的是在<code>my-btn</code>中添加点击事件监听器, 当<code>my-btn</code>被点击时触发<code>handler.handleClick</code>, 输出<code>Event Handler</code>这个信息. 然而实际输出的是<code>undefined</code>,原因是由于<code>handler.handleClick</code>所在的环境并不是<code>handler</code>, 此时他的<code>this</code>并不指向<code>handler</code>.</p>
+
+<p>可以尝试用闭包去解决这个问题</p>
+
+<pre><code class="language-js">let btn = document.getElementById(&#39;my-btn&#39;);
+EventUtil.addHandler(btn, &#39;click&#39;, function(event) { 
+    // 闭包捕获 handler 的作用域
+    handler.handleClick(event);
+});
+</code></pre>
+
+<p>也可以利用<code>Function.prototype.apply</code>这个函数去讲环境应用在函数上</p>
+
+<pre><code class="language-js">function bind(fn, context) {
+    return function() {
+        return fn.apply(context, arguments);
+    };
+}
+
+let btn = document.getElementById(&#39;my-btn&#39;);
+EventUtil.addHandler(btn, &#39;click&#39;, bind(handler.handleClick, handler));
+</code></pre>
+
+<p>在<code>ES5</code>中增加的<code>Function.prototype.bind</code>方法也可以达到相同的效果</p>
+
+<pre><code class="language-js">let btn = document.getElementById(&#39;my-btn&#39;);
+EventUtil.addHandler(btn, &#39;click&#39;, handler.handleClick.bind(handler)));
+</code></pre>
+
+<h4 id="toc_19">函数柯里化</h4>
+
+<p>函数柯里化技术是将原有函数的部分形参固定下来, 形成新的形参数量减少的函数.</p>
+
+<pre><code class="language-js">function add(num1, num2) {
+    return num1 + num2;
+}
+
+function curriedAdd(num) {
+    return add(5, num);
+}
+</code></pre>
+
+<p><code>curriedAdd</code>将<code>add</code>函数的形参1<code>num1</code>固定为5. 虽然<code>curriedAdd</code>并不是真正意义上的柯里化(它并没有返回一个新的函数), 但是这很好地阐述柯里化的概念.</p>
+
+<p>创建一个用于柯里化函数的方法<code>curry</code></p>
+
+<pre><code class="language-js">function curry(fn) {
+    // 将 fn 以外的 形参列表保存在 args 中 
+    let args = Array.prototype.slice.call(arguments, 1);
+    return function() {
+        // 获取内部匿名函数的形参列表
+        let innerArgs = Array.prototype.slice.call(arguments);
+        // 将余下的参数与之前保存的参数 args 结合起来
+        let finalArgs = args.concat(innerArgs);
+        return fn.apply(null, finalArgs);
+    };
+}
+
+function add(num1, num2) {
+    return num1 + num2;
+}
+
+let curriedAdd = curry(add, 5);
+</code></pre>
+
+<p>也可以利用ES5中的<code>bind</code>函数实现柯里化, 根据<code>JavaScript MDN</code>的说法:</p>
+
+<blockquote>
+<ul>
+<li><code>Function.prototype.bind(thisArg, [, arg1[, arg2[, ...]]])</code>:
+
+<ul>
+<li><code>thisArg</code>: The value to be passed as the this parameter to the target function when the bound function is called. The value is ignored if the bound function is constructed using the new operator.</li>
+<li><code>arg1, arg2, ...</code>: Arguments to <strong>prepend(前置于)</strong> to arguments provided to the bound function when invoking the target function.</li>
+</ul></li>
+</ul>
+</blockquote>
+
+<p><code>bind</code>的柯里化用法:</p>
+
+<pre><code class="language-js">function add(num1, num2) {
+    return num1 + num2;
+}
+
+let curriedAdd = add.bind(null, 5);
+
+curriedAdd(1) // 6
+</code></pre>
+
+<h3 id="toc_20">防篡改对象</h3>
+
+<p>JavaScript中对于对象的封装性并没有原生保留字的支持(<code>final</code>, <code>private</code>)之类. 但是<code>EcmaScript</code>也定义了多个方法去封装我们的对象, 以实现<code>防篡改对象</code>.</p>
+
+<h4 id="toc_21">不可扩展对象</h4>
+
+<p>默认的对象都是可扩展的, 即是在对象定义好之后, 再去给他动态的添加属性, 例如</p>
+
+<pre><code class="language-js">let person = { name: &#39;locust&#39; };
+person.age = 21;
+alert(person.age) // 21
+</code></pre>
+
+<p>有的时候并不希望对象是可以被扩展的, 这时可以使用<code>Ojbect.preventExtensions()</code>方法去将一个对象修改为不可扩展;</p>
+
+<pre><code class="language-js">let person = { name: &#39;locust&#39; };
+Ojbect.preventExtensions(person);
+
+person.age = 21;
+alert(person.age); // undefined
+</code></pre>
+
+<p>在非严格模式下, 给不可扩展添加属性会<strong>静默失败</strong>, 而在严格模式下则会抛出异常.<br/>
+(要注意虽然对象是不可扩展的, 但是仍然可以对已有的属性进行修改和删除)</p>
+
+<h4 id="toc_22">密封的对象</h4>
+
+<p>密封对象通过<code>Object.seal()</code>将对象变为密封对象, <strong>密封对象</strong>比<strong>不可扩展对象</strong>有着更高的防篡改级别, 它并不允许删除属性.</p>
+
+<pre><code class="language-js">let p = { name: &#39;locust&#39; };
+Object.seal(p);
+
+p.age = 1;
+alert(p.age) // undefined
+
+delete p.name;
+alert(p.name); // &#39;locust&#39;
+</code></pre>
+
+<p>同样的, 在严格模式下会抛出异常.</p>
+
+<h4 id="toc_23">冻结的对象</h4>
+
+<p><code>frozen object</code>是最严格的防纂改级别, 完全不允许任何对对象(包括内部属性)的修改.</p>
+
+<pre><code class="language-js">let p = { name: &#39;locust&#39; };
+
+Object.freeze(p);
+
+p.age = 21;
+alert(p.age); // undefined
+
+p.name = &#39;nico&#39;;
+alert(p.name); // locust
+</code></pre>
+
+<h3 id="toc_24">高级定时器</h3>
+
+<p><code>JavaScript</code>代码的解释与执行都是单线程的, 而其中定时器的执行也不例外, 它只是将代码延缓特定的时间后再执行, 并不是在另外的线程中执行它, 并且执行的时机也只能保证在定时到期后执行.</p>
+
+<h4 id="toc_25">定时器特性</h4>
+
+<pre><code class="language-js">let btn = document.getElementById(&quot;my-btn&quot;);
+btn.onclick = function() {
+    setTimeout(function() { alert(&#39;hello&#39;); }, 250);
+}
+</code></pre>
+
+<p>上面的这段代码<code>my-btn</code>点击的时候往队列中添加一个250ms的定时器, 但要注意的是定时器不一定在250ms后运行, 而是至少在250ms后才运行.</p>
+
+<p>假如<code>onclick</code>事件运行的300ms, 那么定时器代码也至少在300ms后才会被执行<img src="media/15114266480360/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-12-03%20%E4%B8%8A%E5%8D%8811.28.00.png" alt="屏幕快照 2017-12-03 上午11.28.00"/></p>
+
+<h4 id="toc_26">重复的定时器</h4>
+
+<p><code>setInterval</code>用于以指定的时间为间隔循环执行代码, 然而由于<code>JavaScript</code>中的定时器执行时机并不严格, 有可能由于之前添加的定时器仍未执行, 此时再添加新的定时器, 最后导致定时器重复执行好几次.</p>
+
+<p>幸运的是<code>JavaScript</code>引擎在添加循环执行的定时器之前, 会检查定时器队列中是否仍然存在该定时器的其他代码实例, 不存在时才会将定时器添加进队列中.</p>
+
+<p>这种策略也是存在两点问题: </p>
+
+<ul>
+<li>某些时间间隔可能会被跳过</li>
+<li>多个定时器的时间间隔可能会比预期要小</li>
+</ul>
+
+<p>要解决这些问题, 使用嵌套的<code>setTimeout</code>就可以了</p>
+
+<pre><code class="language-js">setTimeout(function onTimeout() {
+    alert(&#39;timeout&#39;);
+    setTimeout(onTimeout, 250);
+    }, 250);
+</code></pre>
+
+<h4 id="toc_27">Yielding Processes</h4>
+
+<p>在浏览器中<code>JavaScript</code>能获得的运算资源是有限的, 如果<code>JavaScript</code>在进行了长时间运算, 那么用户就会无法与浏览器进行交互, 在编写长时间运行的代码时, 先思考两个问题</p>
+
+<ul>
+<li>该处理是否需要同步完成?</li>
+<li>数据是否必须按顺序处理?</li>
+</ul>
+
+<p>如果以上两个答案都是否, 那么可以尝试一种<code>数据分块</code>技术, 将数据分为多个块, 并利用定时器将其各个块在不同的事件内处理.</p>
+
+<p>分块处理基本模式</p>
+
+<pre><code class="language-js">setTimeout(function handler(){
+    // pop出任务队列元素
+    let item = array.shift();
+    process(item);
+    
+    // 如果仍然有元素
+    if (array.length !== 0)
+        setTimeout(handler, 300);
+}, 300);
+</code></pre>
+
+<h4 id="toc_28">函数节流</h4>
+
+<p>浏览器中的某些计算要比其他计算耗时多很多, 例如<code>DOM</code>操作比起非<code>DOM</code>操作交互需要更多的CPU时间和内存. 在连续的进行过多的<code>DOM</code>相关操作可能会导致浏览器挂起甚至崩溃.</p>
+
+<p>为了避免这种情况, 可以使用<code>函数节流</code>技术. 其基本思想是指: 某些代码不可以在没有间断的情况下重复执行.</p>
+
+<pre><code class="language-js">let processer = {
+    // 存储超时事件Id
+    timeoutId: null;
+    
+    // 实际任务处理函数
+    performProcessing: function() {
+        ...
+    }
+    
+    // 触发任务的函数
+    process: function() {
+        // 运行前先通过timeoutId, 清除上一个任务
+        clearTimeout(this.timeoutId);
+        // 存储定时器Id
+        this.timeoutId = setTimeout(() =&gt; {
+            // 100ms后执行performProcessing()
+            this.performProcessing()
+        }, 100);
+    }
+};
+</code></pre>
+
+<h4 id="toc_29">自定义事件</h4>
+
+<p>这一节利用<code>JavaScript</code>实现观察者模式, 相当于<code>Node.js</code>中的<code>EventEmitter</code></p>
+
+<pre><code class="language-js">let EventTarget = function(){
+    this.handlers = {};
+};
+
+EventTarget.prototype = {
+    // 指定构造函数
+    contructor: EventTarget,
+    
+    // 添加事件监听函数
+    addHandler: function(type, handler) {
+        
+        if (typeof this.handlers[type] === undefined)
+            this.handlers[type] = [];
+        
+        this.handlers[type].push(handler);
+    }
+    
+    
+    // 生产者触发事件
+    fire: function(event) {
+        if (!event.target)
+            event.target = this;
+            
+        if (Array.isArray(this.handlers[event.type])) { 
+            const handlers = this.handlers[event.type];
+            // 遍历订阅了该事件的处理函数
+            for(let handler of handlers) {
+                handler(event);
+            }
+        }
+    }
+    
+    // 移除事件监听器
+    removeHandler: function(type, handler) {
+        if (Array.isArray(this.handlers[type]) &amp;&amp; this.handlers[type].length !== 0) {
+            const handlers = this.handlers[type]
+            let i = 0;
+            // 查找出handler所在索引
+            for(; i &lt; handlers.length; i++) {
+                if (handler === handlers[i])
+                    break;
+            }
+            
+            // 利用splite函数删除对应索引上的元素
+            handlers.splite(i, 1);
+        }
+    }
+}
+</code></pre>
+
+<h4 id="toc_30">小结</h4>
+
+<ul>
+<li>可以使惰性载入函数, 将对于<strong>不变量</strong>的任何代码分支推迟到第一次函数调用时.</li>
+<li>利用<code>bind</code>可以指定函数运行环境中的<code>this</code>, 也可以用于柯里化</li>
+<li>不可扩展对象: 不允许给对象添加新的属性和方法</li>
+<li>密封的对象: 也是不可扩展对象, 并且不允许删除对象的方法和属性</li>
+<li>冻结的对象: 也是密封的对象, 并且完全不允许改变对象.</li>
+<li>定时器的执行并没有严格的执行时机</li>
+<li>遇到需要长时间计算的任务时, 可以考虑使用<code>数据分块</code>技术处理</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Node.js设计模式 · 第八章]]></title>
+    <link href="zerolocusta.github.io/15107096826964.html"/>
+    <updated>2017-11-15T09:34:42+08:00</updated>
+    <id>zerolocusta.github.io/15107096826964.html</id>
+    <content type="html"><![CDATA[
+<h2 id="toc_0">Universal JavaScript for Web Applications</h2>
+
+<p>这一章主要讲述了如何在前后端同时使用JavaScript进行编程.</p>
+
+<h3 id="toc_1">Sharing code with the browser</h3>
+
+<p>由于Node.js与Chrome都是利用V8引擎进行JavaScript的代码解析与执行, 由此可以想象或许能在Node.js与浏览器之间共享同一份代码.</p>
+
+<p>然而实际中并不可行, Node.js中在JavaScript的基础上针对服务器开发做了非常多的扩展, 例如<code>require</code>模块系统, <code>HTTP</code>、<code>fs</code>模块等, 而浏览器上也在JavaScript上增加了对<code>DOM</code>、<code>BOM</code>等操作</p>
+
+<p>幸运的是, 越来越多的库同时支持了<code>Node.js</code>环境与浏览器环境.</p>
+
+<h4 id="toc_2">Sharing modules</h4>
+
+<p>首先要解决的是前后端中的模块系统问题, 浏览器环境中没有<code>require()</code>函数与文件系统的操作, 对于在<code>Node.js</code>中开发的代码来说, 首先需要对模块系统进行抽象, 然后才能让其正常运行在浏览器环境中.</p>
+
+<h4 id="toc_3">Universal Module Definition</h4>
+
+<p>对于浏览器环境, 可能会遇到下列情况:</p>
+
+<ul>
+<li>完全没有使用模块系统, 意味着只使用<code>script</code>标签引入, 并且将所有函数都加载在globle环境中.</li>
+<li>使用了某种异步模块定义及加载系统(<code>Asynchronous Module Definition</code>), 例如<code>RequireJS</code></li>
+<li>已经有了基于<code>Commonjs</code>的模块系统(也就是Node.js的模块系统)抽象</li>
+</ul>
+
+<p>由此引出统一模块定义<code>Universal Module Definition (UMD)</code>, 使用这种技巧在编写模块时去抽象统一多种状况中的模块系统问题.</p>
+
+<h4 id="toc_4">Creating an UMD module</h4>
+
+<p><code>UMD</code>模块将会检测当前运行环境, 并选择合适的函数去执行功能.</p>
+
+<pre><code class="language-js">// umdModule.js
+
+&quot;use strict&quot;;
+
+(function (root, factory) {
+  // 检查环境中是否存在 名为define的函数
+  // define 函数是 AMD(Asynchronous Module Definition)标准
+  // 中的API
+  if (typeof define === &#39;function&#39; &amp;&amp; define.amd) {
+    // 如果当前环境中使用了 AMD, 则利用define系统网factory函数中注入
+    // mustache模块
+    define([&#39;mustache&#39;], factory);
+  } else if (typeof module === &#39;object&#39; &amp;&amp; // 检测当前环境是否为CommonJS标准
+    typeof module.exports === &#39;object&#39;) {
+    // 利用require函数引入 mustache 模块
+    var mustache = require(&#39;mustache&#39;);
+    module.exports = factory(mustache);
+  } else {
+    // 以上都不是, 在全局对象中导出模块
+    root.UmdModule = factory(root.Mustache);
+  }
+}(this, function (mustache) {
+  var template = &#39;&lt;h1&gt;Hello &lt;i&gt;{{name}}&lt;/i&gt;&lt;/h1&gt;&#39;;
+  mustache.parse(template);
+
+  return {
+    sayHello: function (toWhom) {
+      return mustache.render(template, {
+        name: toWhom
+      });
+    }
+  };
+}));
+</code></pre>
+
+<p>在<code>Node.js</code>中的运行<code>umdModule.js</code></p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const umdModule = require(&#39;./umdModule&#39;);
+
+console.log(umdModule.sayHello(&#39;Server!&#39;));
+</code></pre>
+
+<p>运行结果<br/>
+![](<img src="media/15107096826964/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-17%20%E4%B8%8B%E5%8D%885.24.39.png" alt="屏幕快照 2017-11-17 下午5.24.39"/></p>
+
+<p>在浏览器中</p>
+
+<pre><code class="language-html">&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot;&gt;
+    &lt;script src=&quot;node_modules/mustache/mustache.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;umdModule.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div id=&quot;main&quot;&gt;&lt;/div&gt;
+    &lt;script&gt;
+        document.getElementById(&#39;main&#39;).innerHTML = UmdModule.sayHello(&#39;Browser!&#39;);
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+<p>运行结果</p>
+
+<p><img src="media/15107096826964/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-17%20%E4%B8%8B%E5%8D%885.26.20.png" alt="屏幕快照 2017-11-17 下午5.26.20"/></p>
+
+<p>在AMD模型中运行</p>
+
+<pre><code class="language-html">&lt;html&gt;
+
+&lt;head&gt;
+  &lt;title&gt;Load UMD module from AMD&lt;/title&gt;
+  &lt;script src=&quot;node_modules/requirejs/require.js&quot;&gt;&lt;/script&gt;
+  &lt;script&gt;
+    window.addEventListener(&#39;load&#39;, function () {
+      requirejs.config({
+        baseUrl: &#39;node_modules&#39;,
+        paths: {
+          // 设置需要用到的库的路径
+          mustache: &#39;./mustache/mustache&#39;,
+          umdModule: &#39;../umdModule&#39;
+        }
+      });
+      // 当`umdModule`加载完毕, 调用function
+      require([&#39;umdModule&#39;], function (umdModule) {
+        var hello = umdModule.sayHello(&#39;Browser!&#39;);
+        var body = document.getElementsByTagName(&quot;body&quot;)[0];
+        body.innerHTML = hello;
+      });
+    });
+  &lt;/script&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+&lt;/body&gt;
+
+&lt;/html&gt;
+</code></pre>
+
+<p>运行结果</p>
+
+<p><img src="media/15107096826964/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-18%20%E4%B8%8A%E5%8D%889.33.05.png" alt="屏幕快照 2017-11-18 上午9.33.05"/></p>
+
+<h4 id="toc_5">Considerations on the UMD pattern</h4>
+
+<p>利用<code>UMD</code>模式去屏蔽各环境中模块差异非常简单且有效, 但是却造成难以测试, 并且对于各个环境中不同的异常处理也没解决, 而且JavaScript中也不知这三种模块管理系统, 如果需要手动匹配所有有可能出现的模块管理系统是非常麻烦的.</p>
+
+<h3 id="toc_6">Introducing Webpack</h3>
+
+<p>比起在代码中手动编写多种模块加载机制, 更好的方法是保持<code>Node.js</code>代码风格, 并利用第三方工具将代码编译至其他模块系统能识别的代码.</p>
+
+<p><code>webpack</code>将所有应用需要用到的模块打包成单个JavaScript文件, 这样在浏览器中引用的时候只需将其引入即可.</p>
+
+<h4 id="toc_7">Exploring the magic of Webpack</h4>
+
+<blockquote>
+<p>Webpack实战</p>
+</blockquote>
+
+<p>将上一节中的<code>umdModule.js</code>中的<code>UMD</code>模块适配部分去掉, 并将文件改名为<code>sayHello.js</code></p>
+
+<pre><code class="language-js">// sayHello.js
+&quot;use strict&quot;;
+
+let mustache = require(&#39;mustache&#39;);
+let template = &#39;&lt;h1&gt;Hello &lt;i&gt;{{name}}&lt;/i&gt;&lt;/h1&gt;&#39;;
+mustache.parse(template);
+module.exports.sayHello = function(toWhom) {
+  return mustache.render(template, {name: toWhom});
+};
+</code></pre>
+
+<p>在<code>main.js</code>中使用<code>sayHello</code>模块</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+window.addEventListener(&#39;load&#39;, function() {
+  // 利用`Node.js`的模块机制
+  var sayHello = require(&#39;./sayHello&#39;).sayHello;
+  var hello = sayHello(&#39;Browser!&#39;);
+  var body = document.getElementsByTagName(&quot;body&quot;)[0];
+  body.innerHTML = hello;
+});
+</code></pre>
+
+<p>然后运行<code>webpsck main.js bundle.js</code>, 将<code>main.js</code>中的代码及依赖生成到<code>bundle.js</code>中, 最后在<code>HTML</code>代码中引入<code>bundle.js</code>即可.</p>
+
+<p>(webpsck 生成的<code>bundle.js</code>将分析所有用到的函数, 并组合到单个文件中, 代码较庞大)</p>
+
+<pre><code class="language-html">&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;Webpack magic&lt;/title&gt;
+    &lt;script src=&quot;bundle.js&quot;&gt;&lt;/script&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+<p>运行结果</p>
+
+<p><img src="media/15107096826964/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-18%20%E4%B8%8A%E5%8D%889.33.05.png" alt="屏幕快照 2017-11-18 上午9.33.05"/></p>
+
+<h4 id="toc_8">The advantages of using Webpack</h4>
+
+<ul>
+<li><code>webpack</code>提供了许多<code>Nodejs</code>中的核心模块(<code>fs</code>、<code>http</code>等)能运行在浏览器中的版本, 可以无所顾虑地使用.</li>
+<li>对于某些无法被转换至浏览器环境中使用的代码, <code>webpack</code>支持使用其他模块去替换掉.</li>
+<li>可以为不同模块生成不同的<code>bundle</code></li>
+<li>可以使用不同的模块加载系统</li>
+<li>可以通过配置, 处理<code>JavaScript</code>以外的代码, 例如css, html等</li>
+<li>除了通过<code>webpack</code>生成单个文件, 也可以将app生成多个不同的文件.</li>
+</ul>
+
+<h3 id="toc_9">Fundamentals of cross-platform development</h3>
+
+<blockquote>
+<p>跨平台开发的基本技巧</p>
+</blockquote>
+
+<h4 id="toc_10">Runtime code branching</h4>
+
+<blockquote>
+<p>运行时代码分支切换</p>
+</blockquote>
+
+<p>通过检测特性环境中的特性对象及方法, 例如浏览器中的<code>window</code>与<code>window.document</code>对象.</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+// 检测当前环境中的 window 对象
+// 选择不同的分支
+if (typeof window !== &quot;undefined&quot; &amp;&amp; window.document) {
+  console.log(&#39;Hey browser!&#39;);
+} else {
+  console.log(&#39;Hey Node.js!&#39;);
+}
+</code></pre>
+
+<p>不难看出这是一种非常简陋的处理方式, 实际中非常不建议这样做.</p>
+
+<h4 id="toc_11">Build-time code branching</h4>
+
+<blockquote>
+<p>编译时代码分支切换</p>
+</blockquote>
+
+<p>这一节同样是使用<code>webpack</code>, 但通过配置文件和<code>webpack</code>模块提供的方法, 改变<code>webpack</code>在编译时的行为.</p>
+
+<p>通过配置<code>webpack.config.js</code>进行对<code>webpack</code>编译行为的修改</p>
+
+<p><code>webpack</code>提供了几个插件用于修改编译行为, 其中</p>
+
+<ul>
+<li><code>DefinePlugin</code>: 用于定义预编译变量, 也可以修改源文件中的某个值, 与宏定义相似</li>
+<li><code>UglifyJsPlugin</code>: 指定如何压缩编译后的源码, 例如移除不可达的代码</li>
+</ul>
+
+<pre><code class="language-js">// webpack.config.js
+&quot;use strict&quot;;
+
+const path = require(&#39;path&#39;);
+const webpack = require(&#39;webpack&#39;);
+
+const definePlugin = new webpack.DefinePlugin({
+  // 定义预编译变量 __BROWSER__
+  &quot;__BROWSER__&quot;: &quot;true&quot;
+});
+
+const uglify = new webpack.optimize.UglifyJsPlugin({
+  // 设置美化输出
+  beautify: true,
+  // 移除不可达代码
+  dead_code: true
+});
+
+module.exports = {
+  entry:  path.join(__dirname, &quot;src&quot;, &quot;main.js&quot;),
+  output: {
+    path: path.join(__dirname, &quot;dist&quot;),
+    filename: &quot;bundle.js&quot;
+  },
+  plugins: [definePlugin, uglify]
+};
+</code></pre>
+
+<p><code>main.js</code></p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+if (typeof __BROWSER__ !== &quot;undefined&quot;) {
+  console.log(&#39;Hey browser!&#39;);
+} else {
+  console.log(&#39;Hey Node.js!&#39;);
+}
+</code></pre>
+
+<p>最后生成的代码</p>
+
+<pre><code class="language-js">!function(r) {
+    function e(t) {
+        if (o[t]) return o[t].exports;
+        var n = o[t] = {
+            exports: {},
+            id: t,
+            loaded: !1
+        };
+        return r[t].call(n.exports, n, n.exports, e), n.loaded = !0, n.exports;
+    }
+    var o = {};
+    return e.m = r, e.c = o, e.p = &quot;&quot;, e(0);
+}([ function(r, e, o) {
+    &quot;use strict&quot;;
+    console.log(&quot;Hey browser!&quot;);
+} ]);
+</code></pre>
+
+<p>由于<code>__BROWSER__</code>条件为<code>true</code>, <code>main.js</code>中的<code>if...else</code>语句直接被简化了.</p>
+
+<h4 id="toc_12">Module swapping</h4>
+
+<p>利用<code>webpack</code>实现两种模块替换技术:</p>
+
+<ul>
+<li>引用模块时通过变量名而不是<code>require</code>, 利用<code>DefinePlugin</code>根据不同环境定义该变量的值.</li>
+</ul>
+
+<pre><code class="language-js">// main.js
+&quot;use strict&quot;;
+// 这段代码无法在使用webpack编译前无法正常运行
+const now = __NOW__;
+const platform = __PLATFORM__;
+const host = __HOST__;
+
+console.log(`Bundle compiled on &quot;${now}&quot; on &quot;${platform}&quot; by &quot;${host}&quot;`);
+</code></pre>
+
+<p>配置<code>webpack.config.js</code></p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const path = require(&#39;path&#39;);
+const webpack = require(&#39;webpack&#39;);
+const os = require(&#39;os&#39;);
+
+let definePlugin = new webpack.DefinePlugin({
+  &quot;__NOW__&quot;: JSON.stringify((new Date()).toString()),
+  &quot;__PLATFORM__&quot;: JSON.stringify(os.platform()),
+  &quot;__HOST__&quot;: JSON.stringify(os.hostname())
+});
+
+module.exports = {
+  entry:  path.join(__dirname, &quot;src&quot;, &quot;main.js&quot;),
+  output: {
+    path: path.join(__dirname, &quot;dist&quot;),
+    filename: &quot;bundle.js&quot;
+  },
+  plugins: [definePlugin]
+};
+</code></pre>
+
+<p>编译后运行结果:</p>
+
+<p><img src="media/15107096826964/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-18%20%E4%B8%8B%E5%8D%889.32.29.png" alt="屏幕快照 2017-11-18 下午9.32.29"/></p>
+
+<ul>
+<li>通过搜索替换<code>require</code>函数中引入的模块名</li>
+</ul>
+
+<p><code>webpack</code>提供了<code>NormalModuleReplacementPlugin</code>的插件, 用于搜索特定模块名并替换</p>
+
+<pre><code class="language-js">// alertServer.js
+&quot;use strict&quot;;
+
+module.exports = console.log;
+</code></pre>
+
+<pre><code class="language-js">// alertBrowser.js
+&quot;use strict&quot;;
+
+module.exports = alert;
+</code></pre>
+
+<pre><code class="language-js">// main.js
+&quot;use strict&quot;;
+
+const alert = require(&#39;./alertServer&#39;);
+alert(&#39;Morning comes whether you set the alarm or not!&#39;);
+</code></pre>
+
+<p>通过<code>NormalModuleReplacementPlugin</code>搜索<code>alertServer.js</code>模块名, 并替换为<code>alertBrowser.js</code></p>
+
+<pre><code class="language-js">// webpack.config.js
+&quot;use strict&quot;;
+
+const path = require(&#39;path&#39;);
+const webpack = require(&#39;webpack&#39;);
+
+let moduleReplacementPlugin =
+  // 搜索 alertServer.js 替换为 alertBrowser.js
+  new webpack.NormalModuleReplacementPlugin(/alertServer.js$/, &#39;./alertBrowser.js&#39;);
+
+module.exports = {
+  entry:  path.join(__dirname, &quot;src&quot;, &quot;main.js&quot;),
+  output: {
+    path: path.join(__dirname, &quot;dist&quot;),
+    filename: &quot;bundle.js&quot;
+  },
+  // 引入插件
+  plugins: [moduleReplacementPlugin]
+};
+</code></pre>
+
+<p>编译后文件的主要部分</p>
+
+<pre><code class="language-js">([
+    (function (module, exports, __webpack_require__) {
+        &quot;use strict&quot;;
+        const alert = __webpack_require__(1);
+        alert(&#39;Morning comes whether you set the alarm or not!&#39;);
+    }), 
+    
+    (function (module, exports) {
+        &quot;use strict&quot;;
+        // 模块已经从 console.log 转换为 alert
+        module.exports = alert;
+    })
+]);
+</code></pre>
+
+<h4 id="toc_13">Design patterns for cross-platform development</h4>
+
+<blockquote>
+<p>利用设计模式进行跨平台开发</p>
+</blockquote>
+
+<ul>
+<li>策略模式: 根据不同的运行环境使用不同的策略, 与根据<code>window</code>对象选择不同执行代码类似</li>
+<li>模板模式: 无论是<code>node.js</code>平台或是浏览器环境, 分别针对两个环境做出不同的实现, 同时对外提供相同的接口.</li>
+<li>适配器模式: 对于浏览器环境不支持的模块, 例如<code>fs</code>, <code>timer</code>等, 可以利用适配器模式创建新的同名模块并模拟他们的行为</li>
+<li>代理模式: 对于浏览器不支持的环境, 可以利用<code>Proxy</code>通过<code>Ajax</code>或<code>websocket</code>与服务器进行通讯, 模拟远程模块的行为.</li>
+<li>观察者模式: 生产者与消费者之间天然是解耦的, 在编写消费者时要注意尽量不适用平台Nodejs特有代码, 而只需在编写生产者时准备两种运行环境的代码即可</li>
+<li>依赖注入模式: 对于不同运行环境注入不同的模块</li>
+</ul>
+
+<h3 id="toc_14">Introducing React</h3>
+
+<p><code>React</code>支持使用<code>Node.js</code>风格进行前端开发, 利用模块化, <code>npm</code>进行项目管理和开发</p>
+
+<h4 id="toc_15">First React component</h4>
+
+<blockquote>
+<p>创建一个用于显示书籍列表的前端页面</p>
+</blockquote>
+
+<pre><code class="language-js">// joyceBooks.js
+&quot;use strict&quot;;
+
+const React = require(&#39;react&#39;);
+
+const books = [
+  &#39;Dubliners&#39;,
+  &#39;A Portrait of the Artist as a Young Man&#39;,
+  &#39;Exiles and poetry&#39;,
+  &#39;Ulysses&#39;,
+  &#39;Finnegans Wake&#39;
+];
+
+class JoyceBooks extends React.Component {
+  render() {
+    return (
+      // JSX 代码, 在HTML中嵌入JS-like代码
+      &lt;div&gt;
+        &lt;h2&gt;James Joyce&#39;s major works&lt;/h2&gt;
+        &lt;ul className=&quot;books&quot;&gt;{
+          books.map( (book, key) =&gt;
+              &lt;li key={key} className=&quot;book&quot;&gt;{book}&lt;/li&gt;
+          )
+        }&lt;/ul&gt;
+      &lt;/div&gt;
+    );
+  }
+}
+
+module.exports = JoyceBooks;
+</code></pre>
+
+<p>JSX代码并不能在浏览器或<code>Nodejs</code>平台中正常解析, 同样需要通过<code>webpack</code>进行编译</p>
+
+<p>编译后的代码类似于</p>
+
+<pre><code class="language-js function">  return React.createElement(
+    &#39;div&#39;,
+    null,
+    React.createElement(&#39;h2&#39;, null, &#39;James Joyce\&#39;s major works&#39;),
+    React.createElement(&#39;ul&#39;, {
+      className: &#39;books&#39;
+    }, books.map(function (book) {
+      return React.createElement(&#39;li&#39;, {
+        className: &#39;book&#39;
+      }, book);
+    })));
+}
+</code></pre>
+
+<p>上面的代码创建了一个用于显示<code>JoyceBooks</code>的组件, 但还未创建将它显示在浏览器中的代码</p>
+
+<pre><code class="language-js">// main.js
+&quot;use strict&quot;;
+
+const React = require(&#39;react&#39;);
+const ReactDOM = require(&#39;react-dom&#39;);
+const JoyceBooks = require(&#39;./joyceBooks&#39;);
+
+window.onload = () =&gt; {
+  // 当前页面加载完成时, 将 JoyceBooks DOM显示值id为 main 的元素中
+  ReactDOM.render(&lt;JoyceBooks/&gt;, document.getElementById(&#39;main&#39;))
+};
+</code></pre>
+
+<p>使用<code>webpack</code>进行编译, 最后在浏览器输出的结果</p>
+
+<p><img src="media/15107096826964/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-19%20%E4%B8%8A%E5%8D%8810.43.05.png" alt="屏幕快照 2017-11-19 上午10.43.05"/></p>
+
+<pre><code class="language-html">&lt;ul class=&quot;books&quot;&gt;
+    &lt;li class=&quot;book&quot;&gt;Dubliners&lt;/li&gt;
+    &lt;li class=&quot;book&quot;&gt;A Portrait of the Artist as a Young Man&lt;/li&gt;
+    &lt;li class=&quot;book&quot;&gt;Exiles and poetry&lt;/li&gt;
+    &lt;li class=&quot;book&quot;&gt;Ulysses&lt;/li&gt;
+    &lt;li class=&quot;book&quot;&gt;Finnegans Wake&lt;/li&gt;
+&lt;/ul&gt;
+</code></pre>
+
+<h3 id="toc_16">Creating a Universal JavaScript app</h3>
+
+<blockquote>
+<p>编写一个前后端都为JS栈的app</p>
+</blockquote>
+
+<p>编写一个前端显示书本列表并从后台拉取数据的Js应用</p>
+
+<h4 id="toc_17">Creating reusable components</h4>
+
+<p>首先利用虚拟数据模拟后端返回的数据</p>
+
+<pre><code class="language-js">// authors.js
+&quot;use strict&quot;;
+
+module.exports = {
+
+  &#39;joyce&#39;: {
+    &#39;name&#39;: &#39;James Joyce&#39;,
+    &#39;books&#39;: [
+      &#39;Dubliners&#39;,
+      &#39;A Portrait of the Artist as a Young Man&#39;,
+      &#39;Exiles and poetry&#39;,
+      &#39;Ulysses&#39;,
+      &#39;Finnegans Wake&#39;
+    ]
+  },
+
+  &#39;h-g-wells&#39;: {
+    &#39;name&#39;: &#39;Herbert George Wells&#39;,
+    &#39;books&#39;: [
+      &#39;The Time Machine&#39;,
+      &#39;The War of the Worlds&#39;,
+      &#39;The First Men in the Moon&#39;,
+      &#39;The Invisible Man&#39;
+    ]
+  }
+};
+</code></pre>
+
+<ul>
+<li>编写用于显示书本列表的<code>React</code>组件</li>
+</ul>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const React = require(&#39;react&#39;);
+const Link = require(&#39;react-router&#39;).Link;
+// 从 authors 模块获取所有作者及其著作信息
+const AUTHORS = require(&#39;../authors&#39;);
+
+class AuthorPage extends React.Component {
+  render() {
+    // 根据id获取
+    const author = AUTHORS[this.props.params.id];
+    return (
+      &lt;div&gt;
+        // 显示作者名称
+        &lt;h2&gt;{author.name}&#39;s major works&lt;/h2&gt;
+        &lt;ul className=&quot;books&quot;&gt;{
+          // 遍历生成著作列表
+          author.books.map( (book, key) =&gt;
+            &lt;li key={key} className=&quot;book&quot;&gt;{book}&lt;/li&gt;
+          )
+        }&lt;/ul&gt;
+        // 提供跳转回index的链接
+        &lt;Link to=&quot;/&quot;&gt;Go back to index&lt;/Link&gt;
+      &lt;/div&gt;
+    );
+  }
+}
+
+module.exports = AuthorPage;
+</code></pre>
+
+<ul>
+<li>作者列表组件</li>
+</ul>
+
+<pre><code class="language-js">// authorsIndex.js
+&quot;use strict&quot;;
+
+const React = require(&#39;react&#39;);
+const Link = require(&#39;react-router&#39;).Link;
+const AUTHORS = require(&#39;../authors&#39;);
+
+class AuthorsIndex extends React.Component {
+  render() {
+    return (
+      &lt;div&gt;
+        &lt;h1&gt;List of authors&lt;/h1&gt;
+        &lt;ul&gt;{
+          // 遍历作者名称, 生成列表
+          Object.keys(AUTHORS).map(id =&gt;
+            &lt;li key={id}&gt;&lt;Link to={`/author/${id}`}&gt;{AUTHORS[id].name}&lt;/Link&gt;&lt;/li&gt;
+          )
+        }&lt;/ul&gt;
+      &lt;/div&gt;
+    )
+  }
+}
+
+module.exports = AuthorsIndex;
+</code></pre>
+
+<p>由于这是一个SPA, 还需要模拟路由的组件</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const React = require(&#39;react&#39;);
+const ReactRouter = require(&#39;react-router&#39;);
+const Router = ReactRouter.Router;
+const hashHistory = ReactRouter.hashHistory;
+const AuthorsIndex = require(&#39;./components/authorsIndex&#39;);
+const AuthorPage = require(&#39;./components/authorPage&#39;);
+const NotFound = require(&#39;./components/notFound&#39;);
+
+const routesConfig = [
+  // &#39;/&#39; 根目录重定向为 AuthorsIndex
+  {path: &#39;/&#39;, component: AuthorsIndex},
+  // &#39;/author/:id&#39; 路径重定向为 AuthorsIndex
+  {path: &#39;/author/:id&#39;, component: AuthorPage},
+  // &#39;*&#39; 其他路径重定向到NotFound
+  {path: &#39;*&#39;, component: NotFound}
+];
+
+class Routes extends React.Component {
+  render() {
+    return &lt;Router history={hashHistory} routes={routesConfig}/&gt;;
+  }
+}
+
+module.exports = Routes;
+</code></pre>
+
+<p>利用<code>webpack</code>编译后的运行结果</p>
+
+<p><img src="media/15107096826964/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-19%20%E4%B8%8A%E5%8D%8811.30.45.png" alt="屏幕快照 2017-11-19 上午11.30.45"/><br/>
+<img src="media/15107096826964/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-19%20%E4%B8%8A%E5%8D%8811.30.51.png" alt="屏幕快照 2017-11-19 上午11.30.51"/></p>
+
+<h4 id="toc_18">Server-side rendering</h4>
+
+<p>这一节使用的是采用MVC模式, 从后台利用<code>Express</code>与<code>ejs</code>模板引擎发送<code>HTML</code>代码.</p>
+
+<ul>
+<li><code>view/index.ejs</code></li>
+</ul>
+
+<pre><code class="language-js">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot; /&gt;
+    &lt;title&gt;React Example - Authors archive&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div id=&quot;main&quot;&gt;
+        // markup 标记
+        // 利用ejs进行替换
+        &lt;%- markup -%&gt;
+    &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+<ul>
+<li><code>server.js</code></li>
+</ul>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const http = require(&#39;http&#39;);
+const Express = require(&#39;express&#39;);
+const React = require(&#39;react&#39;);
+const ReactDom = require(&#39;react-dom/server&#39;);
+const Router = require(&#39;react-router&#39;);
+const routesConfig = require(&#39;./src/routesConfig&#39;);
+
+const app = new Express();
+const server = new http.Server(app);
+
+app.set(&#39;view engine&#39;, &#39;ejs&#39;);
+
+app.get(&#39;*&#39;, (req, res) =&gt; {
+  Router.match(
+    // 传入 路由设置 与 请求url
+    {routes: routesConfig, location: req.url},
+    (error, redirectLocation, renderProps) =&gt; {
+      if (error) {
+        res.status(500).send(error.message)
+      } else if (redirectLocation) {
+        // 检测是否需要重定向
+        res.redirect(302, redirectLocation.pathname + redirectLocation.search)
+      } else if (renderProps) {
+        // 根据路径生成对应HTML文本
+        let markup = ReactDom.renderToString(&lt;Router.RouterContext {...renderProps} /&gt;);
+        // 将文本发送至浏览器
+        res.render(&#39;index&#39;, {markup});
+      } else {
+        res.status(404).send(&#39;Not found&#39;)
+      }
+    });
+});
+
+server.listen(3000, (err) =&gt; {
+  if (err) {
+    return console.error(err);
+  }
+  console.info(&#39;Server running on http://localhost:3000&#39;);
+});&quot;use strict&quot;;
+
+const http = require(&#39;http&#39;);
+const Express = require(&#39;express&#39;);
+const React = require(&#39;react&#39;);
+const ReactDom = require(&#39;react-dom/server&#39;);
+const Router = require(&#39;react-router&#39;);
+const routesConfig = require(&#39;./src/routesConfig&#39;);
+
+const app = new Express();
+const server = new http.Server(app);
+
+app.set(&#39;view engine&#39;, &#39;ejs&#39;);
+
+// 将所有GET请求路由到该函数
+app.get(&#39;*&#39;, (req, res) =&gt; {
+  Router.match(
+    // 传入 路由设置 与 请求url
+    {routes: routesConfig, location: req.url},
+    (error, redirectLocation, renderProps) =&gt; {
+      if (error) {
+        res.status(500).send(error.message)
+      } else if (redirectLocation) {
+        // 检测是否需要重定向
+        res.redirect(302, redirectLocation.pathname + redirectLocation.search)
+      } else if (renderProps) {
+        // 根据路径生成对应HTML文本
+        let markup = ReactDom.renderToString(&lt;Router.RouterContext {...renderProps} /&gt;);
+        // 将文本发送至浏览器
+        res.render(&#39;index&#39;, {markup});
+      } else {
+        res.status(404).send(&#39;Not found&#39;)
+      }
+    });
+});
+
+server.listen(3000, (err) =&gt; {
+  if (err) {
+    return console.error(err);
+  }
+  console.info(&#39;Server running on http://localhost:3000&#39;);
+});
+</code></pre>
+
+<p>由此一来, 这个APP从 SPA 转换成了普通的 Server-Base APP</p>
+
+<p><img src="media/15107096826964/spa.png" alt="spa"/></p>
+
+<p>转变为</p>
+
+<p><img src="media/15107096826964/server-side.png" alt="server-side"/></p>
+
+<h3 id="toc_19">Universal data retrieval</h3>
+
+<p>根据<code>SPA</code>风格的APP可以看出, 前端需要的只是作者及其著作的数据<br/>
+因此完全可以转换为 前端通过<code>AJAX</code>获取数据并改变<code>DOM</code>, 后端通过<code>API</code>接口返回数据即可</p>
+
+<h4 id="toc_20">The API server</h4>
+
+<p>后台通过提供HTTP API的形式返回作者数据.</p>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const http = require(&#39;http&#39;);
+const Express = require(&#39;express&#39;);
+
+const app = new Express();
+const server = new http.Server(app);
+// authors数据源
+const AUTHORS = require(&#39;./src/authors&#39;);
+// logger组件
+app.use((req, res, next) =&gt; {
+  console.log(`Received request: ${req.method} ${req.url} from ${req.headers[&#39;user-agent&#39;]}`);
+  next();
+});
+// 
+app.get(&#39;/authors&#39;, (req, res, next) =&gt; {
+  const data = Object.keys(AUTHORS).map(id =&gt; {
+    // 以JSON的形式返回id与作者名称
+    return {
+      &#39;id&#39;: id,
+      &#39;name&#39;: AUTHORS[id].name
+    };
+  });
+  res.json(data);
+});
+
+app.get(&#39;/authors/:id&#39;, (req, res, next) =&gt; {
+  if (!AUTHORS.hasOwnProperty(req.params.id)) {
+    // id不存在即返回
+    return next();
+  }
+  // 根据id获取作者详细
+  const data = AUTHORS[req.params.id];
+  res.json(data);
+});
+
+server.listen(3001, (err) =&gt; {
+  if (err) {
+    return console.error(err);
+  }
+  console.info(&#39;API Server running on http://localhost:3001&#39;);
+});
+</code></pre>
+
+<h4 id="toc_21">Asynchronous React components</h4>
+
+<p>前端改为异步从后台拉取数据, 并将数据渲染至HTML中</p>
+
+<p>这里用到了<code>axios</code>的库, <code>axios</code>用于对Ajax进行抽象并返回一个<code>promise</code></p>
+
+<ul>
+<li>作者信息索引 <code>authorIndex.js</code></li>
+</ul>
+
+<pre><code class="language-js">// authorIndex.js
+
+const Axios = require(&#39;axios&#39;);
+
+const React = require(&#39;react&#39;);
+const Link = require(&#39;react-router&#39;).Link;
+const xhrClient = Axios.create({ &#39;http://localhost:3001&#39; });
+
+class AuthorsIndex extends React.Component {
+  // 组件载入时通过ajax获取后台信息
+  static loadProps(context, cb) {
+    xhrClient.get(&#39;authors&#39;)
+      .then(response =&gt; {
+        const authors = response.data;
+        cb(null, {authors});
+      })
+      .catch(error =&gt; cb(error))
+    ;
+  }
+
+  render() {
+    return (
+      &lt;div&gt;
+        &lt;h1&gt;List of authors&lt;/h1&gt;
+        &lt;ul&gt;{
+          // this.props.authors在页面加载前就已经通过 loadProps 从服务器获取了
+          this.props.authors.map(author =&gt;
+            &lt;li key={author.id}&gt;
+              &lt;Link to={`/author/${author.id}`}&gt;{author.name}&lt;/Link&gt;
+            &lt;/li&gt;
+          )
+        }&lt;/ul&gt;
+      &lt;/div&gt;
+    )
+  }
+}
+
+module.exports = AuthorsIndex;
+</code></pre>
+
+<ul>
+<li>作者详细著作信息 <code>authorPage.js</code></li>
+</ul>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const Axios = require(&#39;axios&#39;);
+
+const React = require(&#39;react&#39;);
+const Link = require(&#39;react-router&#39;).Link;
+const xhrClient = Axios.create({ &#39;http://localhost:3001&#39; });
+
+class AuthorPage extends React.Component {
+  static loadProps(context, cb) {
+    xhrClient.get(`authors/${context.params.id}`)
+      .then(response =&gt; {
+        const author = response.data;
+        cb(null, {author});
+      })
+      .catch(error =&gt; cb(error))
+    ;
+  }
+
+  render() {
+    return (
+      &lt;div&gt;
+        &lt;h2&gt;{this.props.author.name}&#39;s major works&lt;/h2&gt;
+        &lt;ul className=&quot;books&quot;&gt;{
+          this.props.author.books.map( (book, key) =&gt;
+            &lt;li key={key} className=&quot;book&quot;&gt;{book}&lt;/li&gt;
+          )
+        }&lt;/ul&gt;
+        &lt;Link to=&quot;/&quot;&gt;Go back to index&lt;/Link&gt;
+      &lt;/div&gt;
+    );
+  }
+}
+
+module.exports = AuthorPage;
+</code></pre>
+
+<ul>
+<li>最后是前端路由<code>route.js</code>, 已完成SPA特性</li>
+</ul>
+
+<pre><code class="language-js">&quot;use strict&quot;;
+
+const React = require(&#39;react&#39;);
+const AsyncProps = require(&#39;async-props&#39;).default;
+const ReactRouter = require(&#39;react-router&#39;);
+const Router = ReactRouter.Router;
+const browserHistory = ReactRouter.browserHistory;
+const routesConfig = require(&#39;./routesConfig&#39;);
+
+class Routes extends React.Component {
+  render() {
+    return &lt;Router
+      history={browserHistory}
+      routes={routesConfig}
+      render={(props) =&gt; &lt;AsyncProps {...props}/&gt;}
+    /&gt;;
+  }
+}
+
+module.exports = Routes;
+</code></pre>
+
+<p>最后模型转变为<br/>
+<img src="media/15107096826964/123.png" alt="123"/></p>
+
+<h3 id="toc_22">总结</h3>
+
+<p>浏览器和<code>Node.js</code>的<code>JavaScript</code>运行环境在标准库, 编写风格和函数行为上的表现都大不相同.即使如此, 利用<code>Node.js</code>的模块管理与<code>npm</code>包管理系统编写前端代码, 然后利用<code>webpack</code>之类的编译工具编译到符合浏览器标准的代码, 构成了完整的<code>JavaScript</code>生态, 前后端web开发减少了思维切换的难度, 非常不错.</p>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[JavaScript高级程序设计 · 4、5、6 章]]></title>
