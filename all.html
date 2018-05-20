@@ -1,94 +1,954 @@
-
-<!DOCTYPE html>
-<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
-<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
-<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js"><!--<![endif]-->
-<head>
-  <meta charset="utf-8">
-  <title>
+<!doctype html>
+<html class="no-js" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
     
   zerolocust
   
-
   </title>
-  <meta name="author" content="">
-  <meta name="description" content="locustchen的博客">
-
-  <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   
-  <link href="asset/css/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  
   <link href="atom.xml" rel="alternate" title="zerolocust" type="application/atom+xml">
-  <script src="asset/js/modernizr-2.0.js"></script>
-  <script src="asset/js/jquery.min.js"></script>
+    <link rel="stylesheet" href="asset/css/foundation.min.css" />
+    <link rel="stylesheet" href="asset/css/docs.css" />
+    <script src="asset/js/vendor/modernizr.js"></script>
+    <script src="asset/js/vendor/jquery.js"></script>
   <script src="asset/highlightjs/highlight.pack.js"></script>
-  <link href="asset/highlightjs/styles/solarized_light.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="asset/highlightjs/styles/github.css" media="screen, projection" rel="stylesheet" type="text/css">
   <script>hljs.initHighlightingOnLoad();</script>
-
-  <style type="text/css">
-  .cat-children-p{ padding: 6px 0px;}
-  .hljs{background: none;}
-  </style>
-  <script type="text/javascript">
-  var isAddSildbar = true;
-  </script>
-  <script src="asset/js/octopress.js" type="text/javascript"></script>
-</head>
 <script type="text/javascript">
-//链接新开窗口
-function addBlankTargetForLinks () {
-  $('a[href^="http"]').each(function(){
-      $(this).attr('target', '_blank');
-  });
-}
-$(document).ready(function(event) {
-  addBlankTargetForLinks();
-});
+  function before_search(){
+    var searchVal = 'site:zerolocusta.github.io ' + document.getElementById('search_input').value;
+    document.getElementById('search_q').value = searchVal;
+    return true;
+  }
 </script>
-<body   >
-  <header role="banner"><hgroup>
-  <h1><a href="index.html">zerolocust</a></h1>
-  
-    <h2>locustchen的博客</h2>
-  
-</hgroup>
+  </head>
+  <body class="antialiased hide-extras">
+    
+    <div class="marketing off-canvas-wrap" data-offcanvas>
+      <div class="inner-wrap">
 
-</header>
-  <nav role="navigation"><ul class="subscription" data-subscription="rss">
-  <li><a href="atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
-  
-</ul>
-  
-<form action="http://google.com/search" method="get">
-  <fieldset role="search">
-    <input type="hidden" name="q" value="site:zerolocusta.github.io" />
-    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
-  </fieldset>
+
+<nav class="top-bar docs-bar hide-for-small" data-topbar>
+
+
+  <section class="top-bar-section">
+  <div class="row">
+      <div style="position: relative;width:100%;"><div style="position: absolute; width:100%;">
+        <ul id="main-menu" class="left">
+        
+        <li id=""><a target="self" href="index.html">Home</a></li>
+        
+        <li id=""><a target="_self" href="archives.html">Archives</a></li>
+        
+        </ul>
+
+        <ul class="right" id="search-wrap">
+          <li>
+<form target="_blank" onsubmit="return before_search();" action="http://google.com/search" method="get">
+    <input type="hidden" id="search_q" name="q" value="" />
+    <input tabindex="1" type="search" id="search_input"  placeholder="Search"/>
 </form>
-  
-<ul class="main-navigation">
-
-  <li id=""><a target="self" href="index.html">Home</a></li>
-
-  <li id=""><a target="_self" href="archives.html">Archives</a></li>
-
-</ul>
+</li>
+          </ul>
+      </div></div>
+  </div>
+  </section>
 
 </nav>
-  <div id="main">
-    <div id="content"> 
-<div class="blog-index">
 
-	<article>
-		 <header>
-		  	<h1 class="entry-title"><a href="15127920862405.html">Node.js设计模式 · 第九章</a></h1>
-			<p class="meta"><time datetime="2017-12-09T12:01:26+08:00" 
-			pubdate data-updated="true">2017/12/9 12:1 下午</time></p>
-		 </header>
-	  	<div class="entry-content">
-		  	
-		  	<h2 id="toc_0">Advanced Asynchronous Recipes</h2>
+        <nav class="tab-bar show-for-small">
+  <a href="javascript:void(0)" class="left-off-canvas-toggle menu-icon">
+    <span> &nbsp; zerolocust</span>
+  </a>
+</nav>
+
+<aside class="left-off-canvas-menu">
+      <ul class="off-canvas-list">
+       
+       <li><a href="index.html">HOME</a></li>
+    <li><a href="archives.html">Archives</a></li>
+    <li><a href="about.html">ABOUT</a></li>
+
+    <li><label>Categories</label></li>
+
+         
+
+      </ul>
+    </aside>
+
+<a class="exit-off-canvas" href="#"></a>
+
+
+        <section id="main-content" role="main" class="scroll-container">
+        
+       
+
+ <script type="text/javascript">
+	$(function(){
+		$('#menu_item_index').addClass('is_active');
+	});
+</script>
+<div class="row">
+	<div class="large-8 medium-8 columns">
+		<div class="markdown-body home-categories">
+		
+			<div class="article">
+                <a class="clearlink" href="15259419469147.html">
+                
+                  <h1>Badger LSM 实现剖析 · Part 1 · Memtable 与 SST</h1>
+                  <div class="a-content">
+                      
+                      <div class="a-content-text">
+                        
+                        	<h5 id="toc_0">本文对应 commit <a href="https://github.com/dgraph-io/badger/tree/754278dbecbe8bfa0fec445d6af3bc2e0cf21911">754278d</a></h5>
+
+<p>Badger LSM 参考了 RocksDB LSM 实现，本文结合 RocksDB 文档与 Badger 源码进行分析。</p>
+
+<h3 id="toc_1">Memtable</h3>
+
+<p>Badger LSM 中 Memtable 采用了 Skiplist 实现，其 Key 类型是 <code>[]byte</code>，而 Value 类型是 <code>ValueStruct</code>.</p>
+
+<pre><code class="language-go">type ValueStruct struct {
+    Meta      byte
+    UserMeta  byte
+    ExpiresAt uint64
+    Value     []byte
+
+    Version uint64     // 版本号不会被序列化
+}
+</code></pre>
+
+<p>Skiplist 的实现利用<code>arena</code>连续的<code>[]byte</code>字节数组存储键值对，使用<code>node</code>存储键值对在<code>arena</code>中的位置（偏移量），将 Skiplist 扁平化存储，并且大量使用<code>atomic</code>操作以实现无锁操作(包括<code>arena</code>中使用原子操作实现无锁读写)。</p>
+
+<p><code>type Skiplist struct</code>源码</p>
+
+<pre><code class="language-go">type Skiplist struct {
+    height int32   // 存储当前跳表高度
+    head   *node   // 头部节点
+    ref    int32   // 引用计数
+    arena  *Arena  // arena指针
+}
+</code></pre>
+
+<p>Skiplist 采用<code>*node</code>存储了头部指针，看似使用了链表的形式存储<code>node</code>，但实际上从<code>node</code>中并未直接看到任何链表结构。</p>
+
+<p><code>type node struct</code>源码</p>
+
+<pre><code class="language-go">type node struct {
+    
+    value uint64 // 同时包含了值的所在偏移量和值的大小(高32位为值的所在偏移量，低17位为值的大小)，合并存储是为了利用原子读写
+
+    keyOffset uint32 // 键所在偏移量
+    keySize   uint16 // 键大小
+
+    height uint16
+
+    tower [maxHeight]uint32
+}
+</code></pre>
+
+<p>看似<code>node</code>中并没有任何能体现出链表结构的字段，其实利用了<code>tower</code>字段存储了当前<code>node</code>在每一层级中的后继节点在<code>arena</code>中的<strong>偏移量(offset)</strong>。</p>
+
+<p>除此之外，此跳跃列表拥有比传统链表更好的性能，其风骚之处在于<code>arena</code>，利用连续的字节数组存储键值对，并且利用原子操作实现高效的无锁跳跃列表。</p>
+
+<p><code>type arena struct</code>源码</p>
+
+<pre><code class="language-go">type Arena struct {
+    n   uint32
+    buf []byte
+}
+</code></pre>
+
+<p><code>buf</code>是起始时即申请好的固定大小（非常大）的字节数组，<code>n</code>是当前已使用<code>buf</code>位置的偏移量。在初始化时，<code>n</code>被置为1（0代表空）。</p>
+
+<p>在<code>arena</code>中，分别有三种类型的数据存储在<code>buf</code>中，分别是<code>node</code>、<code>key</code>和<code>value</code>。在<code>skl.go</code>中，<code>newNode</code>方法展示了如何在<code>arena</code>中生成一个新的节点。</p>
+
+<pre><code class="language-go">func newNode(arena *Arena, key []byte, v y.ValueStruct, height int) *node {
+    // 在arena中生成节点，并获得node在arena中的偏移量
+    offset := arena.putNode(height)
+    // 通过偏移量获取arena中的节点指针
+    node := arena.getNode(offset)
+    // 在arena中置入key，并将其偏移量存入node中
+    node.keyOffset = arena.putKey(key)
+    // 保存键的大小
+    node.keySize = uint16(len(key))
+    // 保存节点高度
+    node.height = uint16(height)
+    // 在arena中置入值，并将其偏移量和大小编码存入node中
+    node.value = encodeValue(arena.putVal(v), v.EncodedSize())
+    return node
+}
+</code></pre>
+
+<p>无论是<code>putNode</code>、<code>putKey</code>还是<code>putValue</code>均是通过原子操作实现无锁并发安全。</p>
+
+<pre><code class="language-go">func (s *Arena) putNode(height int) uint32 {
+    unusedSize := (maxHeight - height) * offsetSize
+
+    l := uint32(MaxNodeSize - unusedSize + nodeAlign)
+    n := atomic.AddUint32(&amp;s.n, l)
+    y.AssertTruef(int(n) &lt;= len(s.buf),
+        &quot;Arena too small, toWrite:%d newTotal:%d limit:%d&quot;,
+        l, n, len(s.buf))
+
+    m := (n - l + uint32(nodeAlign)) &amp; ^uint32(nodeAlign)
+    return m
+}
+
+func (s *Arena) putVal(v y.ValueStruct) uint32 {
+    l := uint32(v.EncodedSize())
+    n := atomic.AddUint32(&amp;s.n, l)
+    y.AssertTruef(int(n) &lt;= len(s.buf),
+        &quot;Arena too small, toWrite:%d newTotal:%d limit:%d&quot;,
+        l, n, len(s.buf))
+    m := n - l
+    v.Encode(s.buf[m:])
+    return m
+}
+
+func (s *Arena) putKey(key []byte) uint32 {
+    l := uint32(len(key))
+    n := atomic.AddUint32(&amp;s.n, l)
+    y.AssertTruef(int(n) &lt;= len(s.buf),
+        &quot;Arena too small, toWrite:%d newTotal:%d limit:%d&quot;,
+        l, n, len(s.buf))
+    m := n - l
+    y.AssertTrue(len(key) == copy(s.buf[m:n], key))
+    return m
+}
+</code></pre>
+
+<p><img src="media/15259419469147/PNG%20%E5%9B%BE%E5%83%8F-ED74F8B45DB3-1.png" alt="PNG 图像-ED74F8B45DB3-1"/><br/>
+在这三个方法中，通过计算需要使用的空间，原子操作（<code>n := atomic.AddUint32(&amp;s.n, l)</code>）增加<code>Arena.n</code>的值，从而实现高效的并发安全写操作。</p>
+
+<hr/>
+
+<h5 id="toc_2">Put</h5>
+
+<p><code>newNode()</code>展示了一个新的节点如何存储到<code>arena</code>中，然而未将节点置入 Skiplist 中，回到<code>skl.go</code>中，观察<code>Skiplist.Put</code>方法，了解键值对存储流程。</p>
+
+<pre><code class="language-go">func (s *Skiplist) Put(key []byte, v y.ValueStruct) {
+
+    listHeight := s.getHeight()
+    var prev [maxHeight + 1]*node
+    var next [maxHeight + 1]*node
+    prev[listHeight] = s.head
+    next[listHeight] = nil
+    for i := int(listHeight) - 1; i &gt;= 0; i-- {
+        // Use higher level to speed up for current level.
+        prev[i], next[i] = s.findSpliceForLevel(key, prev[i+1], i)
+        if prev[i] == next[i] {
+            prev[i].setValue(s.arena, v)
+            return
+        }
+    }
+    // ...more
+</code></pre>
+
+<p><code>Put</code>方法分成两部分，上方代码是当前<code>key</code>已存在，采取直接替换<code>value</code>的方法。下半部分是当前<code>key</code>尚未存在，从而生成新的节点，插入新的键值对节点。</p>
+
+<pre><code class="language-go">    // ...more
+    height := randomHeight()    // 随机生成新节点的高度（伯努利试验）
+    x := newNode(s.arena, key, v, height) // 生成新的节点
+
+    listHeight = s.getHeight() // 获取当前 Skiplist 高度
+    for height &gt; int(listHeight) {
+       // 若新节点高度大于当前 Skiplist 高度，原子 CAS 当前 Skiplist 高度
+        if atomic.CompareAndSwapInt32(&amp;s.height, listHeight, int32(height)) {
+            break
+        }
+        // 获取新的 Skiplist 高度
+        listHeight = s.getHeight()
+    }
+
+    for i := 0; i &lt; height; i++ {
+        for {
+            if prev[i] == nil {
+                y.AssertTrue(i &gt; 1)
+
+                prev[i], next[i] = s.findSpliceForLevel(key, s.head, i)
+
+                y.AssertTrue(prev[i] != next[i])
+            }
+            nextOffset := s.arena.getNodeOffset(next[i])
+            x.tower[i] = nextOffset
+            if prev[i].casNextOffset(i, nextOffset, s.arena.getNodeOffset(x)) {
+                break
+            }
+            prev[i], next[i] = s.findSpliceForLevel(key, prev[i], i)
+            if prev[i] == next[i] {
+                y.AssertTruef(i == 0, &quot;Equality can happen only on base level: %d&quot;, i)
+                prev[i].setValue(s.arena, v)
+                return
+            }
+        }
+    }
+}
+</code></pre>
+
+<p><code>Put()</code>方法的多个部分都使用了<code>findSpliceForLevel()</code>，其作用是在指定 Skiplist 层级查找给出<code>key</code>的前继节点和后继节点。</p>
+
+<pre><code class="language-go">func (s *Skiplist) findSpliceForLevel(key []byte, before *node, level int) (*node, *node) {
+    for {
+        next := s.getNext(before, level)
+        if next == nil {
+            return before, next
+        }
+        nextKey := next.key(s.arena)
+        cmp := y.CompareKeys(key, nextKey)
+        if cmp == 0 {
+            return next, next
+        }
+        if cmp &lt; 0 {
+            return before, next
+        }
+        before = next
+    }
+}
+</code></pre>
+
+<p>注意到<code>Put</code>方法在需要生成新节点时，使用了<strong>双层嵌套循环</strong>对节点当前高度所在链表进行更新。</p>
+
+<p>由于在将当前节点设置为前继节点的后继节点是存在<code>CAS</code>操作（<code>prev[i].casNextOffset(i, nextOffset, s.arena.getNodeOffset(x))</code>），当出现对同一个<code>prev[i]</code>进行并发更新时，多个<code>CAS</code> 操作只有一个会成功，对于<strong>更新成功</strong>的一方，直接<code>break</code>即可。而对于<strong>更新失败</strong>，意味着此时其前继或是后继节点将会发生变化，需要重新查找前继和后继节点（<code>prev[i], next[i] = s.findSpliceForLevel(key, prev[i], i)</code>），直到更新成功为止。</p>
+
+<pre><code class="language-go">    for i := 0; i &lt; height; i++ {
+        for {
+            if prev[i] == nil {
+                y.AssertTrue(i &gt; 1)
+
+                prev[i], next[i] = s.findSpliceForLevel(key, s.head, i)
+
+                y.AssertTrue(prev[i] != next[i])
+            }
+            // 获取后继节点在arena中的偏移量
+            nextOffset := s.arena.getNodeOffset(next[i])
+            // 设置当前节点的i层链表中的后继节点
+            x.tower[i] = nextOffset
+            // 通过 CAS 将当前节点替换为前继节点的后继节点
+            if prev[i].casNextOffset(i, nextOffset, s.arena.getNodeOffset(x)) {
+                break
+            }
+            // CAS 失败，重新查找当前节点的前继及后继节点
+            prev[i], next[i] = s.findSpliceForLevel(key, prev[i], i)
+            if prev[i] == next[i] {
+                y.AssertTruef(i == 0, &quot;Equality can happen only on base level: %d&quot;, i)
+                prev[i].setValue(s.arena, v)
+                return
+            }
+        }
+    }
+</code></pre>
+
+<h4 id="toc_3">Memtable 总结</h4>
+
+<ul>
+<li>Memtable 采用 Skiplist 实现</li>
+<li>Skiplist 利用字节数组与偏移量存储<code>node</code>、<code>key</code>和<code>value</code>信息，并利用大量原子操作实现高效并发安全读写操作。</li>
+<li><code>arena</code>中的字节数组（<code>buf</code>）在构造时即被固定，在<code>db.go</code>中，<code>arena</code>大小被设置为<code>opt.MaxTableSize + opt.maxBatchSize + opt.maxBatchCount*int64(skl.MaxNodeSize)</code>。</li>
+<li>对已存在于<code>memtable</code>中的<code>key</code>进行更新时，仅更新其节点中值在<code>arena.buf</code>中的偏移量，其旧值仍存在与<code>arena.buf</code>中，并不进行回收，从而造成浪费。然而考虑到 LSM 原理，此操作处于可接受的范围。</li>
+</ul>
+
+<hr/>
+
+<h3 id="toc_4">Sorted String Table</h3>
+
+<p><code>SST</code> 是只读的，通过<code>package table</code>中的文件及方法，观察<code>SST</code>如何进行序列化/反序列化以及查找。<br/>
+<code>badger</code>的<code>SST</code>格式参照了<code>RocksDB</code>，其文档于<a href="https://github.com/google/leveldb/blob/master/doc/table_format.md">table_format</a>，然而<code>badger</code>并不完全遵从<code>RocksDB</code>的做法，在某些地方有些许差异。</p>
+
+<blockquote>
+<pre><code class="language-text">(RocksDB Table Format)
+&lt;beginning_of_file&gt;
+[data block 1]
+[data block 2]
+...
+[data block N]
+[meta block 1]
+...
+[meta block K]
+[metaindex block]
+[index block]
+[Footer]        (fixed size; starts at file_size - sizeof(Footer))
+&lt;end_of_file&gt;
+</code></pre>
+</blockquote>
+
+<h4 id="toc_5">Builder</h4>
+
+<p>首先观察一个<code>Memtable</code>是如何变为<code>SST</code>的。在<code>badger</code>中，通过<code>table/builder.go</code>将<code>Memtable</code>中的所有<code>key/value pairs</code>序列化。</p>
+
+<p><code>type Builder struct</code></p>
+
+<pre><code class="language-go">type Builder struct {
+    counter int // 当前 block 已经写入多少个 key
+
+    buf *bytes.Buffer // 存储Table的buffer
+
+    baseKey    []byte // 当前block的第一个key
+    baseOffset uint32 // 当前block相对于整个buf的偏移量
+
+    restarts []uint32 // 所有blocks的baseOffset
+
+    prevOffset uint32 // 上一个键值对在当前block中的偏移量
+
+    keyBuf   *bytes.Buffer // 存储所有key的buffer，用于构造布隆过滤器
+    keyCount int // Table key 总量
+}
+</code></pre>
+
+<p><code>Builder</code>首先通过<code>NewTableBuilder</code>创建一个实例</p>
+
+<pre><code class="language-go">func NewTableBuilder() *Builder {
+    return &amp;Builder{
+        keyBuf:     newBuffer(1 &lt;&lt; 20),
+        buf:        newBuffer(1 &lt;&lt; 20),
+        prevOffset: math.MaxUint32, // Used for the first element!
+    }
+}
+</code></pre>
+
+<p>通过<code>Add()</code>方法观察一个键值对是如何置入<code>Builder</code>中的</p>
+
+<pre><code class="language-go">func (b *Builder) Add(key []byte, value y.ValueStruct) error {
+    if b.counter &gt;= restartInterval {
+        b.finishBlock()
+        b.restarts = append(b.restarts, uint32(b.buf.Len()))
+        b.counter = 0
+        b.baseKey = []byte{}
+        b.baseOffset = uint32(b.buf.Len())
+        b.prevOffset = math.MaxUint32 
+    }
+    b.addHelper(key, value)
+    return nil // Currently, there is no meaningful error.
+}
+</code></pre>
+
+<p>在<code>Builder</code>中存在着<code>block</code>的概念，一个<code>block</code>是多个键值对的集合，在<code>badger</code>中，每个<code>block</code><strong>默认</strong>最多能存储100个键值对（<code>restartInterval = 100</code>)</p>
+
+<p>跳过<code>Add()</code>方法中添加新<code>block</code>的部分，先看看添加键值对的主逻辑部分<code>addHelper()</code>方法。</p>
+
+<p><code>addHelper()</code>首先将剔除时间戳的<code>keyNoTs</code>（<code>badger</code>中在写入<code>key</code>时会对其添加时间戳<code>Ts</code>）及其长度<code>klen</code>写入<code>keyBuf</code>，<code>keyBuf</code>在<code>Builder</code>生成<code>Table</code>时会被用于构造布隆过滤器，同时递增<code>keyCount</code>。</p>
+
+<pre><code class="language-go">func (b *Builder) addHelper(key []byte, v y.ValueStruct) {
+    // Add key to bloom filter.
+    if len(key) &gt; 0 {
+        var klen [2]byte
+        keyNoTs := y.ParseKey(key)
+        binary.BigEndian.PutUint16(klen[:], uint16(len(keyNoTs)))
+        b.keyBuf.Write(klen[:])
+        b.keyBuf.Write(keyNoTs)
+        b.keyCount++
+    }
+    // ...more
+</code></pre>
+
+<p>接下来通过<code>keyDiff()</code>方法计算传入<code>key</code>与<code>baseKey</code>从头部开始相差的部分，以节省空间。考虑到 LSM 模型，<strong>有序</strong>遍历Memtable中键值对并<strong>有序</strong>地通过<code>Add()</code>方法添加至<code>Builder</code>并生成<code>SST</code>，<code>diffKey</code>在具有多个相似Key的场景下能节省非常多的空间。</p>
+
+<pre><code class="language-go">    // ...more
+    var diffKey []byte
+    if len(b.baseKey) == 0 {
+        b.baseKey = append(b.baseKey[:0], key...)
+        diffKey = key
+    } else {
+        diffKey = b.keyDiff(key)
+    }
+    // ...more
+</code></pre>
+
+<p>随后针对这个键值对生成<code>header</code>，由于使用了<code>diffKey</code>的理念，<code>plen</code>记录了当前<code>key</code>与<code>baseKey</code>的具有相同前缀的偏移量，并分别保存<code>klen</code>（<code>diffKey</code>长度）、<code>vlen</code>（值长度）及<code>prev</code>（前一个键值对相对于当前<code>block</code>的偏移量）。</p>
+
+<pre><code class="language-go">    // ...more
+    h := header{
+        plen: uint16(len(key) - len(diffKey)),
+        klen: uint16(len(diffKey)),
+        vlen: uint16(v.EncodedSize()),
+        prev: b.prevOffset, // prevOffset is the location of the last key-value added.
+    }
+    // 重新计算prevOffset，供下一个键值对使用
+    b.prevOffset = uint32(b.buf.Len()) - b.baseOffset 
+    // ...more
+</code></pre>
+
+<p>最后将<code>header</code>、<code>diffKey</code>和<code>valueStruct</code>写入<code>buf</code>中。</p>
+
+<pre><code class="language-go">    // ...more
+    var hbuf [10]byte
+    h.Encode(hbuf[:])
+    b.buf.Write(hbuf[:])
+    b.buf.Write(diffKey) // We only need to store the key difference.
+
+    v.EncodeTo(b.buf)
+    b.counter++ // Increment number of keys added for this current block.
+}
+</code></pre>
+
+<p>一个键值对的结构如下</p>
+
+<pre><code class="language-text">&lt;beginning_of_key_value_pair&gt;
+[header]
+[diffKey]
+[valueStruct]
+&lt;end_of_key_value_pair&gt;
+</code></pre>
+
+<hr/>
+
+<h5 id="toc_6">block</h5>
+
+<p><code>Builder</code>中使用<code>block</code>的概念组织键值对，就如<code>Add()</code>方法及<code>addHelper()</code>方法中看到的。</p>
+
+<p>在<code>Add()</code>方法中，检测到当前<code>block</code>键值对个数超过了<code>restartInterval</code>，将会建立一个新的<code>block</code></p>
+
+<pre><code class="language-go">    // in Add() method
+    if b.counter &gt;= restartInterval {
+        b.finishBlock()
+        // Start a new block. Initialize the block.
+        b.restarts = append(b.restarts, uint32(b.buf.Len()))
+        b.counter = 0
+        b.baseKey = []byte{}
+        b.baseOffset = uint32(b.buf.Len())
+        b.prevOffset = math.MaxUint32 // First key-value pair of block has header.prev=MaxInt.
+    }
+</code></pre>
+
+<p><code>b.finishBlock()</code>函数将在当前<code>block</code>尾部添加一个空键值对，此举利用空键值对记录下<code>prevOffset</code>的位置，用于反向遍历。</p>
+
+<pre><code class="language-go">func (b *Builder) finishBlock() {
+    b.addHelper([]byte{}, y.ValueStruct{})
+}
+</code></pre>
+
+<p><code>Add()</code>方法中在调用<code>b.finishBlock</code>后，通过<code>b.restarts = append(b.restarts, uint32(b.buf.Len()))</code>记录下新<code>block</code>的起始位置，<code>b.restarts</code>会在生成<code>Table</code>时利用其生成<code>block Index</code>。</p>
+
+<p>由此可见一个<code>block</code>的结构如下</p>
+
+<pre><code class="language-text">&lt;beginning_of_block&gt;
+[base key/value pair 0]
+[key/value pair 1]
+...
+[key/value pair N]
+[empty key/value pair]
+&lt;end_of_block&gt;
+</code></pre>
+
+<hr/>
+
+<h5 id="toc_7">Finish() 序列化 Table</h5>
+
+<p><code>Builder</code>最后通过<code>Finish()</code>函数序列化生成<code>Table</code>。</p>
+
+<p>首先通过遍历<code>keyBuf</code>获取所有<code>key</code>，随后利用其生成布隆过滤器。</p>
+
+<pre><code class="language-go">func (b *Builder) Finish() []byte {
+    bf := bbloom.New(float64(b.keyCount), 0.01)
+    var klen [2]byte
+    key := make([]byte, 1024)
+    for {
+        if _, err := b.keyBuf.Read(klen[:]); err == io.EOF {
+            break
+        } else if err != nil {
+            y.Check(err)
+        }
+        kl := int(binary.BigEndian.Uint16(klen[:]))
+        if cap(key) &lt; kl {
+            key = make([]byte, 2*int(kl)) // 2 * uint16 will overflow
+        }
+        key = key[:kl]
+        y.Check2(b.keyBuf.Read(key))
+        bf.Add(key)
+    }
+    // ...more
+</code></pre>
+
+<p>随后调用<code>b.finishBlock()</code>结束这最后一个<code>block</code></p>
+
+<pre><code class="language-go">    // ...more
+    b.finishBlock()
+    // ...more
+</code></pre>
+
+<p>进而通过<code>b.restarts</code>生成定长<code>block Index</code>的，并将索引写入<code>buf</code></p>
+
+<pre><code class="language-go">    // ...more
+    index := b.blockIndex()
+    b.buf.Write(index)
+    // ...more
+</code></pre>
+
+<blockquote>
+<p><code>blockIndex()</code>，通过<code>b.restarts</code>生成<code>block</code>所在偏移量的索引，并在末尾添加索引总长度。</p>
+
+<pre><code class="language-go">func (b *Builder) blockIndex() []byte {
+    // Store the end offset, so we know the length of the final block.
+    b.restarts = append(b.restarts, uint32(b.buf.Len()))
+    // Add 4 because we want to write out number of restarts at the end.
+    sz := 4*len(b.restarts) + 4
+    out := make([]byte, sz)
+    buf := out
+    for _, r := range b.restarts {
+        binary.BigEndian.PutUint32(buf[:4], r)
+        buf = buf[4:]
+    }
+    binary.BigEndian.PutUint32(buf[:4], uint32(len(b.restarts)))
+    return out
+}
+</code></pre>
+
+<p>由次可见，<code>block Index</code>的格式如下</p>
+
+<pre><code class="language-text">&lt;beginning_of_block_index&gt;
+[block 0 offset]
+[block 1 offset]
+...
+[block N offset]
+[block Index size]
+&lt;end_of_block_index&gt;
+</code></pre>
+</blockquote>
+
+<p>最后是序列化布隆过滤器，并将布隆过滤器长度写入<code>buf</code><strong>末尾的4个字节</strong>中，返回<code>buf.Bytes()</code></p>
+
+<pre><code class="language-go">    // ...more
+    bdata := bf.JSONMarshal()
+    n, err := b.buf.Write(bdata)
+    y.Check(err)
+    var buf [4]byte
+    binary.BigEndian.PutUint32(buf[:], uint32(n))
+    b.buf.Write(buf[:])
+
+    return b.buf.Bytes()
+}
+</code></pre>
+
+<p>从而获得一个如下格式的序列化后的 Table</p>
+
+<pre><code class="language-go">&lt;beginning_of_table&gt;
+[data block 0]
+[data block 1]
+...
+[data block N]
+[block index]
+[block index size (4 bytes)]
+[bloom filter]
+[bloom filter size (4 bytes)]
+&lt;end_of_table&gt;
+</code></pre>
+
+<p>可以看出，就目前的<code>Table</code>格式而言，在<code>block</code>内部无法进行二分查找，只能遍历对应<code>block</code>找出对应的<code>key</code>，但是目前已有 Pull request <a href="https://github.com/dgraph-io/badger/pull/481">block iterator: seek with binary search</a> 解决此问题，为了行文流畅，本文暂不探讨此PR。</p>
+
+<hr/>
+
+<h4 id="toc_8">Table</h4>
+
+<p><code>Builder</code>通过<code>Finish()</code>生成序列化后的<code>Table</code>，随后会被写入<code>.sst</code>文件中，此时再通过<code>Table.open()</code>打开该文件，从而使得<code>.sst</code>文件能进行查找及合并等操作。</p>
+
+<p><code>type Table struct</code></p>
+
+<pre><code class="language-go">type Table struct {
+    sync.Mutex
+
+    fd        *os.File //  文件指针
+    tableSize int      // .sst文件大小
+
+    blockIndex []keyOffset
+    ref        int32 // For file garbage collection.  Atomic.
+
+    loadingMode options.FileLoadingMode
+    mmap        []byte // 通过mmap方式
+
+    smallest, biggest []byte // 该.sst文件的最小及最大的key
+    id                uint64 // .sst文件id
+
+    bf bbloom.Bloom // 布隆过滤器
+}
+</code></pre>
+
+<h5 id="toc_9">OpenTable()</h5>
+
+<p>通过<code>OpenTable()</code>函数反序列化并构造出Table，首先是获取传入文件的信息，获取<code>.sst</code>文件的<code>id</code>、<code>size</code>，并构造<code>Table</code>结构体。</p>
+
+<pre><code class="language-go">func OpenTable(fd *os.File, loadingMode options.FileLoadingMode) (*Table, error) {
+    fileInfo, err := fd.Stat()
+    if err != nil {
+        // It&#39;s OK to ignore fd.Close() errs in this function because we have only read
+        // from the file.
+        _ = fd.Close()
+        return nil, y.Wrap(err)
+    }
+
+    filename := fileInfo.Name()
+    id, ok := ParseFileID(filename)
+    if !ok {
+        _ = fd.Close()
+        return nil, errors.Errorf(&quot;Invalid filename: %s&quot;, filename)
+    }
+    t := &amp;Table{
+        fd:          fd,
+        ref:         1, // Caller is given one reference.
+        id:          id,
+        loadingMode: loadingMode,
+    }
+    
+    t.tableSize = int(fileInfo.Size())
+    // ...more
+</code></pre>
+
+<p>随后根据<code>loadingMode</code>决定使用<code>mmap</code>或是载入内存的方式将<code>fd</code>中数据读入<code>table</code>中，无论是那种模式，都是将数据转换为<code>[]byte</code>指针，对后续操作<strong>大多数</strong>都是透明的。</p>
+
+<pre><code class="language-go">    // ...more
+    if loadingMode == options.MemoryMap {
+        t.mmap, err = y.Mmap(fd, false, fileInfo.Size())
+        if err != nil {
+            _ = fd.Close()
+            return nil, y.Wrapf(err, &quot;Unable to map file&quot;)
+        }
+    } else if loadingMode == options.LoadToRAM {
+        err = t.loadToRAM()
+        if err != nil {
+            _ = fd.Close()
+            return nil, y.Wrap(err)
+        }
+    }
+    // ...more
+</code></pre>
+
+<p>随后从文件中读入索引，<code>t.readIndex()</code>函数将会载入布隆过滤器并赋值到<code>Table.bf</code>中，解析<code>block Index</code>并根据索引获取每个<code>block</code>的首个<code>key</code>并赋值到<code>Table.blockIndex</code>中。</p>
+
+<pre><code class="language-go">    // ...more
+    if err := t.readIndex(); err != nil {
+        return nil, y.Wrap(err)
+    }
+    // ...more
+</code></pre>
+
+<p>最后获取该<code>Table</code>的最大及最小值。</p>
+
+<pre><code class="language-go">    // ...more
+    it := t.NewIterator(false)
+    defer it.Close()
+    it.Rewind()
+    if it.Valid() {
+        t.smallest = it.Key()
+    }
+
+    it2 := t.NewIterator(true)
+    defer it2.Close()
+    it2.Rewind()
+    if it2.Valid() {
+        t.biggest = it2.Key()
+    }
+    return t, nil
+}
+</code></pre>
+
+<hr/>
+
+<h4 id="toc_10">Iterator</h4>
+
+<p><code>Iterator</code>分别有<code>Block Iterator</code>、<code>Table Iterator</code>以及<code>Concat Iterator</code>。</p>
+
+<h5 id="toc_11">Block Iterator</h5>
+
+<p><code>block iterator</code>是针对单个<code>block</code>内部的迭代器。</p>
+
+<pre><code class="language-go">type blockIterator struct {
+    data    []byte
+    pos     uint32
+    err     error
+    baseKey []byte
+
+    key  []byte
+    val  []byte
+    init bool
+
+    last header // The last header we saw.
+}
+</code></pre>
+
+<p><code>block iterator</code>中最重要的是<code>Seek()</code>函数，用于查找需要的键。由于<code>block</code>内部的键值对是以<strong>有序双向列表</strong>，但也如前文所述，即使是有序的列表，<code>block</code>并没有提供足够的信息用于进行二分查找，从而只能使用遍历的方式查找对应的<code>key</code>。</p>
+
+<p>同时，<code>Seek()</code>函数由于其函数名语义，并没有直接返回可能存在的键值对，又由于<code>block</code>内部的键值对按照从小到大排序，<code>Seek()</code>将该<code>iterator</code>定位到<strong>最接近</strong>该键的位置（<code>y.CompareKeys(k, key) &gt;= 0</code>），而判断该位置的键值对是否相等则交由调用者解决。</p>
+
+<pre><code class="language-go">func (itr *blockIterator) Seek(key []byte, whence int) {
+    itr.err = nil
+
+    switch whence {
+    case origin:
+        itr.Reset()
+    case current:
+    }
+
+    var done bool
+    for itr.Init(); itr.Valid(); itr.Next() { // 通过iter迭代器遍历block内部的key
+        k := itr.Key() // 获取 key
+        if y.CompareKeys(k, key) &gt;= 0 {
+            done = true
+            break
+        }
+    }
+    if !done {
+        itr.err = io.EOF
+    }
+}
+</code></pre>
+
+<hr/>
+
+<h5 id="toc_12">Table Iterator</h5>
+
+<p><code>Table Iterator</code>是针对单个<code>Table</code>的迭代器。一个<code>Table</code>内部有多<code>block</code>，<code>block</code>不仅内部是有序的，多个<code>block</code>相互之间也是单调递增的，同时也有<code>block Index</code>有序地记录了各个<code>block</code>的<code>baseKey</code>的偏移量。</p>
+
+<pre><code class="language-go">type Iterator struct {
+    t    *Table // 迭代器对应的Table
+    bpos int    // 目前迭代的block索引
+    bi   *blockIterator // 对应block的迭代器
+    err  error
+
+    reversed bool // 是否反向遍历
+}
+</code></pre>
+
+<p><code>Table Iterator</code>的<code>Seek()</code>就利用了<code>block Index</code>进行二分查找，快速定位<code>key</code>所在<code>block</code>。</p>
+
+<pre><code class="language-go">func (itr *Iterator) Seek(key []byte) {
+    if !itr.reversed {
+        itr.seek(key)
+    } else {
+        itr.seekForPrev(key)
+    }
+}
+</code></pre>
+
+<p>关注正向遍历<code>itr.seek()</code>，<code>origin</code>指示初始化迭代器再进行遍历。</p>
+
+<pre><code class="language-go">func (itr *Iterator) seek(key []byte) {
+    itr.seekFrom(key, origin)
+}
+</code></pre>
+
+<p><code>seekFrom</code>函数通过二分查找定位出<code>key</code>可能所在的<strong>后一个</strong><code>block</code>索引，然后通过<code>seekHelper</code>定位该<code>key</code>。</p>
+
+<pre><code class="language-go">func (itr *Iterator) seekFrom(key []byte, whence int) {
+    itr.err = nil
+    switch whence {
+    case origin:
+        itr.reset()
+    case current:
+    }
+
+    idx := sort.Search(len(itr.t.blockIndex), func(idx int) bool {
+        ko := itr.t.blockIndex[idx]
+        return y.CompareKeys(ko.key, key) &gt; 0 // 没有使用 &gt;= 0，从而对baseKey == key 情况也能使用相同的 itr.seekHelper(idx-1, key) 逻辑处理。
+    })
+    if idx == 0 {
+        // idx 等于 0 说明该 Table 的最小的键也大于需要查找的 key
+        itr.seekHelper(0, key) // 相当于 seekToFirst()
+        return
+    }
+    itr.seekHelper(idx-1, key) // 在前一个block查找该key
+    if itr.err == io.EOF { // 此测试为真即代表该key不存在
+        if idx == len(itr.t.blockIndex) {
+            return
+        }
+        itr.seekHelper(idx, key) // seekHelper 实际调用了 blockIterator.Seek 函数，由于查找失败会导致 blockIterator 触底，此处用于跳转至下一个block
+    }
+}
+</code></pre>
+
+<p><code>seekHelper()</code>用于获取并在对应<code>block</code>中查找<code>key</code>。</p>
+
+<pre><code class="language-go">func (itr *Iterator) seekHelper(blockIdx int, key []byte) {
+    itr.bpos = blockIdx
+    block, err := itr.t.block(blockIdx)
+    if err != nil {
+        itr.err = err
+        return
+    }
+    itr.bi = block.NewIterator()
+    itr.bi.Seek(key, origin)
+    itr.err = itr.bi.Error()
+}
+</code></pre>
+
+<hr/>
+
+<h6 id="toc_13">Concat Iterator</h6>
+
+<p><code>Concat Iterator</code>是多个<code>Table</code>的遍历器，从它的实现来看，要求多个<code>Table</code>相互之间是有序的。</p>
+
+<pre><code class="language-go">type ConcatIterator struct {
+    idx      int // 当前使用的迭代器索引
+    cur      *Iterator // 当前使用的迭代器
+    iters    []*Iterator // 对应着各个Table
+    tables   []*Table    // 以升序排列的各个Table
+    reversed bool
+}
+</code></pre>
+
+<p>同样是<code>Seek()</code>操作，展示<code>Concat Iterator</code>是如何搜索一个 key 的。</p>
+
+<p>由于<code>ConcatIterator.Seek()</code>函数使用了二分搜索，所以必须由调用者保证<code>tables</code>是有序的。</p>
+
+<p><code>Seek()</code>同样具有<code>reversed</code>的功能，但在这里只关注正向查找的功能。<code>Seek()</code>首先在各个<code>table</code>中使用二分搜索，查找出<code>key</code>所在的<code>table</code>，继而通过该<code>table</code>的<code>Iterator.Seek()</code>在该<code>Table</code>内继续查找<code>key</code>。</p>
+
+<pre><code class="language-go">func (s *ConcatIterator) Seek(key []byte) {
+    var idx int
+    if !s.reversed {
+        idx = sort.Search(len(s.tables), func(i int) bool {
+            return y.CompareKeys(s.tables[i].Biggest(), key) &gt;= 0
+        })
+    } else {
+        n := len(s.tables)
+        idx = n - 1 - sort.Search(n, func(i int) bool {
+            return y.CompareKeys(s.tables[n-1-i].Smallest(), key) &lt;= 0
+        })
+    }
+    if idx &gt;= len(s.tables) || idx &lt; 0 {
+        s.setIdx(-1)
+        return
+    }
+    s.setIdx(idx)
+    s.cur.Seek(key)
+}
+</code></pre>
+
+<h3 id="toc_14">写在最后</h3>
+
+<p>Part 1 剖析了 Memtable 以及 Sorted String Table 的结构，LSM 即由这两种结构组成。下一节继续探讨 Memtable 转换至 Sorted String Table 以及 Sorted String Table 之间的整合压缩<code>Compaction</code>过程。</p>
+
+                        
+                      </div>
+                  </div>
+                </a>
+                <div class="read-more clearfix">
+                  <div class="more-left left">
+                  
+                    <span class="date">2018/5/10 16:45 下午</span>
+                    
+          				   
+                  </div>
+                  <div class="more-right right">
+                  <span class="comments">
+                      
+
+                       
+                  </span>
+                  </div>
+                </div>
+              </div><!-- article -->
+        
+			<div class="article">
+                <a class="clearlink" href="15127920862405.html">
+                
+                  <h1>Node.js设计模式 · 第九章</h1>
+                  <div class="a-content">
+                      
+                      <div class="a-content-text">
+                        
+                        	<h2 id="toc_0">Advanced Asynchronous Recipes</h2>
 
 <p>如何利用一些高级的异步概念去改善我们饿 NodeJS 程序，这一章会介绍例如</p>
 
@@ -693,22 +1553,36 @@ process.on(&#39;message&#39;, msg =&gt; {  // [1]
 
 <p>运行的耗时在 6551.740ms 考虑到 进程间通信 与 进程池初始化时间，这个结果是正常的。</p>
 
+                        
+                      </div>
+                  </div>
+                </a>
+                <div class="read-more clearfix">
+                  <div class="more-left left">
+                  
+                    <span class="date">2017/12/9 12:1 下午</span>
+                    
+          				   
+                  </div>
+                  <div class="more-right right">
+                  <span class="comments">
+                      
 
-		</div>
-
-		
-
-	</article>
- 
-	<article>
-		 <header>
-		  	<h1 class="entry-title"><a href="15124581127035.html">SQL必知必会 1 - 7 章</a></h1>
-			<p class="meta"><time datetime="2017-12-05T15:15:12+08:00" 
-			pubdate data-updated="true">2017/12/5 15:15 下午</time></p>
-		 </header>
-	  	<div class="entry-content">
-		  	
-		  	<h2 id="toc_0">第1章 了解 SQL</h2>
+                       
+                  </span>
+                  </div>
+                </div>
+              </div><!-- article -->
+        
+			<div class="article">
+                <a class="clearlink" href="15124581127035.html">
+                
+                  <h1>SQL必知必会 1 - 7 章</h1>
+                  <div class="a-content">
+                      
+                      <div class="a-content-text">
+                        
+                        	<h2 id="toc_0">第1章 了解 SQL</h2>
 
 <h3 id="toc_1">数据库基础</h3>
 
@@ -1297,22 +2171,36 @@ WHERE
 </tbody>
 </table>
 
+                        
+                      </div>
+                  </div>
+                </a>
+                <div class="read-more clearfix">
+                  <div class="more-left left">
+                  
+                    <span class="date">2017/12/5 15:15 下午</span>
+                    
+          				   
+                  </div>
+                  <div class="more-right right">
+                  <span class="comments">
+                      
 
-		</div>
-
-		
-
-	</article>
- 
-	<article>
-		 <header>
-		  	<h1 class="entry-title"><a href="15116831975159.html">从 Node.js C++ Addon 观察 Js 在 v8 中的表示方式</a></h1>
-			<p class="meta"><time datetime="2017-11-26T15:59:57+08:00" 
-			pubdate data-updated="true">2017/11/26 15:59 下午</time></p>
-		 </header>
-	  	<div class="entry-content">
-		  	
-		  	<h2 id="toc_0"><a href="https://github.com/nodejs/nan">Native Abstractions for Node.js</a> (nan)</h2>
+                       
+                  </span>
+                  </div>
+                </div>
+              </div><!-- article -->
+        
+			<div class="article">
+                <a class="clearlink" href="15116831975159.html">
+                
+                  <h1>从 Node.js C++ Addon 观察 Js 在 v8 中的表示方式</h1>
+                  <div class="a-content">
+                      
+                      <div class="a-content-text">
+                        
+                        	<h2 id="toc_0"><a href="https://github.com/nodejs/nan">Native Abstractions for Node.js</a> (nan)</h2>
 
 <blockquote>
 <p>A header file filled with macro and utility goodness for making add-on development for Node.js easier</p>
@@ -1701,22 +2589,36 @@ Local&lt;T&gt; MaybeLocal&lt;T&gt;::ToLocalChecked() {
 }
 </code></pre>
 
+                        
+                      </div>
+                  </div>
+                </a>
+                <div class="read-more clearfix">
+                  <div class="more-left left">
+                  
+                    <span class="date">2017/11/26 15:59 下午</span>
+                    
+          				   
+                  </div>
+                  <div class="more-right right">
+                  <span class="comments">
+                      
 
-		</div>
-
-		
-
-	</article>
- 
-	<article>
-		 <header>
-		  	<h1 class="entry-title"><a href="15114266480360.html">JavaScript高级程序设计 · 7、22 章</a></h1>
-			<p class="meta"><time datetime="2017-11-23T16:44:08+08:00" 
-			pubdate data-updated="true">2017/11/23 16:44 下午</time></p>
-		 </header>
-	  	<div class="entry-content">
-		  	
-		  	<h2 id="toc_0">第七章 函数表达式</h2>
+                       
+                  </span>
+                  </div>
+                </div>
+              </div><!-- article -->
+        
+			<div class="article">
+                <a class="clearlink" href="15114266480360.html">
+                
+                  <h1>JavaScript高级程序设计 · 7、22 章</h1>
+                  <div class="a-content">
+                      
+                      <div class="a-content-text">
+                        
+                        	<h2 id="toc_0">第七章 函数表达式</h2>
 
 <h4 id="toc_1">摘要</h4>
 
@@ -2549,22 +3451,36 @@ EventTarget.prototype = {
 <li>遇到需要长时间计算的任务时, 可以考虑使用<code>数据分块</code>技术处理</li>
 </ul>
 
+                        
+                      </div>
+                  </div>
+                </a>
+                <div class="read-more clearfix">
+                  <div class="more-left left">
+                  
+                    <span class="date">2017/11/23 16:44 下午</span>
+                    
+          				   
+                  </div>
+                  <div class="more-right right">
+                  <span class="comments">
+                      
 
-		</div>
-
-		
-
-	</article>
- 
-	<article>
-		 <header>
-		  	<h1 class="entry-title"><a href="15107096826964.html">Node.js设计模式 · 第八章</a></h1>
-			<p class="meta"><time datetime="2017-11-15T09:34:42+08:00" 
-			pubdate data-updated="true">2017/11/15 9:34 上午</time></p>
-		 </header>
-	  	<div class="entry-content">
-		  	
-		  	<h2 id="toc_0">Universal JavaScript for Web Applications</h2>
+                       
+                  </span>
+                  </div>
+                </div>
+              </div><!-- article -->
+        
+			<div class="article">
+                <a class="clearlink" href="15107096826964.html">
+                
+                  <h1>Node.js设计模式 · 第八章</h1>
+                  <div class="a-content">
+                      
+                      <div class="a-content-text">
+                        
+                        	<h2 id="toc_0">Universal JavaScript for Web Applications</h2>
 
 <p>这一章主要讲述了如何在前后端同时使用JavaScript进行编程.</p>
 
@@ -3528,886 +4444,188 @@ module.exports = Routes;
 
 <p>浏览器和<code>Node.js</code>的<code>JavaScript</code>运行环境在标准库, 编写风格和函数行为上的表现都大不相同.即使如此, 利用<code>Node.js</code>的模块管理与<code>npm</code>包管理系统编写前端代码, 然后利用<code>webpack</code>之类的编译工具编译到符合浏览器标准的代码, 构成了完整的<code>JavaScript</code>生态, 前后端web开发减少了思维切换的难度, 非常不错.</p>
 
+                        
+                      </div>
+                  </div>
+                </a>
+                <div class="read-more clearfix">
+                  <div class="more-left left">
+                  
+                    <span class="date">2017/11/15 9:34 上午</span>
+                    
+          				   
+                  </div>
+                  <div class="more-right right">
+                  <span class="comments">
+                      
 
+                       
+                  </span>
+                  </div>
+                </div>
+              </div><!-- article -->
+        
+              
+
+
+			<div class="row">
+			  <div class="large-6 columns">
+			  <p class="text-left" style="padding-top:25px;">
+			   
+			  </p>
+			  </div>
+			  <div class="large-6 columns">
+			<p class="text-right" style="padding-top:25px;">
+			 <a href="all_1.html">&raquo; Next Page</a> 
+			</p>
+			  </div>
+			</div>
 		</div>
-
-		
-
-	</article>
- 
-	<article>
-		 <header>
-		  	<h1 class="entry-title"><a href="15101331051720.html">JavaScript高级程序设计 · 4、5、6 章</a></h1>
-			<p class="meta"><time datetime="2017-11-08T17:25:05+08:00" 
-			pubdate data-updated="true">2017/11/8 17:25 下午</time></p>
-		 </header>
-	  	<div class="entry-content">
-		  	
-		  	<h2 id="toc_0">第四章 变量、作用域和内存问题</h2>
-
-<p>本章将探讨</p>
-
-<ul>
-<li>基本类型和引用类型的值</li>
-<li>执行环境</li>
-<li>垃圾回收</li>
-</ul>
-
-<h3 id="toc_1">基本类型和引用类型的值</h3>
-
-<ul>
-<li>基本类型包括<code>Undefined</code>、<code>Null</code>、<code>Boolean</code>、<code>Number</code>和<code>String</code>. 这五种基本数据类型是按值传递.</li>
-<li>引用类型的值是保存在内存中的对象.由于JavaScript不允许直接操作内存, 在操作对象时, 实际上是在操作对象的引用.</li>
-</ul>
-
-<h4 id="toc_2">动态属性</h4>
-
-<p>可以再对象创建后给对象添加新的属性</p>
-
-<pre><code class="language-js">let person = new Object();
-person.name = &#39;locust&#39;;
-console.log(person.name) // &#39;locust&#39;
-</code></pre>
-
-<p>但无法给基础类型添加新的属性</p>
-
-<pre><code class="language-js">let name = &#39;locust&#39;;
-name.age = 21;
-console.log(name.age) // undefined
-</code></pre>
-
-<h4 id="toc_3">复制变量值</h4>
-
-<p>对于基本类型, 从一个变量复制另一个基本变量的值时, 会在变量对象上创建新的值<br/>
-<img src="media/15101331051720/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-08%20%E4%B8%8B%E5%8D%888.49.58.png" alt="屏幕快照 2017-11-08 下午8.49.58"/></p>
-
-<p>对于引用类型, 当一个变量复制另一个变量的值时, 会将引用复制一份到新的变量中, 并且指向相同的对象</p>
-
-<pre><code class="language-js let">let obj2 = obj1;
-obj2.name = &#39;locust&#39;;
-console.log(obj.name) // locust
-</code></pre>
-
-<p><img src="media/15101331051720/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-08%20%E4%B8%8B%E5%8D%889.46.10.png" alt="屏幕快照 2017-11-08 下午9.46.10"/></p>
-
-<h4 id="toc_4">传递参数</h4>
-
-<p>无论是基本类型或是引用类型, 对于函数传参都是按值传递的.</p>
-
-<p>对于基本类型很容易理解</p>
-
-<pre><code class="language-js">function addOne(num) {
-    num += 1;
-    return num;
-}
-let ten = 10;
-console.log(addOne(ten)) // 11
-console.log(ten) // 10
-</code></pre>
-
-<p>而对于引用类型, 是将<strong>引用</strong>复制到形参中, 形参和实参都同时指向内存中的对象.</p>
-
-<pre><code class="language-js">function setName(obj) {
-    obj.name = &#39;locust&#39;;
-}
-
-let person = new Object();
-setName(person);
-console.log(person.name) // locust
-</code></pre>
-
-<p>上面这段代码看似是按引用传递的, 但其实是将引用的值复制并传递<br/>
-以下代码可以验证</p>
-
-<pre><code class="language-js">function setName(obj) {
-    obj = new Object();
-    obj.name = &#39;locust&#39;;
-}
-
-let person = new Object();
-person.name = &#39;Jason&#39;;
-setName(person);
-console.log(person.name) // Jason
-</code></pre>
-
-<h4 id="toc_5">检测类型</h4>
-
-<ul>
-<li><code>typeof</code>操作符: 对于基本类型, 能给出详细的类型信息, 但对于引用类型, 只能给出<code>object</code></li>
-<li><code>instanceof</code> 用于检测一个变量中的值是否是某个类的实例</li>
-</ul>
-
-<h4 id="toc_6">执行环境和作用域</h4>
-
-<ul>
-<li><code>执行环境(execution context)</code>, 定义了变量或函数有权访问的其他数据.每个执行环境都有一个与之关联的<code>变量对象(variable object)</code>, 环境中定义的所有变量和函数都保存在这个对象中.</li>
-<li><code>作用域链</code>, 当代码在一个环境中执行时, 会创建<code>变量对象(variable object)</code>的作用域链.</li>
-<li><strong>标识符的搜索是沿着作用域链一级一级往上搜索</strong>.</li>
-</ul>
-
-<pre><code class="language-js">let color = &#39;blue&#39;;
-  
-function changeColor() {
-    let anotherColor = &#39;red&#39;;
-    
-    function swapColors() {
-        let tempColor = anotherColor;
-        anotherColor = color;
-        color = tempColor;
-    }
-    
-    swapColors();
-}
-changeColor();
-
-// 作用域链示例
-window
-├── color
-└── changeColor()
-    ├── anotherColor
-    └── swapColor()
-        └── tempColor
-</code></pre>
-
-<h4 id="toc_7">块级作用域</h4>
-
-<ul>
-<li><code>var</code>会导致<strong>提升(hoisting)</strong></li>
-<li>ES6后建议使用<code>let</code>与<code>const</code></li>
-</ul>
-
-<h3 id="toc_8">垃圾收集</h3>
-
-<p>JavaScript具有自动垃圾回收机制, 无需手动申请及释放内存空间.</p>
-
-<h4 id="toc_9">标记请除(mark-and-sweep)</h4>
-
-<p>当变量进入环境时,就将这个变量标记为<code>进入环境</code>, 不允许释放进入环境的变量.<br/>
-当变量离开环境时,将其标记为<code>离开环境</code>.<br/>
-垃圾收集器会根据标记找出无法再访问的变量并清除.</p>
-
-<h4 id="toc_10">引用计数</h4>
-
-<p>当引用类型被赋予某个变量时, 那么引用的对象引用计数将会加1. 当引用计数变成0时, 表示没有办法再次访问该对象, 将会被垃圾收集器清除.</p>
-
-<h5 id="toc_11">循环引用</h5>
-
-<p>两个对象互相包含对方的引用将会导致循环引用问题, 此时引用计数永远不会为0, 无法被回收.</p>
-
-<pre><code class="language-js">let objA = new Object();
-let objB = new Object();
- 
-objA.foo = objB;
-objB.bar = objA;
-</code></pre>
-
-<p>想要解决循环引用问题, 需要手动<code>解除引用(dereferencing)</code></p>
-
-<pre><code class="language-js">objA.foo = null;
-objB.bar = null;
-</code></pre>
-
-<h2 id="toc_12">第五章 引用类型</h2>
-
-<h3 id="toc_13"><code>Object</code>类型</h3>
-
-<p>对象类型的行为与字典相似, 它的键全部都会被转换成字符串</p>
-
-<pre><code class="language-js">let person = {
-    hello : &#39;world&#39;,
-    42: true
-}
-console.log(person.hello) // wrold
-console.log(person[&#39;hello&#39;]) // wrold
-console.log(person[&#39;42&#39;]) // true;
-</code></pre>
-
-<h3 id="toc_14"><code>Array</code>类型</h3>
-
-<ul>
-<li>创建数组的两种方法.</li>
-</ul>
-
-<pre><code class="language-js">// 通过构造函数
-let foo = new Array();
-// 通过数组字面量
-let bar = [];
-</code></pre>
-
-<ul>
-<li><p><code>length</code>属性</p>
-
-<ul>
-<li><code>length</code>属性用于指示数组长度, 并且它不是只读的.增加<code>length</code>属性会增加数组长度, 多出的部分为<code>undefined</code></li>
-<li>当将一个值放在超出数组长度的位置上, <code>length</code>将会被重新计算, 为最后一个元素的索引位置加一.</li>
-</ul></li>
-<li><p>检测数组的方法: <code>Array.isArray()</code></p></li>
-<li><p>栈方法: 支持<code>pop</code>和<code>push</code>方法</p></li>
-<li><p>队列方法: 支持<code>shifg</code>和<code>push</code>方法</p></li>
-<li><p>重排序方法: <code>sort</code>对数组排序, <code>reverse</code>翻转数组项.</p></li>
-<li><p>迭代方法</p>
-
-<ul>
-<li><code>every()</code>:对数组每一项运行一个函数, 若该函数对所有项返回<code>true</code>, 则返回<code>true</code></li>
-<li><code>some()</code>:对数组每一项运行一个函数, 若该函数对其中一项返回<code>true</code>, 则返回<code>true</code></li>
-<li><code>filter()</code>:对数组每一项运行一个函数, 返回该函数返回true的项组成的数组.</li>
-<li><code>map()</code>:对数组每一项运行一个函数, 返回每次函数调用结果组成的数组.</li>
-<li><code>forEach()</code>:对数组每一项运行一个函数, 没有返回值.</li>
-</ul></li>
-</ul>
-
-<h3 id="toc_15"><code>Date</code>类型</h3>
-
-<pre><code class="language-js">let now = new Date();
-</code></pre>
-
-<h3 id="toc_16"><code>RegExp</code>类型</h3>
-
-<p>正则表达式类型, 形如</p>
-
-<pre><code class="language-js">let expression = / pattern / flag;
-</code></pre>
-
-<p>其中<code>pattern</code>是正则表达式, <code>flag</code>有下列三个标志</p>
-
-<ul>
-<li><code>g</code>: 表示全局模式, 即将模式应用于全部字符串,而非遇到第一个匹配项时即停止</li>
-<li><code>i</code>: 忽略大小写</li>
-<li><code>m</code>: 表示多行模式.</li>
-</ul>
-
-<h4 id="toc_17"><code>RegExp</code>的实例属性</h4>
-
-<ul>
-<li><code>global</code>: 布尔值, 表示是否设置了全局标志</li>
-<li><code>ignoreCase</code>: 布尔值, 表示是否设置了忽略大小写标志.</li>
-<li><code>multiline</code>: 布尔值, 表示是否开启了多行模式</li>
-<li><code>lastIndex</code>: 整数, 表示开始搜索下一个匹配项的字符位置</li>
-<li><code>source</code>: 正则表达式的字面量</li>
-</ul>
-
-<h4 id="toc_18"><code>RegExp</code>的实例方法</h4>
-
-<ul>
-<li><code>exec()</code>: 主要方法, 接收参数为需要应用模式的字符串, 返回包含第一个匹配项的数组, 匹配失败返回<code>null</code></li>
-</ul>
-
-<h3 id="toc_19"><code>Function</code>类型</h3>
-
-<p>ECMAScript中的函数实际上是<code>Function</code>类型的实例. 函数名实际上是指向函数对象的引用</p>
-
-<pre><code class="language-js">let sum = function(num1, num2) {
-    return num1 + num2;
-}
-// 等价于
-
-function sum(num1, num2) {
-    return num1 + num2;
-}
-</code></pre>
-
-<h4 id="toc_20">为何没有重载</h4>
-
-<p>由于函数名实际上是指向函数对象的引用, 所以当尝试重载函数时, 是修改了变量上引用的值, 覆盖了之前声明的函数.</p>
-
-<h4 id="toc_21">函数内部属性</h4>
-
-<p>函数内部两个属性</p>
-
-<ul>
-<li><code>arguments</code>: 数组, 保存了函数的参数.</li>
-<li><code>this</code>: 引用当前函数内部的执行环境.</li>
-</ul>
-
-<h4 id="toc_22">函数的属性和方法</h4>
-
-<p>两个属性:</p>
-
-<ul>
-<li><p><code>length</code>: 表示函数希望接收形参的数量.</p></li>
-<li><p><code>prototype</code>: 每个引用类型都拥有<code>prototype</code>属性,在第六章中将会深入分析.</p></li>
-</ul>
-
-<p>三个方法:</p>
-
-<ul>
-<li><code>apply</code>: 接收一个作用域引用和参数数组.</li>
-</ul>
-
-<pre><code class="language-js">function sum(num1, num2) {
-    return num1 + num2;
-}
-
-function applySum(num1, num2) {
-    return sum.apply(this, [num1, num2]);
-}
-</code></pre>
-
-<ul>
-<li><code>call</code>: 接收一个作用域引用和多个参数.</li>
-</ul>
-
-<pre><code class="language-js">function sum(num1, num2) {
-    return num1 + num2;
-}
-
-function callSum(num1, num2) {
-    return sum.call(this, num1, num2);
-}
-</code></pre>
-
-<ul>
-<li><code>bind</code>方法: 改变函数运行的环境</li>
-</ul>
-
-<pre><code class="language-js">let o = {
-    color: &#39;blue&#39;
-}
-
-function printColor() {
-    console.log(this.color);
-}
-
-let foo = printColor.bind(o);
-foo() // &#39;blue&#39;
-</code></pre>
-
-<h4 id="toc_23">基本包装类型</h4>
-
-<p>基本包装类型有三个: <code>String</code>, <code>Number</code>, <code>Boolean</code>, 用于方便开发者以对象的方式创建和操作基本类型.但要注意的是, 基本类型与基本类型对象是不一样的.<br/>
-在使用时, 解释器会自动读取和写入对象的值</p>
-
-<h5 id="toc_24"><code>Boolean</code>对象(<strong>不建议使用</strong>)</h5>
-
-<pre><code class="language-js">// 利用 Boolean 对象创建布尔值
-let falseObject = new Boolean(false)
-// 与布尔值进行布尔操作
-console.log(falseObject &amp;&amp; true) // true
-</code></pre>
-
-<p>由于所有对象在布尔表达式中都是<code>true</code>, 所以布尔对象当然也为<code>true</code></p>
-
-<h5 id="toc_25"><code>Number</code>对象</h5>
-
-<p><code>Number</code>对象时数字值对应的引用类型,创建其实例</p>
-
-<pre><code class="language-js">let num = new Number(19);
-</code></pre>
-
-<p><code>Number</code>有几个值得注意的实例方法</p>
-
-<ul>
-<li><code>toFixed()</code>: 按照指定的小数位<strong>四舍五入</strong>返回数值的字符串表示.</li>
-<li><code>toExponential()</code>: 按照指定的小数位<strong>四舍五入</strong>返回数值的字符串的科学计数法表示</li>
-</ul>
-
-<p>以及<code>Number</code>对象与<code>Number</code>基本类型在<code>typeof</code>操作符上的不同表象</p>
-
-<pre><code class="language-js">let num1 = new Number(19);
-alert(typeof num1) // &#39;object&#39;
-let num2 = 19;
-alert(typeof num2) // &#39;number&#39;
-</code></pre>
-
-<h5 id="toc_26"><code>String</code>对象</h5>
-
-<p><code>String</code>类型是字符串类型的对象包装类型.<br/>
-<code>String</code>的某些属性与实例方法:</p>
-
-<ul>
-<li><code>charAt()</code>: 接收一个参数, 返回字符串对应位置的字符(也可以通过<code>[]</code>操作符完成).</li>
-<li><code>concat()</code>: 接收任意多个字符串参数, 返回拼接后的字符串.</li>
-<li><code>slice()</code>: 对字符串进行切片</li>
-<li><code>indexOf()</code>: 接收一个字符串参数, 返回该字符串在被搜索串中的第一次出现的索引, 不存在返回-1.</li>
-<li><code>trim()</code>方法, 创建一个字符串副本, 删除前置及后缀的空格, 并返回结果.</li>
-<li><code>replace()</code>: 用于根据正则表达式替换字符串</li>
-</ul>
-
-<h4 id="toc_27">单体内置对象</h4>
-
-<p><code>单体内置对象</code>指由<code>ECMAScript</code>实现提供的, 不依赖宿主环境的. 这些对象在<code>ECMAScript</code>执行前就已经存在.</p>
-
-<h5 id="toc_28"><code>Global</code>对象</h5>
-
-<p><code>Global</code>对象处于所有作用域链的顶端, 在<code>ECMAScript</code>执行点就已经载入, 除了拥有之前提到的诸如<code>isNaN()</code>, <code>isFinite()</code>,<code>parseInt()</code>等都是<code>Global</code>对象的方法.<br/>
-除此之外, 它还包含一些其他方法.</p>
-
-<ul>
-<li><p><code>URL编解码方法</code></p>
-
-<ul>
-<li><code>encodeURIComponent()</code>: 是对统一资源标识符（URI）的组成部分进行编码的方法。它使用一到四个转义序列来表示字符串中的每个字符的UTF-8编码.</li>
-<li><code>encodeURI()</code>: 会替换所有的字符，但不包括以下字符<img src="media/15101331051720/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-09%20%E4%B8%8B%E5%8D%888.56.13.png" alt="屏幕快照 2017-11-09 下午8.56.13"/></li>
-<li><code>decodeURIComponent()</code>: 将已编码 URI 中所有能识别的转义序列转换成原字符</li>
-<li><code>decodeURI()</code>: 将已编码 URI 中所有能识别的转义序列转换成原字符，但不能解码那些不会被 <code>encodeURI()</code>编码的内容</li>
-</ul></li>
-<li><p><code>eval()</code>方法: 将会解析传入的<code>JavaScript</code>脚本字符串并执行.</p></li>
-<li><p><code>Global</code>对象的属性<img src="media/15101331051720/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-09%20%E4%B8%8B%E5%8D%889.00.56.png" alt="屏幕快照 2017-11-09 下午9.00.56"/></p></li>
-<li><p><code>window</code>对象: 在浏览器中, <code>window</code>对象扩展了<code>Global</code>对象, 并成为新的全局对象.</p></li>
-</ul>
-
-<hr/>
-
-<h2 id="toc_29">第六章 面向对象的程序设计</h2>
-
-<h3 id="toc_30">原始时期创建对象的方法</h3>
-
-<pre><code class="language-js">let person = new Object();
-person.name = &#39;locust&#39;;
-person.sayName = function() {
-    alert(this.name);
-}
-</code></pre>
-
-<p>这个对象中添加了<code>name</code>属性和<code>sayName()</code>方法.</p>
-
-<h3 id="toc_31">属性类型</h3>
-
-<p>在<code>ES5</code>中定义了两种属性: 数据属性和访问器属性. 为了表示属性是内部值, 该规范将它们放在两对方括号中, 例如<code>[[Enumerable]]</code>.</p>
-
-<h4 id="toc_32">数据属性</h4>
-
-<ul>
-<li><code>[[Configuralbe]]</code>: 表示能否通过<code>delete</code>删除属性从而重新定义属性, 能否修改属性的特性, 或者能否将属性修改为访问器属性.</li>
-<li><code>[[Enumerable]]</code>: 表示能否通过<code>for-in</code>遍历.</li>
-<li><code>[[Value]]</code>: 表示这个属性的值, 当修改当前属性时, 需要从这个位置修改.</li>
-<li><code>[[Writable]]</code>: 表示该属性是否可写.</li>
-</ul>
-
-<p>例如:</p>
-
-<pre><code class="language-js">let person = {
-    name: &#39;locust&#39;
-};
-</code></pre>
-
-<p>对于<code>person</code>对象中的<code>name</code>属性, <code>[[Value]]</code>被设置为<code>locust</code></p>
-
-<h5 id="toc_33">修改属性默认特性的方法</h5>
-
-<p><code>ES5</code>提供了修改默认属性特性的方法<code>Object.defineProperty(obj, prop, descriptor)</code>, 其中</p>
-
-<ul>
-<li><code>obj</code>: 表示属性所在的对象.</li>
-<li><code>prop</code>: 表示属性的名字.</li>
-<li><code>descriptor</code>: 用于描述属性对象特性的对象.</li>
-</ul>
-
-<p>例如</p>
-
-<pre><code class="language-js">let person = new Object();
-Object.defineProperty(person, &#39;name&#39;, {
-    writalbe: false,
-    value: &#39;locust&#39;
-}
-alert(person.name); // locust
-// (在严格模式下, 向不可写属性复制会抛出异常)
-person.name = &#39;jason&#39;;
-alert(person.name); // locust
-</code></pre>
-
-<h4 id="toc_34">访问器属性</h4>
-
-<ul>
-<li><code>[[Configuralbe]]</code>: 表示能否通过<code>delete</code>删除属性从而重新定义属性, 能否修改属性的特性, 或者能否将属性修改为访问器属性.</li>
-<li><code>[[Enumerable]]</code>: 表示能否通过<code>for-in</code>遍历.</li>
-<li><code>[[Get]]</code>: 在读取属性时调用的函数, 默认值为<code>undefined</code></li>
-<li><code>[[Set]]</code>: 在写入属性时调用的函数, 默认值为<code>undefined</code></li>
-</ul>
-
-<p>同样可以通过<code>Object.defineProperty(obj, prop, descriptor)</code>修改访问器属性.</p>
-
-<p>例如</p>
-
-<pre><code class="language-js">let person = {
-  _age: 21
-}
-Object.defineProperty(person, &#39;age&#39;, {
-  set: function (newValue) {
-    if (newValue &lt; 0) {
-      this._age = 0;
-      return;
-    }
-    this._age = newValue;
-  }
-});
-</code></pre>
-
-<h3 id="toc_35">创建对象</h3>
-
-<h4 id="toc_36">工厂模式</h4>
-
-<pre><code class="language-js">function createPerson(name, age, job) {
-    let o = new Object();
-    o.name = name;
-    o.age  = age;
-    o.job  = job;
-    o.sayName = function() {
-        alert(this.name);
-    }
-    return o;   
-}
-</code></pre>
-
-<p>工厂模式可以解决创建对象的代码冗余问题, 但是仍然无法解决对象识别问题(<code>instanceof</code>)</p>
-
-<h4 id="toc_37">构造函数模式</h4>
-
-<pre><code class="language-js">function Person(name, age, job) {
-    this.name = name;
-    this.age  = age;
-    this.job  = job;
-    this.sayName = function() {
-        alert(this.name);
-    }
-}
-
-let person = new Person(&#39;locust&#39;, 21, &#39;Doctor&#39;);
-</code></pre>
-
-<p>这里使用了<code>new</code>操作符, 通过<code>new</code>调用构造函数会经历以下步骤:</p>
-
-<ol>
-<li>创建一个新的对象</li>
-<li>将构造函数的作用域赋给新的对象(也就是<code>this</code>指向了新的对象)</li>
-<li>执行构造函数中的代码(给新对象添加属性和方法)</li>
-<li>返回新对象</li>
-</ol>
-
-<p>通过<code>new</code>操作符生成的实例还会拥有<code>constructor</code>属性, 该属性指向<code>Person</code>构造函数</p>
-
-<pre><code class="language-js">alert(person.constructor === Person) // true
-</code></pre>
-
-<p>同时也可以使用<code>instanceof</code>操作符去识别对象</p>
-
-<pre><code class="language-js">alert(person instanceof Object)  // true
-alert(person instanceof Person); // true
-</code></pre>
-
-<h5 id="toc_38">构造函数的问题</h5>
-
-<p>在通过构造函数实例化对象时, 其中的属性会创建新的副本, 然而多个相同方法的副本(<code>Function对象</code>)是没有必要的(例如<code>Person</code>中的<code>sayName()</code>), 如此一来就会造成内存浪费.</p>
-
-<p>其中一个不太好的解决方法</p>
-
-<pre><code class="language-js">function Person(name, age, job) {
-    this.name = name;
-    this.age  = age;
-    this.job  = job;
-    this.sayName = sayName;
-}
-
-function sayName() {
-    alert(this.name);
-}
-</code></pre>
-
-<h4 id="toc_39">原型模式</h4>
-
-<p> 每一个函数都有一个名为<code>prototype(原型)</code>属性, 这个属性指向<strong>一个对象</strong>, <strong>而这个对象是包含由特定类型的所有实例共享的属性和方法</strong></p>
-
-<pre><code class="language-js">function Person() {}
-
-Person.prototype.name = &#39;locust&#39;;
-Person.prototype.age  = 21;
-Person.prototype.job  = &#39;Doctor&#39;;
-Person.prototype.sayName = function() {
-    alert(this.name);
-}
-
-let person = new Person();
-</code></pre>
-
-<h5 id="toc_40">理解原型对象</h5>
-
-<p>每创建一个新函数,都会为该函数创建一个<code>prototype</code>属性,并且指向函数的原型对象.</p>
-
-<p>默认情况下, 所有原型对象都会获得<code>constructor</code>属性, 其指向<code>prototype</code>属性所在的函数.</p>
-
-<p>在通过构造函数实例化对象后, 该对象会包含一个内部属性<code>[[Prototype]]</code>, 该属性指向构造函数的原型对象.在某些实现中, 可以通过<code>__proto__</code>访问它</p>
-
-<p>以<code>Person</code>为例<br/>
-<img src="media/15101331051720/person.png" alt="person"/></p>
-
-<h5 id="toc_41">对象中属性的搜索顺序</h5>
-
-<p>每当代码读取对象中的属性时, 都会执行一次搜索, 首先从对象实例开始.如果找到了改名字对应的属性, 则返回该属性的值. 如果未找到, 则搜索实例的原型对象.</p>
-
-<p>所以当我们的实例需要给属性赋予自己的值时</p>
-
-<pre><code class="language-js">function Person() {}
-
-Person.prototype.name = &#39;locust&#39;;
-Person.prototype.age  = 21;
-Person.prototype.job  = &#39;Doctor&#39;;
-Person.prototype.sayName = function() {
-    alert(this.name);
-}
-
-let person = new Person();
-person.name = &#39;jason&#39;;
-</code></pre>
-
-<p>此时对象内部图示<br/>
-<img src="media/15101331051720/pp.png" alt="pp"/></p>
-
-<p>当我们需要判断某个实例的属性是来自原型对象, 还是来自对象自身, 可以使用<code>hasOwnProperty()</code>判断</p>
-
-<pre><code class="language-js">let person = new Person();
-alert(person.hasOwnProperty(&#39;name&#39;)); // false
-
-person.name = &#39;jason&#39;;
-alert(person.hasOwnProperty(&#39;name&#39;)); // true
-
-delete person.name;
-alert(person.hasOwnProperty(&#39;name&#39;)); // false
-</code></pre>
-
-<p>当我们需要判断某个实例的属性是否存在于原型对象中时, 可以使用<code>in</code>操作符</p>
-
-<pre><code class="language-js">let person = new Person();
-alert(&#39;name&#39; in person); // true
-</code></pre>
-
-<h5 id="toc_42">原型对象的问题</h5>
-
-<ol>
-<li>原型对象没有构造函数.</li>
-<li>由于原型对象中的属性由所有实例共享, 当我们对原型对象中的引用类型实例进行操作时, 会影响到其他的实例.</li>
-</ol>
-
-<h4 id="toc_43">组合使用构造函数与原型对象</h4>
-
-<p>对于面向对象编程来说, 多个实例中方法可以共享, 但属性应该是每个实例独有的. 由此我们可以利用构造函数的<code>this</code>引用存储属性, 利用<code>prototype</code>存放方法.</p>
-
-<pre><code class="language-js">function Person(name, age, job) {
-    this.name = name;
-    this.age  = age;
-    this.job  = job;
-}
-
-Person.prototype.sayName = function() {
-    alert(this.name);
-}
-</code></pre>
-
-<p>完美~</p>
-
-<h3 id="toc_44">继承</h3>
-
-<h4 id="toc_45">原型链</h4>
-
-<p>利用原型让一个引用类型继承另一个引用类型的属性和方法.</p>
-
-<p>根据<code>对象中属性的搜索顺序</code>, 只需要令子类的原型对象执行父类的实例, 就可以完成继承了</p>
-
-<pre><code class="language-js">function SuperType() { 
-    this.property = true;
-}
-
-SuperType.prototype.getSuperValue = function()   {
-    return this.property;
-};
-
-function SubType() {
-    this.subProperty = false;
-}
-// 继承 SuperType
-SubType.property = new SuperType();
-
-SubType.property.getSubValue = function() {
-    return this.subProperty;
-};
-
-let subInstance = new SubType();
-alert(subInstance.getSuberValue()); // true
-</code></pre>
-
-<p><img src="media/15101331051720/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-10%20%E4%B8%8B%E5%8D%8810.35.48.png" alt="屏幕快照 2017-11-10 下午10.35.48"/></p>
-
-<h5 id="toc_46">原型链的顶端</h5>
-
-<p>所有引用类型默认都继承了<code>Object</code>, 所以所有引用类型的原型链顶端均是<code>Object.prototype</code><br/>
-<img src="media/15101331051720/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202017-11-10%20%E4%B8%8B%E5%8D%8810.36.36.png" alt="屏幕快照 2017-11-10 下午10.36.36"/></p>
-
-<h5 id="toc_47">原型链继承的问题</h5>
-
-<ol>
-<li>父类的实例属性变成了子类的原型, 所有的子类实例都共享了父类的实力属性.</li>
-<li>无法向父类构造函数传递参数.</li>
-</ol>
-
-<h4 id="toc_48">借用构造函数</h4>
-
-<p>通过调用父类构造函数, 将父类的属性赋予到子类中,</p>
-
-<pre><code class="language-js">function SuperType(name) {
-    this.name = name;
-}
-
-function SubType(age) {
-    // 调用父类构造函数, 将父类属性赋予子类
-    SuperType.call(this, &#39;locust&#39;);
-    this.age = age;
-}
-
-let subInstance = new SubType(21)
-alert(subInstance.name); // locust
-alert(subInstance.age); // 21
-</code></pre>
-
-<h5 id="toc_49">借用构造函数的问题</h5>
-
-<p>只继承了父类的属性, 并未继承父类的方法</p>
-
-<h4 id="toc_50">组合继承</h4>
-
-<p>组合继承融合了原型链继承和借用构造函数继承的方法, <code>原型链继承</code>用于继承父类<strong>方法</strong>, <code>借用构造函数继承</code>用于继承父类<strong>属性</strong>.</p>
-
-<pre><code class="language-js">function SuperType(name) {
-    this.name = name;
-}
-
-SuperType.prototype.sayName = function() {
-    alert(this.name);
-};
-
-function SubType(name, age) {
-    // 继承父类属性
-    SuperType.call(this, name);
-    this.age = age;
-}
-// 继承父类方法
-SubType.prototype = new SuperType();
-
-SubType.prototype.sayAge = function() {
-    alert(this.age);
-}
-</code></pre>
-
-<h4 id="toc_51">ES5中的<code>Object.create</code>继承</h4>
-
-<p><code>Object.create(proto[, propertiesObject])</code>方法以<code>proto</code>和<code>propertiesObject</code>创建新的对象;</p>
-
-<p>继承实例</p>
-
-<pre><code class="language-js">function SuperType(name) {
-    this.name = name;
-}
-
-SuperType.prototype.sayName = function() {
-    alert(this.name);
-};
-
-function SubType(name, age) {
-    // 继承父类属性
-    SuperType.call(this, name);
-    this.age = age;
-}
-
-// 继承父类方法
-SubType.prototype = Object.create(SuperType.prototype);
-
-// 重定向构造函数
-SubType.prototype.constructor = SubType
-</code></pre>
-
-
-		</div>
-
-		
-
-	</article>
-  
-	<div class="pagination">
-	 <a class="prev" href="all_1.html">&larr; Older</a> 
-<a href="archives.html">Blog Archives</a>
-	 
-	    
-	</div>
+	</div><!-- large 8 -->
+
+ <div class="large-4 medium-4 columns">
+  <div class="hide-for-small">
+    <div id="sidebar" class="sidebar">
+          <div id="site-info" class="site-info">
+            
+                <h1>zerolocust</h1>
+                <div class="site-des">写给自己看的博客</div>
+                <div class="social">
+
+
+
+
+
+
+
+
+
+
+
+  <a target="_blank" class="rss" href="atom.xml" title="RSS">RSS</a>
+                
+              	 </div>
+          	</div>
+
+             
+
+              <div id="site-categories" class="side-item ">
+                <div class="side-header">
+                  <h2>Categories</h2>
+                </div>
+                <div class="side-content">
+
+      	<p class="cat-list">
+         
+        </p>
+
+
+                </div>
+              </div>
+
+              <div id="site-categories" class="side-item">
+                <div class="side-header">
+                  <h2>Recent Posts</h2>
+                </div>
+                <div class="side-content">
+                <ul class="posts-list">
+	      
+		      
+			      <li class="post">
+			        <a href="15259419469147.html">Badger LSM 实现剖析 · Part 1 · Memtable 与 SST</a>
+			      </li>
+		     
+		  
+		      
+			      <li class="post">
+			        <a href="15127920862405.html">Node.js设计模式 · 第九章</a>
+			      </li>
+		     
+		  
+		      
+			      <li class="post">
+			        <a href="15124581127035.html">SQL必知必会 1 - 7 章</a>
+			      </li>
+		     
+		  
+		      
+			      <li class="post">
+			        <a href="15116831975159.html">从 Node.js C++ Addon 观察 Js 在 v8 中的表示方式</a>
+			      </li>
+		     
+		  
+		      
+			      <li class="post">
+			        <a href="15114266480360.html">JavaScript高级程序设计 · 7、22 章</a>
+			      </li>
+		     
+		  
+		      
+		  
+		      
+		  
+		      
+		  
+		      
+		  
+		      
+		  
+		      
+		  
+		      
+		  
+		      
+		  
+		      
+		  
+		      
+		  
+		      
+		   
+		  		</ul>
+                </div>
+              </div>
+        </div><!-- sidebar -->
+      </div><!-- hide for small -->
+</div><!-- large 4 -->
+
+</div><!-- row -->
+
+ <div class="page-bottom clearfix">
+  <div class="row">
+   <p class="copyright">Copyright &copy; 2015
+Powered by <a target="_blank" href="http://www.mweb.im">MWeb</a>,&nbsp; 
+Theme used <a target="_blank" href="http://github.com">GitHub CSS</a>.</p>
+  </div>
 </div>
- <aside class="sidebar"> 
 
-	<section>
-	  <h1>Categories</h1>
-	  <ul id="recent_posts">
-	  
-	        
-	      </li>
-	   
-	  </ul>
-	</section>
-	<section>
-	  <h1>Recent Posts</h1>
-	  <ul id="recent_posts">
-	  
-	      
-		      <li class="post">
-		        <a href="15127920862405.html">Node.js设计模式 · 第九章</a>
-		      </li>
-	     
-	  
-	      
-		      <li class="post">
-		        <a href="15124581127035.html">SQL必知必会 1 - 7 章</a>
-		      </li>
-	     
-	  
-	      
-		      <li class="post">
-		        <a href="15116831975159.html">从 Node.js C++ Addon 观察 Js 在 v8 中的表示方式</a>
-		      </li>
-	     
-	  
-	      
-		      <li class="post">
-		        <a href="15114266480360.html">JavaScript高级程序设计 · 7、22 章</a>
-		      </li>
-	     
-	  
-	      
-		      <li class="post">
-		        <a href="15107096826964.html">Node.js设计模式 · 第八章</a>
-		      </li>
-	     
-	  
-	      
-	  
-	      
-	  
-	      
-	  
-	      
-	  
-	      
-	  
-	      
-	  
-	      
-	  
-	      
-	  
-	      
-	  
-	      
-	   
-	  </ul>
-	</section>
-	
-</aside> </div></div>
-  <footer role="contentinfo"><p>
-  Copyright &copy; 2017 -  -
-  <span class="credit">Powered by <a target="_blank" href="https://zerolocusta.github.io">zerolocusta</a> &nbsp;&nbsp; Theme by <a href="http://octopress.org">Octopress</a></span>
-</p>
-
-</footer>
+        </section>
+      </div>
+    </div>
 
   
     
 
-<script src="asset/chart/all-min.js"></script><script type="text/javascript">$(function(){    var mwebii=0;    var mwebChartEleId = 'mweb-chart-ele-';    $('pre>code').each(function(){        mwebii++;        var eleiid = mwebChartEleId+mwebii;        if($(this).hasClass('language-sequence')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = Diagram.parse($(this).text());            diagram.drawSVG(eleiid,{theme: 'simple'});        }else if($(this).hasClass('language-flow')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = flowchart.parse($(this).text());            diagram.drawSVG(eleiid);        }    });});</script>
+    <script src="asset/js/foundation.min.js"></script>
+    <script>
+      $(document).foundation();
+      function fixSidebarHeight(){
+        var w1 = $('.markdown-body').height();
+          var w2 = $('#sidebar').height();
+          if (w1 > w2) { $('#sidebar').height(w1); };
+      }
+      $(function(){
+        fixSidebarHeight();
+      })
+      $(window).load(function(){
+          fixSidebarHeight();
+      });
+     
+    </script>
+
+    <script src="asset/chart/all-min.js"></script><script type="text/javascript">$(function(){    var mwebii=0;    var mwebChartEleId = 'mweb-chart-ele-';    $('pre>code').each(function(){        mwebii++;        var eleiid = mwebChartEleId+mwebii;        if($(this).hasClass('language-sequence')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = Diagram.parse($(this).text());            diagram.drawSVG(eleiid,{theme: 'simple'});        }else if($(this).hasClass('language-flow')){            var ele = $(this).addClass('nohighlight').parent();            $('<div id="'+eleiid+'"></div>').insertAfter(ele);            ele.hide();            var diagram = flowchart.parse($(this).text());            diagram.drawSVG(eleiid);        }    });});</script>
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><script type="text/x-mathjax-config">MathJax.Hub.Config({TeX: { equationNumbers: { autoNumber: "AMS" } }});</script>
 
-</body>
+
+  </body>
 </html>
